@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Daily Care v0.4</title>
+<title>Loochori — Check-In v0.5</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -153,6 +153,43 @@
   .exceptionItem{display:flex;justify-content:space-between;gap:10px;background:var(--panel2);border-radius:14px;padding:10px 12px;font-size:13px}
   .exceptionItem button{border:0;background:transparent;color:#ffbcbc}
   .empty{font-size:13px;color:var(--muted);padding:10px 0}
+
+  .checkinGrid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px}
+  .checkCard{background:var(--panel2);border-radius:18px;padding:14px}
+  .checkTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .checkTitle{font-weight:760}
+  .checkMeta{font-size:12px;color:var(--muted)}
+  .scaleRow{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+  .scaleBtn{
+    aspect-ratio:1/1;border-radius:50%;border:2px solid #59616a;background:transparent;
+    color:var(--muted);font-weight:800;cursor:pointer;min-width:0
+  }
+  .scaleBtn.selected{
+    background:var(--accent);color:var(--accentText);border-color:var(--accent);
+    box-shadow:0 0 0 5px rgba(217,240,223,.08)
+  }
+  .scaleLabels{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:11px;margin-top:8px}
+  .checkActions{display:flex;gap:8px;margin-top:12px}
+  .secondaryBtn{
+    flex:1;border:1px solid var(--line);background:var(--panel2);padding:11px 12px;border-radius:14px;
+    font-weight:740;cursor:pointer
+  }
+  .secondaryBtn:disabled,.tinyBtn:disabled{opacity:.45;cursor:default}
+  .checkStatus{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--soft);border-radius:16px;padding:12px 13px;margin-top:12px
+  }
+  .checkStatusText{font-size:13px;color:var(--muted);line-height:1.4}
+  .historyList{display:grid;gap:8px;margin-top:12px}
+  .historyItem{
+    display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+    padding:10px 12px;background:var(--panel2);border-radius:14px;font-size:13px
+  }
+  .historyTime{color:var(--muted);font-variant-numeric:tabular-nums}
+  .historyVals{display:flex;gap:8px;flex-wrap:wrap}
+  .historyChip{background:var(--soft);padding:5px 8px;border-radius:999px}
+  .historyDelete{border:0;background:transparent;color:#ffbcbc;cursor:pointer}
+
   @media (min-width:680px){
     .summaryGrid{grid-template-columns:repeat(4,1fr)}
     .weekGrid{grid-template-columns:repeat(2,1fr)}
@@ -164,7 +201,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Daily Care v0.4</div>
+    <div class="version">Check-In v0.5</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -205,6 +242,46 @@
         <div class="summaryHint">when you aren’t awake at home</div>
       </div>
     </div>
+
+
+    <section class="section" id="checkinSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">How are you right now?</div>
+          <div class="sectionNote">A tiny observation, not a judgment. Update it whenever your state changes.</div>
+        </div>
+        <button class="tinyBtn" id="skipCheckin">Clear</button>
+      </div>
+
+      <div class="checkinGrid">
+        <div class="checkCard">
+          <div class="checkTop">
+            <div class="checkTitle">Mood</div>
+            <div class="checkMeta" id="moodValue">Not set</div>
+          </div>
+          <div class="scaleRow" id="moodScale"></div>
+          <div class="scaleLabels"><span>rough</span><span>good</span></div>
+        </div>
+
+        <div class="checkCard">
+          <div class="checkTop">
+            <div class="checkTitle">Energy</div>
+            <div class="checkMeta" id="energyValue">Not set</div>
+          </div>
+          <div class="scaleRow" id="energyScale"></div>
+          <div class="scaleLabels"><span>empty</span><span>energized</span></div>
+        </div>
+      </div>
+
+      <div class="checkActions">
+        <button class="secondaryBtn" id="saveCheckin">Save check-in</button>
+      </div>
+
+      <div class="checkStatus">
+        <div class="checkStatusText" id="checkinStatus">No check-in yet today.</div>
+      </div>
+      <div class="historyList" id="checkinHistory"></div>
+    </section>
 
     <section class="section" id="dailyCareSection">
       <div class="sectionHead">
@@ -353,6 +430,7 @@
   const TARGET_SLEEP_MIN = 7.5 * 60;
   const STORAGE_KEY = 'loochori_schedule_exceptions';
   const CARE_STORAGE_KEY = 'loochori_daily_care_v1';
+  const CHECKIN_STORAGE_KEY = 'loochori_checkins_v1';
   const CARE_GROUPS = [
     {id:'morning', label:'Morning'},
     {id:'day', label:'Through the day'},
@@ -413,6 +491,9 @@
   let selectedDate = stripTime(new Date());
   let exceptions = loadExceptions();
   let careHistory = loadCareHistory();
+  let checkinHistory = loadCheckinHistory();
+  let pendingMood = null;
+  let pendingEnergy = null;
 
   const $ = id => document.getElementById(id);
 
@@ -435,6 +516,11 @@
     catch(e){ return {}; }
   }
   function saveCareHistory(){ localStorage.setItem(CARE_STORAGE_KEY, JSON.stringify(careHistory)); }
+  function loadCheckinHistory(){
+    try { return JSON.parse(localStorage.getItem(CHECKIN_STORAGE_KEY) || '[]'); }
+    catch(e){ return []; }
+  }
+  function saveCheckinHistory(){ localStorage.setItem(CHECKIN_STORAGE_KEY, JSON.stringify(checkinHistory)); }
   function careStateFor(dateStr, habit){
     const day = careHistory[dateStr] || {};
     const stored = day[habit.id];
@@ -486,6 +572,9 @@
     mins=((Math.round(mins)%1440)+1440)%1440;
     const hh=Math.floor(mins/60), mm=mins%60, ap=hh>=12?'p':'a', h=hh%12||12;
     return mm?`${h}:${String(mm).padStart(2,'0')}${ap}`:`${h}${ap}`;
+  }
+  function formatClock(ts){
+    return new Date(ts).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
   }
 
   function getSchedule(person,date){
@@ -675,6 +764,130 @@
     $('careProgress').textContent = `${filled} / ${total}`;
   }
 
+  function selectedDayCheckins(){
+    const day = iso(selectedDate);
+    return checkinHistory
+      .filter(c => c.date === day)
+      .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+  }
+
+  function latestSelectedDayCheckin(){
+    const arr = selectedDayCheckins();
+    return arr.length ? arr[arr.length - 1] : null;
+  }
+
+  function renderScale(containerId, kind){
+    const box = $(containerId);
+    box.innerHTML = '';
+    const current = kind === 'mood' ? pendingMood : pendingEnergy;
+    for(let i=1;i<=5;i++){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'scaleBtn' + (current === i ? ' selected' : '');
+      btn.textContent = i;
+      btn.setAttribute('aria-label', `${kind} ${i} of 5`);
+      btn.addEventListener('click', () => {
+        if(kind === 'mood') pendingMood = i;
+        else pendingEnergy = i;
+        renderCheckinControls();
+      });
+      box.appendChild(btn);
+    }
+  }
+
+  function renderCheckinControls(){
+    renderScale('moodScale','mood');
+    renderScale('energyScale','energy');
+    $('moodValue').textContent = pendingMood ? `${pendingMood}/5` : 'Not set';
+    $('energyValue').textContent = pendingEnergy ? `${pendingEnergy}/5` : 'Not set';
+
+    const future = isFutureDate(selectedDate);
+    $('saveCheckin').disabled = future;
+    $('skipCheckin').disabled = future;
+
+    const latest = latestSelectedDayCheckin();
+    if(future){
+      $('checkinStatus').textContent = 'Future-day check-ins are disabled.';
+    } else if(latest){
+      $('checkinStatus').textContent =
+        `Latest ${formatClock(latest.timestamp)} · mood ${latest.mood}/5 · energy ${latest.energy}/5`;
+    } else {
+      $('checkinStatus').textContent = 'No check-in yet for this day.';
+    }
+  }
+
+  function renderCheckinHistory(){
+    const box = $('checkinHistory');
+    box.innerHTML = '';
+    const arr = selectedDayCheckins().slice().reverse();
+    arr.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'historyItem';
+      row.innerHTML = `
+        <div class="historyTime">${formatClock(item.timestamp)}</div>
+        <div class="historyVals">
+          <span class="historyChip">Mood ${item.mood}/5</span>
+          <span class="historyChip">Energy ${item.energy}/5</span>
+        </div>
+        <button class="historyDelete" aria-label="Delete check-in">Delete</button>
+      `;
+      row.querySelector('button').addEventListener('click', () => {
+        checkinHistory = checkinHistory.filter(c => c.id !== item.id);
+        saveCheckinHistory();
+        pendingMood = null;
+        pendingEnergy = null;
+        renderCheckin();
+      });
+      box.appendChild(row);
+    });
+  }
+
+  function renderCheckin(){
+    const latest = latestSelectedDayCheckin();
+    if(pendingMood === null && pendingEnergy === null && latest){
+      pendingMood = latest.mood;
+      pendingEnergy = latest.energy;
+    }
+    renderCheckinControls();
+    renderCheckinHistory();
+  }
+
+  function clearPendingCheckin(){
+    pendingMood = null;
+    pendingEnergy = null;
+    renderCheckinControls();
+  }
+
+  function saveCurrentCheckin(){
+    if(isFutureDate(selectedDate)) return;
+    if(pendingMood === null || pendingEnergy === null){
+      alert('Pick both mood and energy first.');
+      return;
+    }
+
+    const dateStr = iso(selectedDate);
+    let timestamp;
+    if(dateStr === iso(new Date())){
+      timestamp = new Date().toISOString();
+    } else {
+      const d = new Date(selectedDate);
+      d.setHours(12,0,0,0);
+      timestamp = d.toISOString();
+    }
+
+    checkinHistory.push({
+      id: (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random()}`),
+      date: dateStr,
+      timestamp,
+      mood: pendingMood,
+      energy: pendingEnergy
+    });
+    saveCheckinHistory();
+    pendingMood = null;
+    pendingEnergy = null;
+    renderCheckin();
+  }
+
   function renderToday(){
     $('todayDow').textContent=selectedDate.toLocaleDateString(undefined,{weekday:'long'}).toUpperCase();
     $('todayDate').textContent=selectedDate.toLocaleDateString(undefined,{month:'long',day:'numeric'});
@@ -826,12 +1039,12 @@
         <div class="shiftLine"><div class="personLabel">Cori</div><div class="shiftText">${formatShift(c)} · wake ~${minToShort(cw)}</div></div>
         <div class="weekOverlap">Shared awake at home: <strong style="color:var(--text)">${durationLabel(totals.sharedHome)}</strong></div>
       `;
-      card.addEventListener('click',()=>{selectedDate=d;showScreen('todayScreen');renderAll();});
+      card.addEventListener('click',()=>{selectedDate=d;pendingMood=null;pendingEnergy=null;showScreen('todayScreen');renderAll();});
       grid.appendChild(card);
     }
   }
 
-  function renderAll(){ renderToday(); renderCare(); renderWeek(); renderExceptionList(); }
+  function renderAll(){ renderToday(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));
@@ -840,9 +1053,9 @@
   }
 
   document.querySelectorAll('.navBtn').forEach(btn=>btn.addEventListener('click',()=>showScreen(btn.dataset.screen)));
-  $('prevDay').addEventListener('click',()=>{selectedDate=addDays(selectedDate,-1);renderAll();});
-  $('nextDay').addEventListener('click',()=>{selectedDate=addDays(selectedDate,1);renderAll();});
-  $('todayBtn').addEventListener('click',()=>{selectedDate=stripTime(new Date());renderAll();});
+  $('prevDay').addEventListener('click',()=>{selectedDate=addDays(selectedDate,-1);pendingMood=null;pendingEnergy=null;renderAll();});
+  $('nextDay').addEventListener('click',()=>{selectedDate=addDays(selectedDate,1);pendingMood=null;pendingEnergy=null;renderAll();});
+  $('todayBtn').addEventListener('click',()=>{selectedDate=stripTime(new Date());pendingMood=null;pendingEnergy=null;renderAll();});
 
   function openModal(){
     $('exceptionModal').classList.add('open');
@@ -880,6 +1093,9 @@
       box.appendChild(div);
     });
   }
+
+  $('saveCheckin').addEventListener('click', saveCurrentCheckin);
+  $('skipCheckin').addEventListener('click', clearPendingCheckin);
 
   renderAll();
 })();

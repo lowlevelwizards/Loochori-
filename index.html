@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Check-In v0.5</title>
+<title>Loochori — Now v0.6</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -190,6 +190,89 @@
   .historyChip{background:var(--soft);padding:5px 8px;border-radius:999px}
   .historyDelete{border:0;background:transparent;color:#ffbcbc;cursor:pointer}
 
+
+  .nowSection{
+    background:linear-gradient(180deg,#1b211e,#171a1d);
+    border-color:#344039;
+  }
+  .nowClock{
+    font-size:12px;color:var(--muted);background:var(--soft);
+    padding:7px 10px;border-radius:999px;white-space:nowrap
+  }
+  .nowHero{
+    background:var(--panel2);border-radius:18px;padding:16px;margin-top:4px
+  }
+  .nowTitle{
+    font-size:25px;font-weight:820;letter-spacing:-.035em;line-height:1.08
+  }
+  .nowSubtitle{
+    color:var(--muted);font-size:14px;line-height:1.45;margin-top:6px
+  }
+  .nowChips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .nowChip{
+    font-size:12px;background:var(--soft);padding:7px 10px;border-radius:999px;color:var(--muted)
+  }
+  .nowChip strong{color:var(--text)}
+  .nowSubhead{
+    font-size:12px;text-transform:uppercase;letter-spacing:.12em;
+    color:var(--muted);font-weight:800;margin:16px 2px 8px
+  }
+  .nowCare{display:grid;gap:8px}
+  .nowCareItem{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--panel2);border-radius:15px;padding:11px 12px
+  }
+  .nowCareLabel{font-size:14px;font-weight:720}
+  .nowCareHint{font-size:11px;color:var(--muted);margin-top:2px}
+  .nowCareBubbles{display:flex;gap:7px;align-items:center}
+  .nowCareBubble{
+    width:34px;height:34px;border-radius:50%;border:2px solid #59616a;
+    background:transparent;cursor:pointer;position:relative
+  }
+  .nowCareBubble.filled{
+    background:var(--accent);border-color:var(--accent)
+  }
+  .nowCareBubble.filled:after{
+    content:"✓";position:absolute;inset:0;display:grid;place-items:center;
+    color:var(--accentText);font-weight:900;font-size:18px
+  }
+  .nowCareDone{
+    color:var(--muted);font-size:13px;background:var(--panel2);
+    border-radius:15px;padding:12px
+  }
+  .miniTimeline{
+    background:#121518;border:1px solid var(--line);border-radius:16px;padding:12px
+  }
+  .miniRow{
+    display:grid;grid-template-columns:42px 1fr;gap:9px;align-items:center;margin:7px 0
+  }
+  .miniPerson{font-size:11px;color:var(--muted);font-weight:760}
+  .miniTrack{
+    height:18px;border-radius:999px;overflow:hidden;display:flex;background:#202428
+  }
+  .miniSeg{height:100%;min-width:1px}
+  .miniSeg.sleep{background:#3a4046}
+  .miniSeg.work-you{background:var(--you)}
+  .miniSeg.work-cori{background:var(--cori)}
+  .miniSeg.commute{background:var(--commute)}
+  .miniSeg.home{background:#28322d}
+  .miniLegend{
+    display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:10px;margin-top:9px
+  }
+  .miniLegend span{display:inline-flex;gap:5px;align-items:center}
+  .miniSwatch{width:8px;height:8px;border-radius:50%}
+  .detailsDisclosure{margin-top:12px}
+  .detailsDisclosure > summary{
+    list-style:none;cursor:pointer;background:var(--panel);border:1px solid var(--line);
+    border-radius:18px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px
+  }
+  .detailsDisclosure > summary::-webkit-details-marker{display:none}
+  .detailsDisclosure > summary:after{content:"⌄";color:var(--muted);font-size:20px}
+  .detailsDisclosure[open] > summary:after{content:"⌃"}
+  .detailsSummaryTitle{font-weight:780}
+  .detailsSummaryNote{font-size:12px;color:var(--muted);margin-top:2px}
+  .detailsBody{padding-top:2px}
+
   @media (min-width:680px){
     .summaryGrid{grid-template-columns:repeat(4,1fr)}
     .weekGrid{grid-template-columns:repeat(2,1fr)}
@@ -201,7 +284,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Check-In v0.5</div>
+    <div class="version">Now v0.6</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -219,6 +302,37 @@
       <div class="subline" id="wakeSubline"></div>
       <div class="subline" id="travelSubline"></div>
     </section>
+
+    <section class="section nowSection" id="nowSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Now</div>
+          <div class="sectionNote">Only what is relevant at this moment.</div>
+        </div>
+        <div class="nowClock" id="nowClock">—</div>
+      </div>
+
+      <div class="nowHero">
+        <div class="nowTitle" id="nowTitle">—</div>
+        <div class="nowSubtitle" id="nowSubtitle">—</div>
+        <div class="nowChips" id="nowChips"></div>
+      </div>
+
+      <div class="nowSubhead">Care around now</div>
+      <div class="nowCare" id="nowCare"></div>
+
+      <div class="nowSubhead">Today at a glance</div>
+      <div class="miniTimeline" id="miniTimeline"></div>
+    </section>
+
+    <details class="detailsDisclosure" id="dayDetails">
+      <summary>
+        <div>
+          <div class="detailsSummaryTitle">Full day details</div>
+          <div class="detailsSummaryNote">schedule, timeline & calculations</div>
+        </div>
+      </summary>
+      <div class="detailsBody">
 
     <div class="summaryGrid">
       <div class="summaryCard">
@@ -300,7 +414,7 @@
       <div class="sectionHead">
         <div>
           <div class="sectionTitle">Daily home-presence map</div>
-          <div class="sectionNote">5 AM–midnight · target sleep + work + travel. No mood, energy or chore assumptions yet.</div>
+          <div class="sectionNote">5 AM–midnight · target sleep + work + travel. Mood and energy are recorded, but do not alter the schedule yet.</div>
         </div>
         <button class="tinyBtn" id="todayBtn">Today</button>
       </div>
@@ -330,6 +444,9 @@
         “Awake at home” still does not mean productive time. It means only that the person is estimated to be awake, not at work, and not traveling to or from work. Getting ready, errands, recovery, mood and energy still come later.
       </div>
     </section>
+
+      </div>
+    </details>
   </main>
 
   <main id="weekScreen" class="screen">
@@ -338,7 +455,7 @@
         <div>
           <div class="dow">WEEKLY OVERVIEW</div>
           <div class="dateBig" id="weekTitle"></div>
-          <div class="subline" style="text-align:left">Same schedule facts, zoomed out one level. Daily care history is saved but not summarized here yet.</div>
+          <div class="subline" style="text-align:left">Same schedule facts, zoomed out one level. Care and check-in history are saved but not summarized here yet.</div>
         </div>
         <button class="tinyBtn" id="manageExceptions">Exceptions</button>
       </div>
@@ -666,6 +783,228 @@
            !isCommuting(person,date,minute);
   }
 
+
+  function personState(person,date,minute){
+    if(isSleeping(person,date,minute)) return {type:'sleep'};
+    const cb = commuteBlocks(person,date).find(b=>minute>=b.start && minute<b.end);
+    if(cb) return {type:'commute', direction:cb.direction, label:cb.label, minutes:cb.minutes};
+    if(isWorking(person,date,minute)) return {type:'work'};
+    return {type:'home'};
+  }
+
+  function personTimelineSegments(person,date){
+    const points=new Set([DAY_START,DAY_END]);
+    const shift=getSchedule(person,date).shift;
+    if(shift){
+      points.add(Math.max(DAY_START,Math.min(DAY_END,timeToMin(shift.start))));
+      points.add(Math.max(DAY_START,Math.min(DAY_END,timeToMin(shift.end))));
+    }
+    sleepBlocks(person,date).forEach(b=>{points.add(b.start);points.add(b.end);});
+    commuteBlocks(person,date).forEach(b=>{points.add(b.start);points.add(b.end);});
+    const sorted=[...points].sort((a,b)=>a-b);
+    const out=[];
+    for(let i=0;i<sorted.length-1;i++){
+      const start=sorted[i], end=sorted[i+1], mid=(start+end)/2;
+      out.push({start,end,state:personState(person,date,mid)});
+    }
+    return out;
+  }
+
+  function currentSegment(person,date,minute){
+    return personTimelineSegments(person,date).find(s=>minute>=s.start && minute<s.end) || null;
+  }
+
+  function homeArrivalMinute(person,date){
+    const shift=getSchedule(person,date).shift;
+    if(!shift) return null;
+    return Math.min(DAY_END, timeToMin(shift.end)+commute[person].inbound.plan);
+  }
+
+  function careIncomplete(habit,dateStr){
+    return careStateFor(dateStr,habit).some(v=>!v);
+  }
+
+  function renderNowCare(minute){
+    const box=$('nowCare');
+    box.innerHTML='';
+    const dateStr=iso(selectedDate);
+    const isToday=dateStr===iso(new Date());
+
+    if(!isToday){
+      box.innerHTML='<div class="nowCareDone">Live “care around now” appears on Today. Your saved bubbles for this date remain below.</div>';
+      return;
+    }
+
+    let ids;
+    if(minute < 11*60){
+      ids=['brush_am','meds_am','breakfast','water'];
+    }else if(minute < 17*60){
+      ids=['lunch','water'];
+    }else{
+      ids=['dinner','water','brush_pm','meds_pm'];
+    }
+
+    const habits=ids
+      .map(id=>CARE_DEFS.find(h=>h.id===id))
+      .filter(Boolean)
+      .filter(h=>careIncomplete(h,dateStr))
+      .slice(0,4);
+
+    if(!habits.length){
+      box.innerHTML='<div class="nowCareDone">Everything relevant for this part of the day is already handled.</div>';
+      return;
+    }
+
+    habits.forEach(habit=>{
+      const state=careStateFor(dateStr,habit);
+      const row=document.createElement('div');
+      row.className='nowCareItem';
+
+      const label=document.createElement('div');
+      label.innerHTML=`<div class="nowCareLabel">${habit.label}</div>${habit.hint?`<div class="nowCareHint">${habit.hint}</div>`:''}`;
+
+      const bubbles=document.createElement('div');
+      bubbles.className='nowCareBubbles';
+      state.forEach((done,index)=>{
+        const btn=document.createElement('button');
+        btn.type='button';
+        btn.className='nowCareBubble'+(done?' filled':'');
+        btn.setAttribute('aria-label',`${habit.label}${habit.units>1?` ${index+1} of ${habit.units}`:''}: ${done?'done':'not done'}`);
+        btn.addEventListener('click',()=>{
+          setCareUnit(dateStr,habit,index,!done);
+          renderCare();
+          renderNow();
+        });
+        bubbles.appendChild(btn);
+      });
+
+      row.append(label,bubbles);
+      box.appendChild(row);
+    });
+  }
+
+  function renderMiniTimeline(){
+    const box=$('miniTimeline');
+    box.innerHTML='';
+
+    ['you','cori'].forEach(person=>{
+      const row=document.createElement('div');
+      row.className='miniRow';
+      const label=document.createElement('div');
+      label.className='miniPerson';
+      label.textContent=person==='you'?'You':'Cori';
+
+      const track=document.createElement('div');
+      track.className='miniTrack';
+      personTimelineSegments(person,selectedDate).forEach(seg=>{
+        const el=document.createElement('div');
+        const st=seg.state;
+        let cls='home';
+        if(st.type==='sleep') cls='sleep';
+        else if(st.type==='commute') cls='commute';
+        else if(st.type==='work') cls=person==='you'?'work-you':'work-cori';
+        el.className=`miniSeg ${cls}`;
+        el.style.width=`${((seg.end-seg.start)/(DAY_END-DAY_START))*100}%`;
+        track.appendChild(el);
+      });
+
+      row.append(label,track);
+      box.appendChild(row);
+    });
+
+    const legend=document.createElement('div');
+    legend.className='miniLegend';
+    legend.innerHTML=`
+      <span><i class="miniSwatch" style="background:#3a4046"></i>sleep</span>
+      <span><i class="miniSwatch" style="background:var(--commute)"></i>travel</span>
+      <span><i class="miniSwatch" style="background:var(--you)"></i>your work</span>
+      <span><i class="miniSwatch" style="background:var(--cori)"></i>Cori work</span>
+      <span><i class="miniSwatch" style="background:#28322d"></i>home/awake</span>`;
+    box.appendChild(legend);
+  }
+
+  function renderNow(){
+    const todayStr=iso(new Date());
+    const selectedStr=iso(selectedDate);
+    const now=new Date();
+    const minute=now.getHours()*60+now.getMinutes();
+
+    if(selectedStr!==todayStr){
+      $('nowClock').textContent=selectedStr<todayStr?'Past day':'Future day';
+      $('nowTitle').textContent='Day snapshot';
+      $('nowSubtitle').textContent='Live NOW context only applies to today. The schedule shape and saved history for this date are still shown.';
+      const latest=latestSelectedDayCheckin();
+      $('nowChips').innerHTML=latest
+        ? `<span class="nowChip">Mood <strong>${latest.mood}/5</strong></span><span class="nowChip">Energy <strong>${latest.energy}/5</strong></span>`
+        : '<span class="nowChip">No check-in recorded</span>';
+      renderNowCare(minute);
+      renderMiniTimeline();
+      return;
+    }
+
+    $('nowClock').textContent=now.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+
+    const you=personState('you',selectedDate,minute);
+    const cori=personState('cori',selectedDate,minute);
+    const yourSeg=currentSegment('you',selectedDate,minute);
+    const coriSeg=currentSegment('cori',selectedDate,minute);
+
+    let title='Right now';
+    let subtitle='';
+
+    if(you.type==='sleep'){
+      title='Target sleep';
+      subtitle=`Wake around ${minToTime(getWakeMinutes('you',selectedDate))}.`;
+    }else if(you.type==='commute'){
+      title=you.direction==='outbound' ? `${you.label} to work` : `${you.label} home`;
+      subtitle=`About ${you.minutes} minutes in the planning model.`;
+      if(you.direction==='inbound'){
+        const arrival=homeArrivalMinute('you',selectedDate);
+        if(arrival) subtitle+=` Home around ${minToTime(arrival)}.`;
+      }
+    }else if(you.type==='work'){
+      const shift=getSchedule('you',selectedDate).shift;
+      const arrival=homeArrivalMinute('you',selectedDate);
+      title='At work';
+      subtitle=shift ? `Shift ends ${minToTime(timeToMin(shift.end))}` : '';
+      if(arrival) subtitle+=` · home around ${minToTime(arrival)}`;
+    }else if(you.type==='home' && cori.type==='home'){
+      title='Home with Cori';
+      const sharedSeg=segmentStates(selectedDate).find(s=>minute>=s.start && minute<s.end && s.state==='sharedHome');
+      subtitle=sharedSeg ? `Shared awake time until about ${minToTime(sharedSeg.end)}.` : 'You’re both awake at home.';
+    }else if(you.type==='home'){
+      title='Home solo';
+      if(cori.type==='work'){
+        const arrival=homeArrivalMinute('cori',selectedDate);
+        subtitle=arrival ? `Cori should be home around ${minToTime(arrival)}.` : 'Cori is at work.';
+      }else if(cori.type==='commute'){
+        subtitle=cori.direction==='inbound' ? 'Cori is on the way home.' : 'Cori is heading to work.';
+      }else if(cori.type==='sleep'){
+        subtitle=`Cori is in the target sleep window until about ${minToTime(getWakeMinutes('cori',selectedDate))}.`;
+      }else{
+        subtitle='You are awake at home.';
+      }
+    }
+
+    $('nowTitle').textContent=title;
+    $('nowSubtitle').textContent=subtitle;
+
+    const latest=latestSelectedDayCheckin();
+    const chips=[];
+    if(latest){
+      chips.push(`<span class="nowChip">Mood <strong>${latest.mood}/5</strong></span>`);
+      chips.push(`<span class="nowChip">Energy <strong>${latest.energy}/5</strong></span>`);
+      chips.push(`<span class="nowChip">checked ${formatClock(latest.timestamp)}</span>`);
+    }else{
+      chips.push('<span class="nowChip">No check-in yet</span>');
+    }
+    if(cori.type==='home' && you.type==='home') chips.push('<span class="nowChip">Together</span>');
+    $('nowChips').innerHTML=chips.join('');
+
+    renderNowCare(minute);
+    renderMiniTimeline();
+  }
+
   function segmentStates(date){
     const points=new Set([DAY_START,DAY_END]);
 
@@ -837,6 +1176,7 @@
         pendingMood = null;
         pendingEnergy = null;
         renderCheckin();
+        renderNow();
       });
       box.appendChild(row);
     });
@@ -886,6 +1226,7 @@
     pendingMood = null;
     pendingEnergy = null;
     renderCheckin();
+    renderNow();
   }
 
   function renderToday(){
@@ -1044,7 +1385,7 @@
     }
   }
 
-  function renderAll(){ renderToday(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); }
+  function renderAll(){ renderToday(); renderNow(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));
@@ -1096,6 +1437,12 @@
 
   $('saveCheckin').addEventListener('click', saveCurrentCheckin);
   $('skipCheckin').addEventListener('click', clearPendingCheckin);
+
+  setInterval(()=>{
+    if(iso(selectedDate)===iso(new Date())){
+      renderNow();
+    }
+  }, 60000);
 
   renderAll();
 })();

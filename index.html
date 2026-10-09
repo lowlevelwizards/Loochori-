@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Day Envelope v0.2</title>
+<title>Loochori — Home Presence v0.3</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -22,6 +22,8 @@
     --coriText:#281539;
     --sleep:#30353a;
     --sleepText:#d8dde2;
+    --commute:#d8bd91;
+    --commuteText:#211b12;
     --warn:#ffe7b8;
     --shadow:0 14px 36px rgba(0,0,0,.28);
     --radius:22px;
@@ -62,7 +64,7 @@
   .peopleKey{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 12px}
   .key{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
   .dot{width:10px;height:10px;border-radius:50%}
-  .dot.you{background:var(--you)} .dot.cori{background:var(--cori)} .dot.sleep{background:var(--sleep);border:1px solid #555d64}
+  .dot.you{background:var(--you)} .dot.cori{background:var(--cori)} .dot.sleep{background:var(--sleep);border:1px solid #555d64} .dot.commute{background:var(--commute)}
   .timelineWrap{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:#121518}
   .timelineHeader{display:grid;grid-template-columns:58px 1fr 1fr;position:sticky;top:0;z-index:5;background:#15191c;border-bottom:1px solid var(--line)}
   .timelineHeader div{padding:10px 8px;font-size:12px;font-weight:700;text-align:center}
@@ -81,6 +83,11 @@
   .block.sleep{
     background:repeating-linear-gradient(135deg,#2f3439,#2f3439 8px,#2a2f34 8px,#2a2f34 16px);
     color:var(--sleepText);border:1px solid #424950;z-index:1
+  }
+  .block.commute{
+    background:var(--commute);color:var(--commuteText);z-index:3;
+    padding:2px 6px;border-radius:6px;font-size:9px;line-height:1.05;
+    min-height:4px;display:flex;align-items:center
   }
   .block small{display:block;font-weight:650;opacity:.72;margin-top:2px}
   .wakeMarker{position:absolute;left:8px;right:8px;border-top:1px dashed rgba(255,255,255,.35);z-index:3}
@@ -140,7 +147,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Day Envelope v0.2</div>
+    <div class="version">Home Presence v0.3</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -156,11 +163,12 @@
       </div>
       <div class="subline" id="todaySubline"></div>
       <div class="subline" id="wakeSubline"></div>
+      <div class="subline" id="travelSubline"></div>
     </section>
 
     <div class="summaryGrid">
       <div class="summaryCard">
-        <div class="summaryLabel">Shared awake non-work</div>
+        <div class="summaryLabel">Shared awake at home</div>
         <div class="summaryValue" id="sharedHours">—</div>
         <div class="summaryHint">inside visible day</div>
       </div>
@@ -170,22 +178,22 @@
         <div class="summaryHint">overlapping shifts</div>
       </div>
       <div class="summaryCard">
-        <div class="summaryLabel">Your awake solo</div>
+        <div class="summaryLabel">Your awake at home</div>
         <div class="summaryValue" id="yourSoloHours">—</div>
-        <div class="summaryHint">while Cori works</div>
+        <div class="summaryHint">when Cori isn’t awake at home</div>
       </div>
       <div class="summaryCard">
-        <div class="summaryLabel">Cori awake solo</div>
+        <div class="summaryLabel">Cori awake at home</div>
         <div class="summaryValue" id="coriSoloHours">—</div>
-        <div class="summaryHint">while you work</div>
+        <div class="summaryHint">when you aren’t awake at home</div>
       </div>
     </div>
 
     <section class="section">
       <div class="sectionHead">
         <div>
-          <div class="sectionTitle">Daily day envelope</div>
-          <div class="sectionNote">5 AM–midnight · target sleep + work only. No commute or energy assumptions yet.</div>
+          <div class="sectionTitle">Daily home-presence map</div>
+          <div class="sectionNote">5 AM–midnight · target sleep + work + travel. No mood, energy or chore assumptions yet.</div>
         </div>
         <button class="tinyBtn" id="todayBtn">Today</button>
       </div>
@@ -193,6 +201,7 @@
         <div class="key"><span class="dot you"></span>You work</div>
         <div class="key"><span class="dot cori"></span>Cori work</div>
         <div class="key"><span class="dot sleep"></span>Target sleep</div>
+        <div class="key"><span class="dot commute"></span>Travel</div>
       </div>
       <div class="timelineWrap">
         <div class="timelineHeader">
@@ -205,13 +214,13 @@
     <section class="section">
       <div class="sectionHead">
         <div>
-          <div class="sectionTitle">What the day envelope implies</div>
-          <div class="sectionNote">Derived from work + a 7.5-hour midpoint sleep target.</div>
+          <div class="sectionTitle">What home presence implies</div>
+          <div class="sectionNote">Derived from work + sleep target + commute estimates.</div>
         </div>
       </div>
       <div class="availability" id="availability"></div>
       <div class="callout">
-        “Awake non-work” still does not mean productive time. It only means the app has stopped counting obvious sleep as free time. Commute, getting ready, recovery, mood and energy come later.
+        “Awake at home” still does not mean productive time. It means only that the person is estimated to be awake, not at work, and not traveling to or from work. Getting ready, errands, recovery, mood and energy still come later.
       </div>
     </section>
   </main>
@@ -231,12 +240,14 @@
     <div class="weekGrid" id="weekGrid"></div>
 
     <section class="section">
-      <div class="sectionTitle">Sleep assumptions in this build</div>
+      <div class="sectionTitle">Time assumptions in this build</div>
       <div class="callout">
         <strong style="color:var(--text)">Goal:</strong> 7–8 hours. For calculation, Loochori uses the midpoint: <strong style="color:var(--text)">7.5 hours</strong>.<br><br>
         <strong style="color:var(--text)">You:</strong> off 9a · 8a shift 7a · 9a shift 8a · late shift 9:30a.<br><br>
         <strong style="color:var(--text)">Cori:</strong> off 9a · Wed/Thu ~9:15a · Fri 6a · Sat ~6:45a.<br><br>
-        These are planning assumptions, not sleep tracking. We can compare them to real behavior later.
+        <strong style="color:var(--text)">Your commute:</strong> bus ~25m to work (usual range 20–30m) · ~35m home (usual range 30–40m).<br><br>
+        <strong style="color:var(--text)">Cori commute:</strong> ~5m walk each way.<br><br>
+        These are planning estimates, not tracking. The app uses the midpoint/typical value to calculate the day.
       </div>
     </section>
   </main>
@@ -310,7 +321,18 @@
   const DAY_END = 24 * 60;
   const PX_PER_MIN = 46 / 60;
   const TARGET_SLEEP_MIN = 7.5 * 60;
-  const STORAGE_KEY = 'loochori_v0_2_exceptions';
+  const STORAGE_KEY = 'loochori_schedule_exceptions';
+
+  const commute = {
+    you: {
+      outbound: {plan:25, min:20, max:30, label:'Bus'},
+      inbound: {plan:35, min:30, max:40, label:'Bus'}
+    },
+    cori: {
+      outbound: {plan:5, min:5, max:5, label:'Walk'},
+      inbound: {plan:5, min:5, max:5, label:'Walk'}
+    }
+  };
 
   const baseline = {
     you: {
@@ -348,8 +370,17 @@
   const $ = id => document.getElementById(id);
 
   function loadExceptions(){
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
-    catch(e){ return []; }
+    try {
+      const current = localStorage.getItem(STORAGE_KEY);
+      if(current) return JSON.parse(current);
+      const older = localStorage.getItem('loochori_v0_2_exceptions') || localStorage.getItem('homeOS_v0_1_exceptions');
+      if(older){
+        const parsed = JSON.parse(older);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        return parsed;
+      }
+      return [];
+    } catch(e){ return []; }
   }
   function saveExceptions(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(exceptions)); }
   function stripTime(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
@@ -444,6 +475,38 @@
     return minute>=timeToMin(shift.start) && minute<timeToMin(shift.end);
   }
 
+  function commuteBlocks(person,date){
+    const shift=getSchedule(person,date).shift;
+    if(!shift) return [];
+    const st=timeToMin(shift.start), en=timeToMin(shift.end);
+    return [
+      {
+        start:Math.max(DAY_START, st-commute[person].outbound.plan),
+        end:Math.min(DAY_END, st),
+        direction:'outbound',
+        label:commute[person].outbound.label,
+        minutes:commute[person].outbound.plan
+      },
+      {
+        start:Math.max(DAY_START, en),
+        end:Math.min(DAY_END, en+commute[person].inbound.plan),
+        direction:'inbound',
+        label:commute[person].inbound.label,
+        minutes:commute[person].inbound.plan
+      }
+    ].filter(b=>b.end>b.start);
+  }
+
+  function isCommuting(person,date,minute){
+    return commuteBlocks(person,date).some(b=>minute>=b.start && minute<b.end);
+  }
+
+  function isAwakeAtHome(person,date,minute){
+    return !isSleeping(person,date,minute) &&
+           !isWorking(person,date,minute) &&
+           !isCommuting(person,date,minute);
+  }
+
   function segmentStates(date){
     const points=new Set([DAY_START,DAY_END]);
 
@@ -454,21 +517,21 @@
         points.add(Math.max(DAY_START,Math.min(DAY_END,timeToMin(shift.end))));
       }
       sleepBlocks(person,date).forEach(b=>{points.add(b.start);points.add(b.end);});
+      commuteBlocks(person,date).forEach(b=>{points.add(b.start);points.add(b.end);});
     });
 
     const sorted=[...points].sort((a,b)=>a-b);
     const segs=[];
     for(let i=0;i<sorted.length-1;i++){
       const a=sorted[i], b=sorted[i+1], mid=(a+b)/2;
-      const ySleep=isSleeping('you',date,mid), cSleep=isSleeping('cori',date,mid);
       const yWork=isWorking('you',date,mid), cWork=isWorking('cori',date,mid);
-      const yAwake=!ySleep, cAwake=!cSleep;
+      const yHome=isAwakeAtHome('you',date,mid), cHome=isAwakeAtHome('cori',date,mid);
       let state='other';
 
       if(yWork && cWork) state='bothWorking';
-      else if(yAwake && cAwake && !yWork && !cWork) state='sharedAwake';
-      else if(yAwake && !yWork && cWork) state='youSoloAwake';
-      else if(cAwake && !cWork && yWork) state='coriSoloAwake';
+      else if(yHome && cHome) state='sharedHome';
+      else if(yHome && !cHome) state='youHome';
+      else if(cHome && !yHome) state='coriHome';
 
       segs.push({start:a,end:b,state});
     }
@@ -476,7 +539,7 @@
   }
 
   function aggregateStates(date){
-    const totals={sharedAwake:0,bothWorking:0,youSoloAwake:0,coriSoloAwake:0};
+    const totals={sharedHome:0,bothWorking:0,youHome:0,coriHome:0};
     segmentStates(date).forEach(s=>{ if(totals[s.state]!==undefined) totals[s.state]+=s.end-s.start; });
     return totals;
   }
@@ -502,12 +565,13 @@
 
     const yw=getWakeMinutes('you',selectedDate), cw=getWakeMinutes('cori',selectedDate);
     $('wakeSubline').textContent=`Wake assumptions: you ~${minToShort(yw)} · Cori ~${minToShort(cw)} · sleep goal 7–8h`;
+    $('travelSubline').textContent='Travel: you bus ~25m out / ~35m home · Cori walk ~5m each way';
 
     const totals=aggregateStates(selectedDate);
-    $('sharedHours').textContent=durationLabel(totals.sharedAwake);
+    $('sharedHours').textContent=durationLabel(totals.sharedHome);
     $('bothWorkHours').textContent=durationLabel(totals.bothWorking);
-    $('yourSoloHours').textContent=durationLabel(totals.youSoloAwake);
-    $('coriSoloHours').textContent=durationLabel(totals.coriSoloAwake);
+    $('yourSoloHours').textContent=durationLabel(totals.youHome);
+    $('coriSoloHours').textContent=durationLabel(totals.coriHome);
 
     renderTimeline();
     renderAvailability(selectedDate);
@@ -563,7 +627,21 @@
       lane.appendChild(block);
     }
 
+    function addCommute(lane,person){
+      commuteBlocks(person,selectedDate).forEach(b=>{
+        const height=(b.end-b.start)*PX_PER_MIN;
+        const block=document.createElement('div');
+        block.className='block commute';
+        block.style.top=`${(b.start-DAY_START)*PX_PER_MIN}px`;
+        block.style.height=`${Math.max(4,height)}px`;
+        block.title=`${b.label} · about ${b.minutes} minutes`;
+        block.textContent=height>=15 ? `${b.label} ~${b.minutes}m` : '';
+        lane.appendChild(block);
+      });
+    }
+
     addSleep(youLane,'you'); addSleep(coriLane,'cori');
+    addCommute(youLane,'you'); addCommute(coriLane,'cori');
     addWork(youLane,'you','you'); addWork(coriLane,'cori','cori');
 
     if(iso(selectedDate)===iso(new Date())){
@@ -578,13 +656,13 @@
 
   function renderAvailability(date){
     const labels={
-      sharedAwake:'Shared awake non-work',
-      youSoloAwake:'Your awake solo non-work',
-      coriSoloAwake:'Cori awake solo non-work',
+      sharedHome:'Shared awake at home',
+      youHome:'You awake at home',
+      coriHome:'Cori awake at home',
       bothWorking:'Both working'
     };
-    const order=['sharedAwake','youSoloAwake','coriSoloAwake','bothWorking'];
-    const grouped={sharedAwake:[],youSoloAwake:[],coriSoloAwake:[],bothWorking:[]};
+    const order=['sharedHome','youHome','coriHome','bothWorking'];
+    const grouped={sharedHome:[],youHome:[],coriHome:[],bothWorking:[]};
     segmentStates(date).forEach(s=>{
       if(grouped[s.state] && s.end>s.start) grouped[s.state].push(`${minToTime(s.start)}–${minToTime(s.end)}`);
     });
@@ -624,7 +702,7 @@
         </div>
         <div class="shiftLine"><div class="personLabel">You</div><div class="shiftText">${formatShift(y)} · wake ~${minToShort(yw)}</div></div>
         <div class="shiftLine"><div class="personLabel">Cori</div><div class="shiftText">${formatShift(c)} · wake ~${minToShort(cw)}</div></div>
-        <div class="weekOverlap">Shared awake non-work: <strong style="color:var(--text)">${durationLabel(totals.sharedAwake)}</strong></div>
+        <div class="weekOverlap">Shared awake at home: <strong style="color:var(--text)">${durationLabel(totals.sharedAwake)}</strong></div>
       `;
       card.addEventListener('click',()=>{selectedDate=d;showScreen('todayScreen');renderAll();});
       grid.appendChild(card);

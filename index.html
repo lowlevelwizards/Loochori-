@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Home Presence v0.3</title>
+<title>Loochori — Daily Care v0.4</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -99,6 +99,23 @@
   .availWho{font-size:13px;font-weight:680}
   .availTime{font-size:13px;color:var(--muted);text-align:right}
   .callout{background:var(--soft);border-radius:16px;padding:12px 13px;font-size:13px;color:var(--muted);line-height:1.45;margin-top:10px}
+  .careHeaderRight{display:flex;align-items:center;gap:8px}
+  .careProgress{font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);padding:7px 9px;border-radius:999px;white-space:nowrap}
+  .careGroups{display:grid;gap:12px}
+  .careGroup{background:#121518;border:1px solid var(--line);border-radius:18px;overflow:hidden}
+  .careGroupTitle{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);font-weight:760;padding:11px 13px 8px}
+  .careRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 13px;border-top:1px solid rgba(255,255,255,.055)}
+  .careRow:first-of-type{border-top:0}
+  .careLabel{font-size:15px;font-weight:680;letter-spacing:-.01em}
+  .careHint{font-size:11px;color:var(--muted);margin-top:2px}
+  .bubbles{display:flex;align-items:center;gap:8px;flex-shrink:0}
+  .careBubble{width:31px;height:31px;border-radius:50%;border:2px solid #59616a;background:transparent;padding:0;cursor:pointer;display:grid;place-items:center;transition:transform .08s ease,background .12s ease,border-color .12s ease}
+  .careBubble:active{transform:scale(.91)}
+  .careBubble.filled{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 3px rgba(217,240,223,.08)}
+  .careBubble.filled:after{content:'✓';color:var(--accentText);font-size:17px;font-weight:900;line-height:1}
+  .careBubble:disabled{opacity:.3;cursor:default}
+  .careFooter{font-size:12px;color:var(--muted);line-height:1.45;margin-top:10px;padding:0 2px}
+  .futureCare{background:var(--soft);border-radius:14px;padding:11px 12px;font-size:12px;color:var(--muted);margin-bottom:10px;display:none}
   .weekGrid{display:grid;gap:10px}
   .dayCard{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:13px;cursor:pointer}
   .dayCard.selected{outline:2px solid rgba(255,255,255,.18)}
@@ -147,7 +164,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Home Presence v0.3</div>
+    <div class="version">Daily Care v0.4</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -188,6 +205,19 @@
         <div class="summaryHint">when you aren’t awake at home</div>
       </div>
     </div>
+
+    <section class="section" id="dailyCareSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Daily care</div>
+          <div class="sectionNote">Small maintenance signals, not a to-do backlog. Tap a bubble when it happens.</div>
+        </div>
+        <div class="careHeaderRight"><div class="careProgress" id="careProgress">0 / 10</div></div>
+      </div>
+      <div class="futureCare" id="futureCare">This day hasn’t happened yet. Its care bubbles will unlock when it arrives.</div>
+      <div class="careGroups" id="careGroups"></div>
+      <div class="careFooter">Saved locally by date. No streaks, scoring, or judgment yet — we’re only building a clean record of what actually happens.</div>
+    </section>
 
     <section class="section">
       <div class="sectionHead">
@@ -231,7 +261,7 @@
         <div>
           <div class="dow">WEEKLY OVERVIEW</div>
           <div class="dateBig" id="weekTitle"></div>
-          <div class="subline" style="text-align:left">Same schedule facts, zoomed out one level.</div>
+          <div class="subline" style="text-align:left">Same schedule facts, zoomed out one level. Daily care history is saved but not summarized here yet.</div>
         </div>
         <button class="tinyBtn" id="manageExceptions">Exceptions</button>
       </div>
@@ -322,6 +352,22 @@
   const PX_PER_MIN = 46 / 60;
   const TARGET_SLEEP_MIN = 7.5 * 60;
   const STORAGE_KEY = 'loochori_schedule_exceptions';
+  const CARE_STORAGE_KEY = 'loochori_daily_care_v1';
+  const CARE_GROUPS = [
+    {id:'morning', label:'Morning'},
+    {id:'day', label:'Through the day'},
+    {id:'evening', label:'Evening'}
+  ];
+  const CARE_DEFS = [
+    {id:'brush_am', label:'Brush teeth', group:'morning', units:1, hint:'morning'},
+    {id:'meds_am', label:'AM meds', group:'morning', units:1},
+    {id:'breakfast', label:'Breakfast', group:'morning', units:1},
+    {id:'water', label:'Water', group:'day', units:3, hint:'3 bottles'},
+    {id:'lunch', label:'Lunch', group:'day', units:1},
+    {id:'dinner', label:'Dinner', group:'evening', units:1},
+    {id:'brush_pm', label:'Brush teeth', group:'evening', units:1, hint:'before bed'},
+    {id:'meds_pm', label:'PM meds', group:'evening', units:1}
+  ];
 
   const commute = {
     you: {
@@ -366,6 +412,7 @@
 
   let selectedDate = stripTime(new Date());
   let exceptions = loadExceptions();
+  let careHistory = loadCareHistory();
 
   const $ = id => document.getElementById(id);
 
@@ -383,6 +430,29 @@
     } catch(e){ return []; }
   }
   function saveExceptions(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(exceptions)); }
+  function loadCareHistory(){
+    try { return JSON.parse(localStorage.getItem(CARE_STORAGE_KEY) || '{}'); }
+    catch(e){ return {}; }
+  }
+  function saveCareHistory(){ localStorage.setItem(CARE_STORAGE_KEY, JSON.stringify(careHistory)); }
+  function careStateFor(dateStr, habit){
+    const day = careHistory[dateStr] || {};
+    const stored = day[habit.id];
+    if(Array.isArray(stored)){
+      return Array.from({length:habit.units}, (_,i)=>Boolean(stored[i]));
+    }
+    return Array(habit.units).fill(false);
+  }
+  function setCareUnit(dateStr, habit, unitIndex, value){
+    if(!careHistory[dateStr]) careHistory[dateStr] = {};
+    const state = careStateFor(dateStr, habit);
+    state[unitIndex] = value;
+    careHistory[dateStr][habit.id] = state;
+    saveCareHistory();
+  }
+  function isFutureDate(date){
+    return stripTime(date).getTime() > stripTime(new Date()).getTime();
+  }
   function stripTime(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
   function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return stripTime(x); }
   function iso(d){
@@ -553,6 +623,58 @@
     return `<strong>${formatShort(schedule.shift.start)}–${formatShort(schedule.shift.end)}</strong>${schedule.source==='exception'?` <span class="tag">${schedule.label||'exception'}</span>`:''}`;
   }
 
+  function renderCare(){
+    const dateStr = iso(selectedDate);
+    const future = isFutureDate(selectedDate);
+    $('futureCare').style.display = future ? 'block' : 'none';
+    const container = $('careGroups');
+    container.innerHTML = '';
+
+    let filled = 0;
+    let total = 0;
+
+    CARE_GROUPS.forEach(group=>{
+      const habits = CARE_DEFS.filter(h=>h.group===group.id);
+      const groupEl = document.createElement('div');
+      groupEl.className = 'careGroup';
+      groupEl.innerHTML = `<div class="careGroupTitle">${group.label}</div>`;
+
+      habits.forEach(habit=>{
+        const state = careStateFor(dateStr, habit);
+        filled += state.filter(Boolean).length;
+        total += habit.units;
+
+        const row = document.createElement('div');
+        row.className = 'careRow';
+
+        const label = document.createElement('div');
+        label.innerHTML = `<div class="careLabel">${habit.label}</div>${habit.hint ? `<div class="careHint">${habit.hint}</div>` : ''}`;
+
+        const bubbles = document.createElement('div');
+        bubbles.className = 'bubbles';
+        state.forEach((done,index)=>{
+          const btn = document.createElement('button');
+          btn.className = 'careBubble' + (done ? ' filled' : '');
+          btn.type = 'button';
+          btn.disabled = future;
+          btn.setAttribute('aria-pressed', done ? 'true' : 'false');
+          btn.setAttribute('aria-label', `${habit.label}${habit.units>1 ? ` ${index+1} of ${habit.units}` : ''}: ${done ? 'done' : 'not done'}`);
+          btn.addEventListener('click',()=>{
+            setCareUnit(dateStr, habit, index, !done);
+            renderCare();
+          });
+          bubbles.appendChild(btn);
+        });
+
+        row.append(label,bubbles);
+        groupEl.appendChild(row);
+      });
+      container.appendChild(groupEl);
+    });
+
+    $('careProgress').textContent = `${filled} / ${total}`;
+  }
+
   function renderToday(){
     $('todayDow').textContent=selectedDate.toLocaleDateString(undefined,{weekday:'long'}).toUpperCase();
     $('todayDate').textContent=selectedDate.toLocaleDateString(undefined,{month:'long',day:'numeric'});
@@ -702,14 +824,14 @@
         </div>
         <div class="shiftLine"><div class="personLabel">You</div><div class="shiftText">${formatShift(y)} · wake ~${minToShort(yw)}</div></div>
         <div class="shiftLine"><div class="personLabel">Cori</div><div class="shiftText">${formatShift(c)} · wake ~${minToShort(cw)}</div></div>
-        <div class="weekOverlap">Shared awake at home: <strong style="color:var(--text)">${durationLabel(totals.sharedAwake)}</strong></div>
+        <div class="weekOverlap">Shared awake at home: <strong style="color:var(--text)">${durationLabel(totals.sharedHome)}</strong></div>
       `;
       card.addEventListener('click',()=>{selectedDate=d;showScreen('todayScreen');renderAll();});
       grid.appendChild(card);
     }
   }
 
-  function renderAll(){ renderToday(); renderWeek(); renderExceptionList(); }
+  function renderAll(){ renderToday(); renderCare(); renderWeek(); renderExceptionList(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));

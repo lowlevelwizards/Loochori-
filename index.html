@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Now v0.6</title>
+<title>Loochori — Meals v0.7</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -273,6 +273,59 @@
   .detailsSummaryNote{font-size:12px;color:var(--muted);margin-top:2px}
   .detailsBody{padding-top:2px}
 
+
+  .mealSection{border-color:#3a3530}
+  .mealSlots{display:grid;gap:10px}
+  .mealSlot{
+    background:var(--panel2);border-radius:17px;padding:13px
+  }
+  .mealSlotHead{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px
+  }
+  .mealSlotName{font-weight:800;font-size:16px}
+  .mealStatus{
+    display:grid;grid-template-columns:62px 1fr auto;gap:8px;align-items:center;
+    padding:8px 0;border-top:1px solid rgba(255,255,255,.055)
+  }
+  .mealStatus:first-of-type{border-top:0}
+  .mealStatusLabel{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  .mealStatusValue{font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mealAction{
+    border:1px solid var(--line);background:#171b1e;padding:7px 9px;border-radius:11px;
+    font-size:11px;font-weight:760;cursor:pointer
+  }
+  .mealEmpty{color:var(--muted)}
+  .mealLibraryList{display:grid;gap:8px;margin-top:12px}
+  .mealLibraryItem{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:var(--panel2);border-radius:14px;padding:11px 12px
+  }
+  .mealLibraryName{font-size:14px;font-weight:720}
+  .mealLibraryMeta{font-size:11px;color:var(--muted);margin-top:2px}
+  .mealPickBtn{
+    border:0;background:transparent;color:var(--text);font-weight:760;
+    text-align:left;cursor:pointer;flex:1;padding:0
+  }
+  .mealDeleteBtn{
+    border:0;background:transparent;color:#ffbcbc;cursor:pointer;font-size:12px
+  }
+  .mealAddRow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}
+  .mealAddRow input{
+    width:100%;background:#101316;color:var(--text);border:1px solid var(--line);
+    border-radius:13px;padding:12px
+  }
+  .mealAddBtn{
+    border:0;background:var(--accent);color:var(--accentText);padding:0 14px;
+    border-radius:13px;font-weight:800;cursor:pointer
+  }
+  .mealModalMode{
+    font-size:12px;color:var(--muted);background:var(--soft);padding:6px 9px;border-radius:999px
+  }
+  .mealClearBtn{
+    width:100%;border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:13px;padding:10px;margin-top:10px;cursor:pointer
+  }
+
   @media (min-width:680px){
     .summaryGrid{grid-template-columns:repeat(4,1fr)}
     .weekGrid{grid-template-columns:repeat(2,1fr)}
@@ -284,7 +337,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Now v0.6</div>
+    <div class="version">Meals v0.7</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -323,6 +376,17 @@
 
       <div class="nowSubhead">Today at a glance</div>
       <div class="miniTimeline" id="miniTimeline"></div>
+    </section>
+
+    <section class="section mealSection" id="mealsSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Meals</div>
+          <div class="sectionNote">Plan what sounds good; separately record what you actually ate.</div>
+        </div>
+        <button class="tinyBtn" id="openMealLibrary">Library</button>
+      </div>
+      <div class="mealSlots" id="mealSlots"></div>
     </section>
 
     <details class="detailsDisclosure" id="dayDetails">
@@ -484,6 +548,29 @@
   </div>
 </nav>
 
+
+<div class="modalBackdrop" id="mealModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle" id="mealModalTitle">Meal library</div>
+        <div class="sectionNote" id="mealModalNote">A running menu of meals that actually belong in your life.</div>
+      </div>
+      <button class="closeBtn" id="closeMealModal">×</button>
+    </div>
+
+    <div id="mealModalMode" class="mealModalMode">Library</div>
+
+    <div class="mealAddRow">
+      <input id="newMealName" type="text" placeholder="Add a meal…" autocomplete="off">
+      <button class="mealAddBtn" id="addMealBtn">Add</button>
+    </div>
+
+    <div class="mealLibraryList" id="mealLibraryList"></div>
+    <button class="mealClearBtn" id="clearMealSelection" style="display:none">Clear this selection</button>
+  </div>
+</div>
+
 <div class="modalBackdrop" id="exceptionModal">
   <div class="modal">
     <div class="modalHead">
@@ -548,6 +635,8 @@
   const STORAGE_KEY = 'loochori_schedule_exceptions';
   const CARE_STORAGE_KEY = 'loochori_daily_care_v1';
   const CHECKIN_STORAGE_KEY = 'loochori_checkins_v1';
+  const MEAL_LIBRARY_KEY = 'loochori_meal_library_v1';
+  const MEAL_HISTORY_KEY = 'loochori_meal_history_v1';
   const CARE_GROUPS = [
     {id:'morning', label:'Morning'},
     {id:'day', label:'Through the day'},
@@ -611,6 +700,9 @@
   let checkinHistory = loadCheckinHistory();
   let pendingMood = null;
   let pendingEnergy = null;
+  let mealLibrary = loadMealLibrary();
+  let mealHistory = loadMealHistory();
+  let mealPickerContext = {mode:'library', slot:null, field:null};
 
   const $ = id => document.getElementById(id);
 
@@ -638,6 +730,45 @@
     catch(e){ return []; }
   }
   function saveCheckinHistory(){ localStorage.setItem(CHECKIN_STORAGE_KEY, JSON.stringify(checkinHistory)); }
+
+  function loadMealLibrary(){
+    try{
+      const saved=JSON.parse(localStorage.getItem(MEAL_LIBRARY_KEY) || '[]');
+      if(saved.length) return saved;
+    }catch(e){}
+    const seeded=[{
+      id:'thai_red_curry_soup',
+      name:'Thai Red Curry Soup',
+      createdAt:new Date().toISOString()
+    }];
+    localStorage.setItem(MEAL_LIBRARY_KEY,JSON.stringify(seeded));
+    return seeded;
+  }
+  function saveMealLibrary(){ localStorage.setItem(MEAL_LIBRARY_KEY,JSON.stringify(mealLibrary)); }
+
+  function loadMealHistory(){
+    try { return JSON.parse(localStorage.getItem(MEAL_HISTORY_KEY) || '{}'); }
+    catch(e){ return {}; }
+  }
+  function saveMealHistory(){ localStorage.setItem(MEAL_HISTORY_KEY,JSON.stringify(mealHistory)); }
+
+  function mealSlotRecord(dateStr,slot){
+    if(!mealHistory[dateStr]) mealHistory[dateStr]={};
+    if(!mealHistory[dateStr][slot]) mealHistory[dateStr][slot]={plannedMealId:null,eatenMealId:null};
+    return mealHistory[dateStr][slot];
+  }
+
+  function mealById(id){ return mealLibrary.find(m=>m.id===id) || null; }
+  function mealName(id){ const m=mealById(id); return m ? m.name : null; }
+
+  function seedTonightMeal(){
+    const seedDate='2026-10-09';
+    const rec=mealSlotRecord(seedDate,'dinner');
+    if(!rec.plannedMealId && !rec.eatenMealId){
+      rec.plannedMealId='thai_red_curry_soup';
+      saveMealHistory();
+    }
+  }
   function careStateFor(dateStr, habit){
     const day = careHistory[dateStr] || {};
     const stored = day[habit.id];
@@ -824,6 +955,204 @@
     return careStateFor(dateStr,habit).some(v=>!v);
   }
 
+
+  function mealSlotForCareHabit(habitId){
+    if(habitId==='breakfast') return 'breakfast';
+    if(habitId==='lunch') return 'lunch';
+    if(habitId==='dinner') return 'dinner';
+    return null;
+  }
+
+  function plannedMealFor(dateStr,slot){
+    const rec=mealSlotRecord(dateStr,slot);
+    return mealName(rec.plannedMealId);
+  }
+
+  function eatenMealFor(dateStr,slot){
+    const rec=mealSlotRecord(dateStr,slot);
+    return mealName(rec.eatenMealId);
+  }
+
+  function renderMeals(){
+    const box=$('mealSlots');
+    box.innerHTML='';
+    const dateStr=iso(selectedDate);
+    const slots=[
+      {id:'breakfast',label:'Breakfast'},
+      {id:'lunch',label:'Lunch'},
+      {id:'dinner',label:'Dinner'}
+    ];
+
+    slots.forEach(slot=>{
+      const rec=mealSlotRecord(dateStr,slot.id);
+      const planned=mealName(rec.plannedMealId);
+      const eaten=mealName(rec.eatenMealId);
+
+      const card=document.createElement('div');
+      card.className='mealSlot';
+      card.innerHTML=`
+        <div class="mealSlotHead">
+          <div class="mealSlotName">${slot.label}</div>
+        </div>
+        <div class="mealStatus">
+          <div class="mealStatusLabel">Planned</div>
+          <div class="mealStatusValue ${planned?'':'mealEmpty'}">${planned || 'Not chosen'}</div>
+          <button class="mealAction" data-field="planned">Choose</button>
+        </div>
+        <div class="mealStatus">
+          <div class="mealStatusLabel">Eaten</div>
+          <div class="mealStatusValue ${eaten?'':'mealEmpty'}">${eaten || 'Not recorded'}</div>
+          <button class="mealAction" data-field="eaten">Record</button>
+        </div>
+      `;
+      card.querySelectorAll('.mealAction').forEach(btn=>{
+        btn.addEventListener('click',()=>openMealPicker(slot.id,btn.dataset.field));
+      });
+      box.appendChild(card);
+    });
+  }
+
+  function mealUsageCount(mealId){
+    let count=0;
+    Object.values(mealHistory).forEach(day=>{
+      Object.values(day).forEach(rec=>{
+        if(rec && rec.eatenMealId===mealId) count++;
+      });
+    });
+    return count;
+  }
+
+  function renderMealLibrary(){
+    const box=$('mealLibraryList');
+    box.innerHTML='';
+
+    if(!mealLibrary.length){
+      box.innerHTML='<div class="empty">No saved meals yet.</div>';
+      return;
+    }
+
+    const picker=mealPickerContext.mode==='picker';
+    mealLibrary
+      .slice()
+      .sort((a,b)=>a.name.localeCompare(b.name))
+      .forEach(meal=>{
+        const row=document.createElement('div');
+        row.className='mealLibraryItem';
+
+        const main=document.createElement('button');
+        main.className='mealPickBtn';
+        main.type='button';
+        const count=mealUsageCount(meal.id);
+        main.innerHTML=`<div class="mealLibraryName">${meal.name}</div><div class="mealLibraryMeta">${count ? `eaten ${count} ${count===1?'time':'times'}` : 'not recorded as eaten yet'}</div>`;
+
+        if(picker){
+          main.addEventListener('click',()=>selectMealForPicker(meal.id));
+        }else{
+          main.addEventListener('click',()=>openMealPicker('dinner','planned',meal.id));
+        }
+
+        row.appendChild(main);
+
+        if(!picker){
+          const del=document.createElement('button');
+          del.className='mealDeleteBtn';
+          del.type='button';
+          del.textContent='Delete';
+          del.addEventListener('click',()=>{
+            const inUse = Object.values(mealHistory).some(day=>
+              Object.values(day).some(rec=>rec && (rec.plannedMealId===meal.id || rec.eatenMealId===meal.id))
+            );
+            if(inUse){
+              alert('This meal is already used in your history, so Loochori will keep it for now.');
+              return;
+            }
+            mealLibrary=mealLibrary.filter(m=>m.id!==meal.id);
+            saveMealLibrary();
+            renderMealLibrary();
+            renderMeals();
+          });
+          row.appendChild(del);
+        }
+
+        box.appendChild(row);
+      });
+  }
+
+  function openMealLibrary(){
+    mealPickerContext={mode:'library',slot:null,field:null};
+    $('mealModalTitle').textContent='Meal library';
+    $('mealModalNote').textContent='A running menu of meals that actually belong in your life.';
+    $('mealModalMode').textContent='Library';
+    $('clearMealSelection').style.display='none';
+    $('mealModal').classList.add('open');
+    renderMealLibrary();
+  }
+
+  function openMealPicker(slot,field,preselectId=null){
+    mealPickerContext={mode:'picker',slot,field};
+    const slotLabel=slot.charAt(0).toUpperCase()+slot.slice(1);
+    $('mealModalTitle').textContent=field==='planned' ? `Plan ${slotLabel}` : `Record ${slotLabel}`;
+    $('mealModalNote').textContent=field==='planned'
+      ? 'Choose what you currently expect to have. This can change later.'
+      : 'Choose what you actually ate. This is kept separate from the plan.';
+    $('mealModalMode').textContent=field==='planned' ? 'Planned' : 'Actually eaten';
+    $('clearMealSelection').style.display='block';
+    $('mealModal').classList.add('open');
+    renderMealLibrary();
+  }
+
+  function closeMealModal(){
+    $('mealModal').classList.remove('open');
+    mealPickerContext={mode:'library',slot:null,field:null};
+  }
+
+  function selectMealForPicker(mealId){
+    const {slot,field}=mealPickerContext;
+    if(!slot || !field) return;
+    const rec=mealSlotRecord(iso(selectedDate),slot);
+    if(field==='planned') rec.plannedMealId=mealId;
+    else {
+      rec.eatenMealId=mealId;
+      const habit=CARE_DEFS.find(h=>h.id===slot);
+      if(habit) setCareUnit(iso(selectedDate),habit,0,true);
+    }
+    saveMealHistory();
+    closeMealModal();
+    renderMeals();
+    renderCare();
+    renderNow();
+  }
+
+  function clearMealPickerSelection(){
+    const {slot,field}=mealPickerContext;
+    if(!slot || !field) return;
+    const rec=mealSlotRecord(iso(selectedDate),slot);
+    if(field==='planned') rec.plannedMealId=null;
+    else rec.eatenMealId=null;
+    saveMealHistory();
+    closeMealModal();
+    renderMeals();
+    renderNow();
+  }
+
+  function addMealFromInput(){
+    const input=$('newMealName');
+    const name=input.value.trim();
+    if(!name) return;
+    const existing=mealLibrary.find(m=>m.name.toLowerCase()===name.toLowerCase());
+    let mealId;
+    if(existing){
+      mealId=existing.id;
+    }else{
+      mealId='meal_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+      mealLibrary.push({id:mealId,name,createdAt:new Date().toISOString()});
+      saveMealLibrary();
+    }
+    input.value='';
+    renderMealLibrary();
+    if(mealPickerContext.mode==='picker') selectMealForPicker(mealId);
+  }
+
   function renderNowCare(minute){
     const box=$('nowCare');
     box.innerHTML='';
@@ -861,7 +1190,10 @@
       row.className='nowCareItem';
 
       const label=document.createElement('div');
-      label.innerHTML=`<div class="nowCareLabel">${habit.label}</div>${habit.hint?`<div class="nowCareHint">${habit.hint}</div>`:''}`;
+      const mealSlot=mealSlotForCareHabit(habit.id);
+      const mealPlan=mealSlot ? plannedMealFor(dateStr,mealSlot) : null;
+      const dynamicHint=mealPlan ? mealPlan : habit.hint;
+      label.innerHTML=`<div class="nowCareLabel">${habit.label}</div>${dynamicHint?`<div class="nowCareHint">${dynamicHint}</div>`:''}`;
 
       const bubbles=document.createElement('div');
       bubbles.className='nowCareBubbles';
@@ -1385,7 +1717,7 @@
     }
   }
 
-  function renderAll(){ renderToday(); renderNow(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); }
+  function renderAll(){ renderToday(); renderNow(); renderMeals(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));
@@ -1438,12 +1770,20 @@
   $('saveCheckin').addEventListener('click', saveCurrentCheckin);
   $('skipCheckin').addEventListener('click', clearPendingCheckin);
 
+  $('openMealLibrary').addEventListener('click', openMealLibrary);
+  $('closeMealModal').addEventListener('click', closeMealModal);
+  $('mealModal').addEventListener('click',e=>{ if(e.target===$('mealModal')) closeMealModal(); });
+  $('addMealBtn').addEventListener('click', addMealFromInput);
+  $('newMealName').addEventListener('keydown',e=>{ if(e.key==='Enter') addMealFromInput(); });
+  $('clearMealSelection').addEventListener('click', clearMealPickerSelection);
+
   setInterval(()=>{
     if(iso(selectedDate)===iso(new Date())){
       renderNow();
     }
   }, 60000);
 
+  seedTonightMeal();
   renderAll();
 })();
 </script>

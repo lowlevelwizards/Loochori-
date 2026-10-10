@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Refresh Pipeline v0.14.1</title>
+<title>Loochori — Household Config v0.14.2</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -846,6 +846,86 @@
   }
   .dataToolStatus{font-size:10px;color:var(--muted);margin-top:8px;min-height:14px}
 
+
+  /* v0.14.2 — household settings + observed reality */
+  .topbarRight{display:flex;align-items:center;gap:7px}
+  .settingsBtn{
+    border:1px solid var(--line);background:var(--panel);color:var(--text);
+    border-radius:999px;padding:6px 9px;font-size:12px;font-weight:780;cursor:pointer
+  }
+  .heroSubRow{display:flex;gap:9px;align-items:center;justify-content:space-between;margin-top:8px}
+  .heroSubRow .subline{margin-top:0;min-width:0}
+  .realityBtn{
+    flex:0 0 auto;border:1px solid var(--line);background:var(--panel2);color:var(--text);
+    border-radius:11px;padding:7px 9px;font-size:11px;font-weight:780;cursor:pointer
+  }
+  .realityPill{
+    display:inline-flex;align-items:center;margin-left:6px;background:rgba(159,207,196,.12);
+    color:#bfe7de;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:800
+  }
+
+  .settingsNotice{
+    display:none;background:rgba(255,231,184,.08);border:1px solid rgba(255,231,184,.18);
+    border-radius:14px;padding:11px 12px;margin-bottom:12px;color:#e6cfaa;font-size:12px;line-height:1.45
+  }
+  .settingsNotice.show{display:block}
+  .settingsSection{
+    margin-top:15px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07)
+  }
+  .settingsSection:first-of-type{margin-top:0;padding-top:0;border-top:0}
+  .settingsSectionTitle{font-size:14px;font-weight:820}
+  .settingsSectionNote{font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px}
+  .settingsGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+  .settingsGrid.one{grid-template-columns:1fr}
+  .personSettings{
+    margin-top:12px;background:var(--panel2);border-radius:16px;padding:12px
+  }
+  .personSettingsTitle{font-size:13px;font-weight:820}
+  .scheduleEditor{display:grid;gap:7px;margin-top:10px}
+  .scheduleRow{
+    display:grid;grid-template-columns:42px 54px 1fr 1fr 1fr;gap:6px;align-items:center
+  }
+  .scheduleDay{font-size:10px;color:var(--muted);font-weight:800}
+  .scheduleRow input[type="time"]{
+    width:100%;min-width:0;background:#111416;color:var(--text);border:1px solid var(--line);
+    border-radius:9px;padding:7px 5px;font-size:10px
+  }
+  .scheduleOff{
+    display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted);white-space:nowrap
+  }
+  .scheduleWakeLabel{
+    font-size:8px;color:var(--muted);text-align:center;margin-top:-4px
+  }
+
+  .tempRuleList{display:grid;gap:8px;margin-top:10px}
+  .tempRuleItem{
+    background:var(--panel2);border-radius:13px;padding:10px;
+    display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center
+  }
+  .tempRuleTitle{font-size:12px;font-weight:790}
+  .tempRuleMeta{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .tempRuleDelete{
+    border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:9px;padding:6px 8px;font-size:10px;cursor:pointer
+  }
+  .weekdayChecks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .weekdayCheck{
+    display:flex;gap:4px;align-items:center;font-size:10px;color:var(--muted);
+    background:var(--panel2);border-radius:9px;padding:6px 7px
+  }
+
+  .setupActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .setupBtn{
+    border:1px solid var(--line);background:var(--panel2);color:var(--text);
+    border-radius:11px;padding:9px;font-size:11px;font-weight:780;cursor:pointer
+  }
+
+  .realityPerson{
+    background:var(--panel2);border-radius:15px;padding:12px;margin-top:10px
+  }
+  .realityPersonTitle{font-size:13px;font-weight:820}
+  .realityHint{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4}
+
   @media (min-width:680px){
     .historyStats{grid-template-columns:repeat(4,minmax(0,1fr))}
     .monthDay{min-height:92px;padding:8px}
@@ -877,7 +957,10 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Foundation v0.14.1</div>
+    <div class="topbarRight">
+      <div class="version">Household Config v0.14.2</div>
+      <button class="settingsBtn" id="openSettingsBtn">Settings</button>
+    </div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -891,7 +974,10 @@
         </div>
         <button class="iconBtn" id="nextDay" aria-label="Next day">›</button>
       </div>
-      <div class="subline" id="todaySubline"></div>
+      <div class="heroSubRow">
+        <div class="subline" id="todaySubline"></div>
+        <button class="realityBtn" id="editRealityBtn">Reality</button>
+      </div>
     </section>
 
     <section class="section nowSection" id="nowSection">
@@ -1054,13 +1140,13 @@
       </div>
       <div class="peopleKey">
         <div class="key"><span class="dot you"></span>You work</div>
-        <div class="key"><span class="dot cori"></span>Cori work</div>
+        <div class="key"><span class="dot cori"></span><span id="timelinePartnerKey">Partner work</span></div>
         <div class="key"><span class="dot sleep"></span>Target sleep</div>
         <div class="key"><span class="dot commute"></span>Travel</div>
       </div>
       <div class="timelineWrap">
         <div class="timelineHeader">
-          <div>Time</div><div>You</div><div>Cori</div>
+          <div>Time</div><div id="timelineYouHeader">You</div><div id="timelinePartnerHeader">Partner</div>
         </div>
         <div class="timeline" id="timeline"></div>
       </div>
@@ -1089,10 +1175,10 @@
       <div class="summaryCard">
         <div class="summaryLabel">Your awake at home</div>
         <div class="summaryValue" id="yourSoloHours">—</div>
-        <div class="summaryHint">when Cori isn’t awake at home</div>
+        <div class="summaryHint" id="yourSoloHint">when your partner isn’t awake at home</div>
       </div>
       <div class="summaryCard">
-        <div class="summaryLabel">Cori awake at home</div>
+        <div class="summaryLabel" id="partnerHomeLabel">Partner awake at home</div>
         <div class="summaryValue" id="coriSoloHours">—</div>
         <div class="summaryHint">when you aren’t awake at home</div>
       </div>
@@ -1173,9 +1259,18 @@
       <div class="modelDetailBody">
         <div class="modelFact" id="wakeSubline"></div>
         <div class="modelFact" id="travelSubline"></div>
-        <div class="modelFact">Cori’s current planning sleep start is about 10:15 PM. Your sleep model still targets roughly 7–8 hours.</div>
+        <div class="modelFact" id="sleepModelFact"></div>
         <div class="modelFact">“Awake at home” means structurally home and awake — not automatically productive, social, or high-energy.</div>
         <div class="modelFact">Work, sleep, commute and time blocks affect the day map. Mood and energy are recorded but do not alter the schedule automatically yet.</div>
+
+        <div class="dataTools">
+          <div class="dataToolsTitle">Household setup</div>
+          <div class="dataToolsNote">Schedules, wake assumptions, commute estimates and temporary rules live in this browser instead of the app source.</div>
+          <div class="dataToolsActions">
+            <button class="dataToolBtn" id="openSettingsDetailsBtn">Edit household setup</button>
+            <button class="dataToolBtn" id="openRealityDetailsBtn">Edit this day’s reality</button>
+          </div>
+        </div>
 
         <div class="dataTools">
           <div class="dataToolsTitle">Loochori data</div>
@@ -1275,6 +1370,159 @@
 
 
 
+
+<div class="modalBackdrop" id="householdSettingsModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle">Household setup</div>
+        <div class="sectionNote">The planning model is editable. Nothing here is meant to outrank what actually happened.</div>
+      </div>
+      <button class="closeBtn" id="closeSettingsBtn">×</button>
+    </div>
+
+    <div class="settingsNotice" id="settingsNotice">
+      This browser does not have a household setup yet. Import your local setup file or fill this in manually.
+    </div>
+
+    <div class="settingsSection">
+      <div class="settingsSectionTitle">Local setup file</div>
+      <div class="settingsSectionNote">Useful when moving from the old hardcoded build. This imports only household setup and day-reality overrides — it does not overwrite meals, care, routines or open loops.</div>
+      <div class="setupActions">
+        <button class="setupBtn" id="importSetupBtn">Import setup</button>
+        <button class="setupBtn" id="exportSetupBtn">Export setup</button>
+      </div>
+      <input type="file" id="setupImportFile" accept="application/json,.json" style="display:none">
+      <div class="dataToolStatus" id="setupStatus"></div>
+    </div>
+
+    <div class="settingsSection">
+      <div class="settingsSectionTitle">People & sleep model</div>
+      <div class="settingsGrid">
+        <div class="field">
+          <label>Your label</label>
+          <input type="text" id="settingsYouName" placeholder="You">
+        </div>
+        <div class="field">
+          <label>Partner label</label>
+          <input type="text" id="settingsPartnerName" placeholder="Partner">
+        </div>
+        <div class="field">
+          <label>Sleep target (hours)</label>
+          <input type="number" id="settingsSleepTarget" min="4" max="12" step="0.25">
+        </div>
+      </div>
+    </div>
+
+    <div class="settingsSection">
+      <div class="settingsSectionTitle">Weekly schedule</div>
+      <div class="settingsSectionNote">Off = no baseline work shift. Wake is the planning assumption for that weekday when working; off days use the off-day wake below.</div>
+      <div id="scheduleSettingsEditors"></div>
+    </div>
+
+    <div class="settingsSection">
+      <div class="settingsSectionTitle">Commute & general sleep assumptions</div>
+      <div id="personPlanningSettings"></div>
+    </div>
+
+    <div class="settingsSection">
+      <div class="settingsSectionTitle">Temporary schedule rules</div>
+      <div class="settingsSectionNote">For things like a period of family leave. Exact date exceptions still override these.</div>
+
+      <div class="settingsGrid">
+        <div class="field">
+          <label>Person</label>
+          <select id="tempRulePerson">
+            <option value="you">You</option>
+            <option value="cori">Partner</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Label</label>
+          <input type="text" id="tempRuleLabel" placeholder="Temporary rule">
+        </div>
+        <div class="field">
+          <label>Start date</label>
+          <input type="date" id="tempRuleStart">
+        </div>
+        <div class="field">
+          <label>End date</label>
+          <input type="date" id="tempRuleEnd">
+        </div>
+        <div class="field">
+          <label>Replacement</label>
+          <select id="tempRuleType">
+            <option value="off">Off</option>
+            <option value="work">Work shift</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row2" id="tempRuleShiftFields" style="display:none">
+        <div class="field">
+          <label>Start</label>
+          <input type="time" id="tempRuleShiftStart">
+        </div>
+        <div class="field">
+          <label>End</label>
+          <input type="time" id="tempRuleShiftEnd">
+        </div>
+      </div>
+
+      <div class="weekdayChecks" id="tempRuleWeekdays"></div>
+      <button class="primary" id="addTempRuleBtn" style="margin-top:10px">Add temporary rule</button>
+      <div class="tempRuleList" id="tempRuleList"></div>
+    </div>
+
+    <button class="primary" id="saveHouseholdSettingsBtn" style="margin-top:18px">Save household setup</button>
+  </div>
+</div>
+
+<div class="modalBackdrop" id="realityModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle" id="realityModalTitle">Day reality</div>
+        <div class="sectionNote">Observed times override planning assumptions for this date only. Leave blank when you don’t know or don’t care.</div>
+      </div>
+      <button class="closeBtn" id="closeRealityBtn">×</button>
+    </div>
+
+    <div class="realityPerson">
+      <div class="realityPersonTitle" id="realityYouTitle">You</div>
+      <div class="realityHint">What actually happened, if known.</div>
+      <div class="row2">
+        <div class="field">
+          <label>Actually woke</label>
+          <input type="time" id="realityYouWake">
+        </div>
+        <div class="field">
+          <label>Actually fell asleep</label>
+          <input type="time" id="realityYouSleep">
+        </div>
+      </div>
+    </div>
+
+    <div class="realityPerson">
+      <div class="realityPersonTitle" id="realityPartnerTitle">Partner</div>
+      <div class="realityHint">Optional — only record it when you actually know.</div>
+      <div class="row2">
+        <div class="field">
+          <label>Actually woke</label>
+          <input type="time" id="realityPartnerWake">
+        </div>
+        <div class="field">
+          <label>Actually fell asleep</label>
+          <input type="time" id="realityPartnerSleep">
+        </div>
+      </div>
+    </div>
+
+    <button class="primary" id="saveRealityBtn">Save observed reality</button>
+    <button class="danger" id="clearRealityBtn">Clear this date’s overrides</button>
+  </div>
+</div>
+
 <div class="modalBackdrop" id="routineMoveModal">
   <div class="modal">
     <div class="modalHead">
@@ -1329,7 +1577,7 @@
       <label>Who is occupied?</label>
       <select id="timeBlockPerson">
         <option value="you">Me</option>
-        <option value="cori">Cori</option>
+        <option value="cori" id="timeBlockPartnerOption">Partner</option>
         <option value="both">Both of us</option>
       </select>
     </div>
@@ -1410,7 +1658,7 @@
         <label>Person</label>
         <select id="exPerson">
           <option value="you">You</option>
-          <option value="cori">Cori</option>
+          <option value="cori" id="exceptionPartnerOption">Partner</option>
         </select>
       </div>
       <div class="field">
@@ -1465,7 +1713,8 @@
   const RHYTHM_KEY = 'loochori_weekly_rhythm_v1';
   const RHYTHM_STATE_KEY = 'loochori_weekly_rhythm_state_v1';
   const TIME_BLOCK_KEY = 'loochori_time_blocks_v1';
-  const CORI_SLEEP_START = 22*60 + 15;
+  const HOUSEHOLD_CONFIG_KEY = 'loochori_household_config_v1';
+  const DAY_REALITY_KEY = 'loochori_day_reality_v1';
   const CARE_GROUPS = [
     {id:'morning', label:'Morning'},
     {id:'day', label:'Through the day'},
@@ -1482,50 +1731,137 @@
     {id:'meds_pm', label:'PM meds', group:'evening', units:1}
   ];
 
-  const commute = {
-    you: {
-      outbound: {plan:25, min:20, max:30, label:'Bus'},
-      inbound: {plan:35, min:30, max:40, label:'Bus'}
-    },
-    cori: {
-      outbound: {plan:5, min:5, max:5, label:'Walk'},
-      inbound: {plan:5, min:5, max:5, label:'Walk'}
-    }
-  };
 
-  const baseline = {
-    you: {
-      0: null,
-      1: {start:'08:00', end:'16:00'},
-      2: {start:'09:00', end:'17:00'},
-      3: {start:'11:30', end:'19:30'},
-      4: {start:'11:30', end:'19:30'},
-      5: {start:'09:00', end:'17:00'},
-      6: null
-    },
-    cori: {
-      0: null,
-      1: null,
-      2: null,
-      3: {start:'11:00', end:'17:30'},
-      4: {start:'11:00', end:'17:30'},
-      5: {start:'06:30', end:'13:00'},
-      6: {start:'07:30', end:'13:00'}
-    }
-  };
 
-  const familyLeave = {
-    person:'you',
-    startDate:'2026-10-12',
-    endDate:'2026-12-31',
-    weekdays:[1,2],
-    replacement:null,
-    label:'Family leave'
-  };
+
+  function emptyWeek(){
+    return {0:null,1:null,2:null,3:null,4:null,5:null,6:null};
+  }
+
+  function defaultHouseholdConfig(){
+    const genericPerson=(name)=>({
+      name,
+      baseline:emptyWeek(),
+      offDayWake:'09:00',
+      wakeByWeekday:{0:'09:00',1:'09:00',2:'09:00',3:'09:00',4:'09:00',5:'09:00',6:'09:00'},
+      usualSleepStart:null,
+      commute:{
+        outbound:{plan:0,label:'Travel'},
+        inbound:{plan:0,label:'Travel'}
+      }
+    });
+
+    return {
+      version:1,
+      configured:false,
+      sleepTargetMinutes:450,
+      people:{
+        you:genericPerson('You'),
+        cori:genericPerson('Partner')
+      },
+      temporaryRules:[]
+    };
+  }
+
+  function normalizeHouseholdConfig(value){
+    const fallback=defaultHouseholdConfig();
+    const cfg=value && typeof value==='object' ? value : {};
+
+    ['you','cori'].forEach(person=>{
+      const src=cfg.people && cfg.people[person] ? cfg.people[person] : {};
+      const dest=fallback.people[person];
+
+      dest.name=typeof src.name==='string' && src.name.trim() ? src.name.trim() : dest.name;
+      dest.offDayWake=typeof src.offDayWake==='string' && src.offDayWake ? src.offDayWake : dest.offDayWake;
+      dest.usualSleepStart=typeof src.usualSleepStart==='string' && src.usualSleepStart ? src.usualSleepStart : null;
+
+      for(let d=0;d<7;d++){
+        const shift=src.baseline && Object.prototype.hasOwnProperty.call(src.baseline,d)
+          ? src.baseline[d]
+          : null;
+        if(shift && typeof shift.start==='string' && typeof shift.end==='string'){
+          dest.baseline[d]={start:shift.start,end:shift.end};
+        }else{
+          dest.baseline[d]=null;
+        }
+
+        const wake=src.wakeByWeekday && src.wakeByWeekday[d];
+        if(typeof wake==='string' && wake) dest.wakeByWeekday[d]=wake;
+      }
+
+      ['outbound','inbound'].forEach(direction=>{
+        const trip=src.commute && src.commute[direction] ? src.commute[direction] : {};
+        const n=Number(trip.plan);
+        dest.commute[direction].plan=Number.isFinite(n) && n>=0 ? Math.round(n) : 0;
+        dest.commute[direction].label=typeof trip.label==='string' && trip.label.trim()
+          ? trip.label.trim()
+          : 'Travel';
+      });
+    });
+
+    const sleep=Number(cfg.sleepTargetMinutes);
+    fallback.sleepTargetMinutes=Number.isFinite(sleep) && sleep>0 ? sleep : 450;
+    fallback.configured=Boolean(cfg.configured);
+    fallback.temporaryRules=Array.isArray(cfg.temporaryRules)
+      ? cfg.temporaryRules.filter(rule=>rule && typeof rule==='object').map(rule=>({
+          id:typeof rule.id==='string' ? rule.id : `rule_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+          person:rule.person==='cori'?'cori':'you',
+          label:typeof rule.label==='string' ? rule.label : 'Temporary rule',
+          startDate:typeof rule.startDate==='string' ? rule.startDate : '',
+          endDate:typeof rule.endDate==='string' ? rule.endDate : '',
+          weekdays:Array.isArray(rule.weekdays)
+            ? rule.weekdays.map(Number).filter(n=>n>=0&&n<=6)
+            : [],
+          replacement:rule.replacement && typeof rule.replacement.start==='string' && typeof rule.replacement.end==='string'
+            ? {start:rule.replacement.start,end:rule.replacement.end}
+            : null
+        }))
+      : [];
+
+    return fallback;
+  }
+
+  function loadHouseholdConfig(){
+    try{
+      const raw=localStorage.getItem(HOUSEHOLD_CONFIG_KEY);
+      if(raw!==null) return normalizeHouseholdConfig(JSON.parse(raw));
+    }catch(e){}
+    return defaultHouseholdConfig();
+  }
+
+  function saveHouseholdConfig(){
+    localStorage.setItem(HOUSEHOLD_CONFIG_KEY,JSON.stringify(householdConfig));
+  }
+
+  function loadDayReality(){
+    try{
+      const parsed=JSON.parse(localStorage.getItem(DAY_REALITY_KEY) || '{}');
+      return parsed && typeof parsed==='object' ? parsed : {};
+    }catch(e){ return {}; }
+  }
+
+  function saveDayReality(){
+    localStorage.setItem(DAY_REALITY_KEY,JSON.stringify(dayReality));
+  }
+
+  function personName(person){
+    return householdConfig.people[person]?.name || (person==='you'?'You':'Partner');
+  }
+
+  function realityFor(person,date){
+    const day=dayReality[typeof date==='string'?date:iso(date)];
+    return day && day[person] ? day[person] : {};
+  }
+
+  function planningPerson(person){
+    return householdConfig.people[person] || defaultHouseholdConfig().people[person];
+  }
 
   let selectedDate = stripTime(new Date());
   let weekAnchorDate = stripTime(new Date());
   let monthAnchorDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  let householdConfig = loadHouseholdConfig();
+  let dayReality = loadDayReality();
   let exceptions = loadExceptions();
   let careHistory = loadCareHistory();
   let checkinHistory = loadCheckinHistory();
@@ -1571,15 +1907,8 @@
   function loadMealLibrary(){
     try{
       const saved=JSON.parse(localStorage.getItem(MEAL_LIBRARY_KEY) || '[]');
-      if(saved.length) return saved;
-    }catch(e){}
-    const seeded=[{
-      id:'thai_red_curry_soup',
-      name:'Thai Red Curry Soup',
-      createdAt:new Date().toISOString()
-    }]; // Saved menu item only; never auto-planned.
-    localStorage.setItem(MEAL_LIBRARY_KEY,JSON.stringify(seeded));
-    return seeded;
+      return Array.isArray(saved) ? saved : [];
+    }catch(e){ return []; }
   }
   function saveMealLibrary(){ localStorage.setItem(MEAL_LIBRARY_KEY,JSON.stringify(mealLibrary)); }
 
@@ -1622,25 +1951,11 @@
     refreshViews('loops');
   }
 
-  function defaultRhythmDefs(){
-    return [
-      {id:'sat_kitchen_reset', name:'Kitchen reset', weekdays:[6], daypart:'morning'},
-      {id:'sat_general_pickup', name:'General pickup', weekdays:[6], daypart:'morning'},
-      {id:'sat_household_supplies', name:'Check household supplies', weekdays:[6], daypart:'morning'},
-      {id:'sat_laundry', name:'Laundry', weekdays:[6], daypart:'anytime'},
-      {id:'mon_weekly_lookahead', name:'Weekly look-ahead', weekdays:[1], daypart:'anytime'},
-      {id:'mon_med_containers', name:'Refill med containers', weekdays:[1], daypart:'anytime'}
-    ];
-  }
-
   function loadRhythmDefs(){
     try{
-      const saved=JSON.parse(localStorage.getItem(RHYTHM_KEY) || 'null');
-      if(Array.isArray(saved) && saved.length) return saved;
-    }catch(e){}
-    const seeded=defaultRhythmDefs();
-    localStorage.setItem(RHYTHM_KEY,JSON.stringify(seeded));
-    return seeded;
+      const saved=JSON.parse(localStorage.getItem(RHYTHM_KEY) || '[]');
+      return Array.isArray(saved) ? saved : [];
+    }catch(e){ return []; }
   }
   function saveRhythmDefs(){ localStorage.setItem(RHYTHM_KEY,JSON.stringify(rhythmDefs)); }
 
@@ -1650,26 +1965,15 @@
   }
   function saveRhythmState(){ localStorage.setItem(RHYTHM_STATE_KEY,JSON.stringify(rhythmState)); }
 
-  function defaultTimeBlocks(){
-    return [{
-      id:'move_friend_2026_10_10',
-      title:'Helping friend move',
-      date:'2026-10-10',
-      start:'12:00',
-      end:'15:00',
-      person:'you',
-      createdAt:new Date().toISOString()
-    }];
-  }
-
   function loadTimeBlocks(){
     try{
       const raw=localStorage.getItem(TIME_BLOCK_KEY);
-      if(raw!==null) return JSON.parse(raw);
+      if(raw!==null){
+        const parsed=JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      }
     }catch(e){}
-    const seeded=defaultTimeBlocks();
-    localStorage.setItem(TIME_BLOCK_KEY,JSON.stringify(seeded));
-    return seeded;
+    return [];
   }
 
   function saveTimeBlocks(){
@@ -1702,8 +2006,8 @@
   }
 
   function personLabelForBlock(person){
-    if(person==='you') return 'You';
-    if(person==='cori') return 'Cori';
+    if(person==='you') return personName('you');
+    if(person==='cori') return personName('cori');
     return 'Both';
   }
 
@@ -1897,42 +2201,57 @@
         ? {shift:null,source:'exception',label:exact.label||'Off'}
         : {shift:{start:exact.start,end:exact.end},source:'exception',label:exact.label||'Date exception'};
     }
-    if(person===familyLeave.person &&
-       familyLeave.weekdays.includes(date.getDay()) &&
-       inRange(dateStr,familyLeave.startDate,familyLeave.endDate)){
-      return {shift:familyLeave.replacement,source:'temporary',label:familyLeave.label};
+
+    const temp=(householdConfig.temporaryRules || []).find(rule=>
+      rule.person===person &&
+      Array.isArray(rule.weekdays) &&
+      rule.weekdays.includes(date.getDay()) &&
+      rule.startDate && rule.endDate &&
+      inRange(dateStr,rule.startDate,rule.endDate)
+    );
+    if(temp){
+      return {shift:temp.replacement || null,source:'temporary',label:temp.label || 'Temporary rule'};
     }
-    return {shift:baseline[person][date.getDay()],source:'baseline',label:null};
+
+    const personCfg=planningPerson(person);
+    return {
+      shift:personCfg.baseline?.[date.getDay()] || null,
+      source:'baseline',
+      label:null
+    };
   }
 
   function getWakeMinutes(person,date){
+    const observed=realityFor(person,date);
+    if(observed.wake) return timeToMin(observed.wake);
+
     const schedule=getSchedule(person,date);
+    const cfg=planningPerson(person);
 
-    if(!schedule.shift) return 9*60;
-
-    if(person==='you'){
-      const start=timeToMin(schedule.shift.start);
-      if(start<=8*60) return start-60;
-      if(start<=9*60) return start-60;
-      if(start>=11*60) return 9*60+30;
-      return Math.max(6*60,start-90);
+    if(!schedule.shift){
+      return timeToMin(cfg.offDayWake || '09:00');
     }
 
-    const start=timeToMin(schedule.shift.start);
-    if(start<=6*60+30) return 6*60;
-    if(start<=7*60+30) return 6*60+45;
-    if(start>=10*60+30) return 9*60+15;
-    return Math.max(6*60,start-60);
+    const byDay=cfg.wakeByWeekday?.[date.getDay()];
+    return timeToMin(byDay || cfg.offDayWake || '09:00');
   }
 
   function sleepBlocks(person,date){
     const wake=getWakeMinutes(person,date);
     const nextWake=getWakeMinutes(person,addDays(date,1));
-    const eveningStart=person==='cori'
-      ? CORI_SLEEP_START
-      : 1440 + nextWake - TARGET_SLEEP_MIN;
-    const blocks=[];
+    const observed=realityFor(person,date);
+    const cfg=planningPerson(person);
 
+    let eveningStart;
+    if(observed.sleepStart){
+      eveningStart=timeToMin(observed.sleepStart);
+    }else if(cfg.usualSleepStart){
+      eveningStart=timeToMin(cfg.usualSleepStart);
+    }else{
+      eveningStart=1440 + nextWake - householdConfig.sleepTargetMinutes;
+    }
+
+    const blocks=[];
     if(wake>DAY_START) blocks.push({start:DAY_START,end:Math.min(wake,DAY_END),kind:'morning'});
     if(eveningStart<DAY_END && eveningStart>DAY_START) blocks.push({start:eveningStart,end:DAY_END,kind:'evening'});
     return blocks;
@@ -1954,18 +2273,18 @@
     const st=timeToMin(shift.start), en=timeToMin(shift.end);
     return [
       {
-        start:Math.max(DAY_START, st-commute[person].outbound.plan),
+        start:Math.max(DAY_START, st-planningPerson(person).commute.outbound.plan),
         end:Math.min(DAY_END, st),
         direction:'outbound',
-        label:commute[person].outbound.label,
-        minutes:commute[person].outbound.plan
+        label:planningPerson(person).commute.outbound.label,
+        minutes:planningPerson(person).commute.outbound.plan
       },
       {
         start:Math.max(DAY_START, en),
-        end:Math.min(DAY_END, en+commute[person].inbound.plan),
+        end:Math.min(DAY_END, en+planningPerson(person).commute.inbound.plan),
         direction:'inbound',
-        label:commute[person].inbound.label,
-        minutes:commute[person].inbound.plan
+        label:planningPerson(person).commute.inbound.label,
+        minutes:planningPerson(person).commute.inbound.plan
       }
     ].filter(b=>b.end>b.start);
   }
@@ -2020,7 +2339,7 @@
   function homeArrivalMinute(person,date){
     const shift=getSchedule(person,date).shift;
     if(!shift) return null;
-    return Math.min(DAY_END, timeToMin(shift.end)+commute[person].inbound.plan);
+    return Math.min(DAY_END, timeToMin(shift.end)+planningPerson(person).commute.inbound.plan);
   }
 
   function careIncomplete(habit,dateStr){
@@ -2729,7 +3048,7 @@
       row.className='miniRow';
       const label=document.createElement('div');
       label.className='miniPerson';
-      label.textContent=person==='you'?'You':'Cori';
+      label.textContent=personName(person);
 
       const track=document.createElement('div');
       track.className='miniTrack';
@@ -2757,7 +3076,7 @@
       <span><i class="miniSwatch" style="background:var(--commute)"></i>travel</span>
       <span><i class="miniSwatch" style="background:var(--event)"></i>time block</span>
       <span><i class="miniSwatch" style="background:var(--you)"></i>your work</span>
-      <span><i class="miniSwatch" style="background:var(--cori)"></i>Cori work</span>
+      <span><i class="miniSwatch" style="background:var(--cori)"></i>${personName('cori')} work</span>
       <span><i class="miniSwatch" style="background:#28322d"></i>home/awake</span>`;
     box.appendChild(legend);
   }
@@ -2799,7 +3118,7 @@
     }else if(you.type==='event'){
       title=you.event.title;
       subtitle=`Time block until ${minToTime(timeToMin(you.event.end))}.`;
-      if(you.event.person==='both') subtitle+=' You and Cori are both marked busy.';
+      if(you.event.person==='both') subtitle+=` ${personName('you')} and ${personName('cori')} are both marked busy.`;
     }else if(you.type==='commute'){
       title=you.direction==='outbound' ? `${you.label} to work` : `${you.label} home`;
       subtitle=`About ${you.minutes} minutes in the planning model.`;
@@ -2814,20 +3133,20 @@
       subtitle=shift ? `Shift ends ${minToTime(timeToMin(shift.end))}` : '';
       if(arrival) subtitle+=` · home around ${minToTime(arrival)}`;
     }else if(you.type==='home' && cori.type==='home'){
-      title='Home with Cori';
+      title=`Home with ${personName('cori')}`;
       const sharedSeg=segmentStates(selectedDate).find(s=>minute>=s.start && minute<s.end && s.state==='sharedHome');
       subtitle=sharedSeg ? `Shared awake time until about ${minToTime(sharedSeg.end)}.` : 'You’re both awake at home.';
     }else if(you.type==='home'){
       title='Home solo';
       if(cori.type==='work'){
         const arrival=homeArrivalMinute('cori',selectedDate);
-        subtitle=arrival ? `Cori should be home around ${minToTime(arrival)}.` : 'Cori is at work.';
+        subtitle=arrival ? `${personName('cori')} should be home around ${minToTime(arrival)}.` : `${personName('cori')} is at work.`;
       }else if(cori.type==='event'){
-        subtitle=`Cori is busy with ${cori.event.title} until ${minToTime(timeToMin(cori.event.end))}.`;
+        subtitle=`${personName('cori')} is busy with ${cori.event.title} until ${minToTime(timeToMin(cori.event.end))}.`;
       }else if(cori.type==='commute'){
-        subtitle=cori.direction==='inbound' ? 'Cori is on the way home.' : 'Cori is heading to work.';
+        subtitle=cori.direction==='inbound' ? `${personName('cori')} is on the way home.` : `${personName('cori')} is heading to work.`;
       }else if(cori.type==='sleep'){
-        subtitle=`Cori is in the target sleep window until about ${minToTime(getWakeMinutes('cori',selectedDate))}.`;
+        subtitle=`${personName('cori')} is in the sleep window until about ${minToTime(getWakeMinutes('cori',selectedDate))}.`;
       }else{
         subtitle='You are awake at home.';
       }
@@ -3087,18 +3406,51 @@
   }
 
   function renderToday(){
+    renderHouseholdLabels();
+
     $('todayDow').textContent=selectedDate.toLocaleDateString(undefined,{weekday:'long'}).toUpperCase();
     $('todayDate').textContent=selectedDate.toLocaleDateString(undefined,{month:'long',day:'numeric'});
-    $('todayMeta').innerHTML=iso(selectedDate)===iso(new Date())?'<span class="todayPill">Today</span>':'';
+
+    const dateStr=iso(selectedDate);
+    const hasReality=Boolean(dayReality[dateStr] && Object.keys(dayReality[dateStr]).length);
+    const todayParts=[];
+    if(dateStr===iso(new Date())) todayParts.push('<span class="todayPill">Today</span>');
+    if(hasReality) todayParts.push('<span class="realityPill">observed reality</span>');
+    $('todayMeta').innerHTML=todayParts.join('');
 
     const y=getSchedule('you',selectedDate), c=getSchedule('cori',selectedDate);
-    const yText=y.shift?`You work ${formatShort(y.shift.start)}–${formatShort(y.shift.end)}`:(y.source==='temporary'?'You’re off · Family leave':'You’re off');
-    const cText=c.shift?`Cori works ${formatShort(c.shift.start)}–${formatShort(c.shift.end)}`:'Cori is off';
-    $('todaySubline').textContent=`${yText} · ${cText}`;
+    const youName=personName('you');
+    const partnerName=personName('cori');
+
+    const yText=y.shift
+      ? `${youName} work${youName==='You'?'':'s'} ${formatShort(y.shift.start)}–${formatShort(y.shift.end)}`
+      : (y.source==='temporary' ? `${youName} off · ${y.label}` : `${youName} off`);
+    const cText=c.shift
+      ? `${partnerName} works ${formatShort(c.shift.start)}–${formatShort(c.shift.end)}`
+      : `${partnerName} off`;
+    $('todaySubline').textContent=householdConfig.configured
+      ? `${yText} · ${cText}`
+      : 'Household setup needed · tap Settings';
 
     const yw=getWakeMinutes('you',selectedDate), cw=getWakeMinutes('cori',selectedDate);
-    $('wakeSubline').textContent=`Wake assumptions: you ~${minToShort(yw)} · Cori ~${minToShort(cw)} · Cori sleep ~10:15p`;
-    $('travelSubline').textContent='Travel: you bus ~25m out / ~35m home · Cori walk ~5m each way';
+    const yObserved=realityFor('you',selectedDate).wake;
+    const cObserved=realityFor('cori',selectedDate).wake;
+    $('wakeSubline').textContent=
+      `Wake: ${youName} ${yObserved?'observed':'planned'} ~${minToShort(yw)} · ${partnerName} ${cObserved?'observed':'planned'} ~${minToShort(cw)}`;
+
+    const yCommute=planningPerson('you').commute;
+    const cCommute=planningPerson('cori').commute;
+    $('travelSubline').textContent=
+      `Travel: ${youName} ${yCommute.outbound.label} ~${yCommute.outbound.plan}m out / ~${yCommute.inbound.plan}m home · `+
+      `${partnerName} ${cCommute.outbound.label} ~${cCommute.outbound.plan}m out / ~${cCommute.inbound.plan}m home`;
+
+    const target=(householdConfig.sleepTargetMinutes/60).toFixed(2).replace(/0+$/,'').replace(/\.$/,'');
+    const partnerSleep=planningPerson('cori').usualSleepStart;
+    const youSleep=planningPerson('you').usualSleepStart;
+    const sleepBits=[`Sleep target ${target}h`];
+    if(youSleep) sleepBits.push(`${youName} usual sleep ${formatShort(youSleep)}`);
+    if(partnerSleep) sleepBits.push(`${partnerName} usual sleep ${formatShort(partnerSleep)}`);
+    $('sleepModelFact').textContent=sleepBits.join(' · ');
 
     const totals=aggregateStates(selectedDate);
     $('sharedHours').textContent=durationLabel(totals.sharedHome);
@@ -3208,8 +3560,8 @@
   function renderAvailability(date){
     const labels={
       sharedHome:'Shared awake at home',
-      youHome:'You awake at home',
-      coriHome:'Cori awake at home',
+      youHome:`${personName('you')} awake at home`,
+      coriHome:`${personName('cori')} awake at home`,
       bothWorking:'Both working'
     };
     const order=['sharedHome','youHome','coriHome','bothWorking'];
@@ -3437,7 +3789,7 @@
       const schedule=document.createElement('div');
       schedule.className='weekSchedule';
       schedule.innerHTML=
-        `<strong>You</strong> ${compactShiftText(y)} <span class="muted">·</span> <strong>Cori</strong> ${compactShiftText(c)}`;
+        `<strong>${personName('you')}</strong> ${compactShiftText(y)} <span class="muted">·</span> <strong>${personName('cori')}</strong> ${compactShiftText(c)}`;
       card.appendChild(schedule);
 
       const winLabel=document.createElement('div');
@@ -3776,7 +4128,9 @@
       OPEN_LOOP_KEY,
       RHYTHM_KEY,
       RHYTHM_STATE_KEY,
-      TIME_BLOCK_KEY
+      TIME_BLOCK_KEY,
+      HOUSEHOLD_CONFIG_KEY,
+      DAY_REALITY_KEY
     ];
 
     const data={};
@@ -3838,7 +4192,9 @@
       OPEN_LOOP_KEY,
       RHYTHM_KEY,
       RHYTHM_STATE_KEY,
-      TIME_BLOCK_KEY
+      TIME_BLOCK_KEY,
+      HOUSEHOLD_CONFIG_KEY,
+      DAY_REALITY_KEY
     ]);
 
     const recognized=Object.entries(payload.data).filter(([key])=>allowed.has(key));
@@ -3880,7 +4236,7 @@
     loops:       ['openLoopList','houseLoops','summaries'],
     rhythm:      ['rhythm','now','week','month','summaries'],
     timeBlocks:  ['timeBlocks','today','now','week','month'],
-    schedule:    ['today','now','week','exceptionList'],
+    schedule:    ['today','now','week','month','exceptionList'],
     all:         ['today','now','meals','rhythm','timeBlocks','checkin','care','week','month','exceptionList','openLoopList','houseLoops','summaries']
   };
 
@@ -3930,6 +4286,399 @@
 
   function refreshAllViews(){
     refreshViews('all');
+  }
+
+
+  const WEEKDAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  function renderHouseholdLabels(){
+    const youName=personName('you');
+    const partnerName=personName('cori');
+
+    if($('timelineYouHeader')) $('timelineYouHeader').textContent=youName;
+    if($('timelinePartnerHeader')) $('timelinePartnerHeader').textContent=partnerName;
+    if($('timelinePartnerKey')) $('timelinePartnerKey').textContent=`${partnerName} work`;
+    if($('partnerHomeLabel')) $('partnerHomeLabel').textContent=`${partnerName} awake at home`;
+    if($('yourSoloHint')) $('yourSoloHint').textContent=`when ${partnerName} isn’t awake at home`;
+    if($('timeBlockPartnerOption')) $('timeBlockPartnerOption').textContent=partnerName;
+    if($('exceptionPartnerOption')) $('exceptionPartnerOption').textContent=partnerName;
+    if($('tempRulePerson')){
+      const partnerOpt=$('tempRulePerson').querySelector('option[value="cori"]');
+      if(partnerOpt) partnerOpt.textContent=partnerName;
+      const youOpt=$('tempRulePerson').querySelector('option[value="you"]');
+      if(youOpt) youOpt.textContent=youName;
+    }
+    if($('realityYouTitle')) $('realityYouTitle').textContent=youName;
+    if($('realityPartnerTitle')) $('realityPartnerTitle').textContent=partnerName;
+  }
+
+  function createScheduleEditor(person){
+    const cfg=planningPerson(person);
+    const wrap=document.createElement('div');
+    wrap.className='personSettings';
+
+    const title=document.createElement('div');
+    title.className='personSettingsTitle';
+    title.textContent=personName(person);
+    wrap.appendChild(title);
+
+    const editor=document.createElement('div');
+    editor.className='scheduleEditor';
+
+    for(let day=0;day<7;day++){
+      const shift=cfg.baseline?.[day] || null;
+      const row=document.createElement('div');
+      row.className='scheduleRow';
+      row.dataset.person=person;
+      row.dataset.day=String(day);
+
+      const dayLabel=document.createElement('div');
+      dayLabel.className='scheduleDay';
+      dayLabel.textContent=WEEKDAY_NAMES[day];
+
+      const offLabel=document.createElement('label');
+      offLabel.className='scheduleOff';
+      const off=document.createElement('input');
+      off.type='checkbox';
+      off.className='scheduleOffInput';
+      off.checked=!shift;
+      offLabel.append(off,document.createTextNode('Off'));
+
+      const start=document.createElement('input');
+      start.type='time';
+      start.className='scheduleStartInput';
+      start.value=shift?.start || '09:00';
+
+      const end=document.createElement('input');
+      end.type='time';
+      end.className='scheduleEndInput';
+      end.value=shift?.end || '17:00';
+
+      const wake=document.createElement('input');
+      wake.type='time';
+      wake.className='scheduleWakeInput';
+      wake.value=cfg.wakeByWeekday?.[day] || cfg.offDayWake || '09:00';
+
+      const syncDisabled=()=>{
+        start.disabled=off.checked;
+        end.disabled=off.checked;
+        wake.disabled=off.checked;
+      };
+      off.addEventListener('change',syncDisabled);
+      syncDisabled();
+
+      row.append(dayLabel,offLabel,start,end,wake);
+      editor.appendChild(row);
+    }
+
+    const legend=document.createElement('div');
+    legend.className='scheduleWakeLabel';
+    legend.textContent='day · off · work start · work end · wake';
+    wrap.append(editor,legend);
+    return wrap;
+  }
+
+  function createPlanningEditor(person){
+    const cfg=planningPerson(person);
+    const wrap=document.createElement('div');
+    wrap.className='personSettings';
+    wrap.dataset.planningPerson=person;
+
+    const title=document.createElement('div');
+    title.className='personSettingsTitle';
+    title.textContent=personName(person);
+    wrap.appendChild(title);
+
+    const grid=document.createElement('div');
+    grid.className='settingsGrid';
+
+    const fields=[
+      ['Off-day wake','offDayWake','time',cfg.offDayWake || '09:00'],
+      ['Usual sleep start (optional)','usualSleepStart','time',cfg.usualSleepStart || ''],
+      ['Outbound minutes','outboundMinutes','number',String(cfg.commute.outbound.plan ?? 0)],
+      ['Outbound mode','outboundLabel','text',cfg.commute.outbound.label || 'Travel'],
+      ['Homebound minutes','inboundMinutes','number',String(cfg.commute.inbound.plan ?? 0)],
+      ['Homebound mode','inboundLabel','text',cfg.commute.inbound.label || 'Travel']
+    ];
+
+    fields.forEach(([labelText,name,type,value])=>{
+      const field=document.createElement('div');
+      field.className='field';
+      const label=document.createElement('label');
+      label.textContent=labelText;
+      const input=document.createElement('input');
+      input.type=type;
+      input.dataset.setting=name;
+      input.value=value;
+      if(type==='number'){input.min='0';input.step='1';}
+      field.append(label,input);
+      grid.appendChild(field);
+    });
+
+    wrap.appendChild(grid);
+    return wrap;
+  }
+
+  function renderSettingsForm(){
+    renderHouseholdLabels();
+    $('settingsNotice').classList.toggle('show',!householdConfig.configured);
+    $('settingsYouName').value=personName('you');
+    $('settingsPartnerName').value=personName('cori');
+    $('settingsSleepTarget').value=(householdConfig.sleepTargetMinutes/60).toFixed(2).replace(/\.00$/,'');
+
+    const schedules=$('scheduleSettingsEditors');
+    schedules.innerHTML='';
+    schedules.append(createScheduleEditor('you'),createScheduleEditor('cori'));
+
+    const planning=$('personPlanningSettings');
+    planning.innerHTML='';
+    planning.append(createPlanningEditor('you'),createPlanningEditor('cori'));
+
+    renderTempRuleList();
+  }
+
+  function openSettings(){
+    renderSettingsForm();
+    $('householdSettingsModal').classList.add('open');
+  }
+
+  function closeSettings(){
+    $('householdSettingsModal').classList.remove('open');
+  }
+
+  function readSettingsForm(){
+    const next=normalizeHouseholdConfig(householdConfig);
+    next.configured=true;
+    next.people.you.name=$('settingsYouName').value.trim() || 'You';
+    next.people.cori.name=$('settingsPartnerName').value.trim() || 'Partner';
+
+    const sleepHours=Number($('settingsSleepTarget').value);
+    next.sleepTargetMinutes=Number.isFinite(sleepHours) && sleepHours>0
+      ? Math.round(sleepHours*60)
+      : 450;
+
+    document.querySelectorAll('.scheduleRow').forEach(row=>{
+      const person=row.dataset.person;
+      const day=Number(row.dataset.day);
+      const off=row.querySelector('.scheduleOffInput').checked;
+      const start=row.querySelector('.scheduleStartInput').value;
+      const end=row.querySelector('.scheduleEndInput').value;
+      const wake=row.querySelector('.scheduleWakeInput').value;
+
+      next.people[person].baseline[day]=off ? null : {start,end};
+      if(wake) next.people[person].wakeByWeekday[day]=wake;
+    });
+
+    document.querySelectorAll('[data-planning-person]').forEach(wrap=>{
+      const person=wrap.dataset.planningPerson;
+      const get=name=>wrap.querySelector(`[data-setting="${name}"]`)?.value || '';
+      next.people[person].offDayWake=get('offDayWake') || '09:00';
+      next.people[person].usualSleepStart=get('usualSleepStart') || null;
+      next.people[person].commute.outbound.plan=Math.max(0,Math.round(Number(get('outboundMinutes'))||0));
+      next.people[person].commute.outbound.label=get('outboundLabel').trim() || 'Travel';
+      next.people[person].commute.inbound.plan=Math.max(0,Math.round(Number(get('inboundMinutes'))||0));
+      next.people[person].commute.inbound.label=get('inboundLabel').trim() || 'Travel';
+    });
+
+    return normalizeHouseholdConfig(next);
+  }
+
+  function saveHouseholdSettings(){
+    householdConfig=readSettingsForm();
+    saveHouseholdConfig();
+    closeSettings();
+    renderHouseholdLabels();
+    refreshViews('schedule','timeBlocks','rhythm');
+  }
+
+  function tempRuleSummary(rule){
+    const days=(rule.weekdays||[]).map(d=>WEEKDAY_NAMES[d]).join(', ') || 'no days';
+    const replacement=rule.replacement
+      ? `${formatShort(rule.replacement.start)}–${formatShort(rule.replacement.end)}`
+      : 'off';
+    return `${rule.startDate || '—'} → ${rule.endDate || '—'} · ${days} · ${replacement}`;
+  }
+
+  function renderTempRuleList(){
+    const box=$('tempRuleList');
+    if(!box) return;
+    box.innerHTML='';
+
+    (householdConfig.temporaryRules || []).forEach(rule=>{
+      const row=document.createElement('div');
+      row.className='tempRuleItem';
+
+      const copy=document.createElement('div');
+      const title=document.createElement('div');
+      title.className='tempRuleTitle';
+      title.textContent=`${rule.label || 'Temporary rule'} · ${personName(rule.person)}`;
+      const meta=document.createElement('div');
+      meta.className='tempRuleMeta';
+      meta.textContent=tempRuleSummary(rule);
+      copy.append(title,meta);
+
+      const del=document.createElement('button');
+      del.className='tempRuleDelete';
+      del.textContent='Delete';
+      del.addEventListener('click',()=>{
+        householdConfig.temporaryRules=householdConfig.temporaryRules.filter(r=>r.id!==rule.id);
+        saveHouseholdConfig();
+        renderTempRuleList();
+        refreshViews('schedule');
+      });
+
+      row.append(copy,del);
+      box.appendChild(row);
+    });
+
+    if(!(householdConfig.temporaryRules||[]).length){
+      const empty=document.createElement('div');
+      empty.className='empty';
+      empty.textContent='No temporary schedule rules.';
+      box.appendChild(empty);
+    }
+  }
+
+  function addTemporaryRule(){
+    const person=$('tempRulePerson').value;
+    const label=$('tempRuleLabel').value.trim() || 'Temporary rule';
+    const startDate=$('tempRuleStart').value;
+    const endDate=$('tempRuleEnd').value;
+    const type=$('tempRuleType').value;
+    const weekdays=[...document.querySelectorAll('#tempRuleWeekdays input:checked')].map(x=>Number(x.value));
+
+    if(!startDate || !endDate) return alert('Choose a start and end date.');
+    if(endDate<startDate) return alert('End date needs to be after start date.');
+    if(!weekdays.length) return alert('Choose at least one weekday.');
+
+    let replacement=null;
+    if(type==='work'){
+      const start=$('tempRuleShiftStart').value;
+      const end=$('tempRuleShiftEnd').value;
+      if(!start || !end) return alert('Enter the temporary work shift.');
+      replacement={start,end};
+    }
+
+    householdConfig.temporaryRules.push({
+      id:`rule_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`,
+      person,label,startDate,endDate,weekdays,replacement
+    });
+    householdConfig.configured=true;
+    saveHouseholdConfig();
+    $('tempRuleLabel').value='';
+    renderTempRuleList();
+    refreshViews('schedule');
+  }
+
+  function renderTempRuleWeekdayChecks(){
+    const box=$('tempRuleWeekdays');
+    box.innerHTML='';
+    WEEKDAY_NAMES.forEach((name,day)=>{
+      const label=document.createElement('label');
+      label.className='weekdayCheck';
+      const input=document.createElement('input');
+      input.type='checkbox';
+      input.value=String(day);
+      label.append(input,document.createTextNode(name));
+      box.appendChild(label);
+    });
+  }
+
+  function openRealityModal(){
+    const dateStr=iso(selectedDate);
+    $('realityModalTitle').textContent=`Reality · ${selectedDate.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}`;
+    renderHouseholdLabels();
+
+    const your=realityFor('you',dateStr);
+    const partner=realityFor('cori',dateStr);
+    $('realityYouWake').value=your.wake || '';
+    $('realityYouSleep').value=your.sleepStart || '';
+    $('realityPartnerWake').value=partner.wake || '';
+    $('realityPartnerSleep').value=partner.sleepStart || '';
+    $('realityModal').classList.add('open');
+  }
+
+  function closeRealityModal(){
+    $('realityModal').classList.remove('open');
+  }
+
+  function saveReality(){
+    const dateStr=iso(selectedDate);
+    const your={
+      wake:$('realityYouWake').value || null,
+      sleepStart:$('realityYouSleep').value || null
+    };
+    const partner={
+      wake:$('realityPartnerWake').value || null,
+      sleepStart:$('realityPartnerSleep').value || null
+    };
+
+    const hasYou=your.wake || your.sleepStart;
+    const hasPartner=partner.wake || partner.sleepStart;
+
+    if(!hasYou && !hasPartner){
+      delete dayReality[dateStr];
+    }else{
+      dayReality[dateStr]={};
+      if(hasYou) dayReality[dateStr].you=your;
+      if(hasPartner) dayReality[dateStr].cori=partner;
+    }
+
+    saveDayReality();
+    closeRealityModal();
+    refreshViews('schedule');
+  }
+
+  function clearReality(){
+    delete dayReality[iso(selectedDate)];
+    saveDayReality();
+    closeRealityModal();
+    refreshViews('schedule');
+  }
+
+  function localSetupPayload(){
+    return {
+      format:'loochori-local-setup',
+      schemaVersion:1,
+      exportedAt:new Date().toISOString(),
+      householdConfig,
+      dayReality
+    };
+  }
+
+  function exportLocalSetup(){
+    const blob=new Blob([JSON.stringify(localSetupPayload(),null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='loochori-local-setup.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    $('setupStatus').textContent='Local setup exported.';
+  }
+
+  async function importLocalSetupFile(file){
+    if(!file) return;
+    let payload;
+    try{ payload=JSON.parse(await file.text()); }
+    catch(e){ return alert('That setup file is not valid JSON.'); }
+
+    if(!payload || payload.format!=='loochori-local-setup' || !payload.householdConfig){
+      return alert('That file is not a recognized Loochori local setup.');
+    }
+
+    householdConfig=normalizeHouseholdConfig(payload.householdConfig);
+    householdConfig.configured=true;
+    dayReality=payload.dayReality && typeof payload.dayReality==='object' ? payload.dayReality : dayReality;
+
+    saveHouseholdConfig();
+    saveDayReality();
+    renderSettingsForm();
+    renderHouseholdLabels();
+    refreshViews('schedule','timeBlocks','rhythm');
+    $('setupStatus').textContent='Local setup imported.';
   }
 
   function updateCalmSummaries(){
@@ -3997,6 +4746,34 @@
     renderExceptionList();
   }
   function closeModal(){ $('exceptionModal').classList.remove('open'); }
+  renderTempRuleWeekdayChecks();
+
+  $('openSettingsBtn').addEventListener('click',openSettings);
+  $('openSettingsDetailsBtn').addEventListener('click',openSettings);
+  $('closeSettingsBtn').addEventListener('click',closeSettings);
+  $('householdSettingsModal').addEventListener('click',e=>{if(e.target===$('householdSettingsModal'))closeSettings();});
+  $('saveHouseholdSettingsBtn').addEventListener('click',saveHouseholdSettings);
+
+  $('tempRuleType').addEventListener('change',()=>{
+    $('tempRuleShiftFields').style.display=$('tempRuleType').value==='work'?'grid':'none';
+  });
+  $('addTempRuleBtn').addEventListener('click',addTemporaryRule);
+
+  $('importSetupBtn').addEventListener('click',()=>$('setupImportFile').click());
+  $('exportSetupBtn').addEventListener('click',exportLocalSetup);
+  $('setupImportFile').addEventListener('change',async e=>{
+    const file=e.target.files && e.target.files[0];
+    await importLocalSetupFile(file);
+    e.target.value='';
+  });
+
+  $('editRealityBtn').addEventListener('click',openRealityModal);
+  $('openRealityDetailsBtn').addEventListener('click',openRealityModal);
+  $('closeRealityBtn').addEventListener('click',closeRealityModal);
+  $('realityModal').addEventListener('click',e=>{if(e.target===$('realityModal'))closeRealityModal();});
+  $('saveRealityBtn').addEventListener('click',saveReality);
+  $('clearRealityBtn').addEventListener('click',clearReality);
+
   $('prevMonth').addEventListener('click',()=>{
     monthAnchorDate=new Date(monthAnchorDate.getFullYear(),monthAnchorDate.getMonth()-1,1);
     renderMonth();
@@ -4050,7 +4827,7 @@
     if(!exceptions.length){box.innerHTML='<div class="empty">No date exceptions yet.</div>';return;}
     exceptions.forEach((x,idx)=>{
       const div=document.createElement('div'); div.className='exceptionItem';
-      const who=x.person==='you'?'You':'Cori';
+      const who=personName(x.person);
       const shift=x.type==='off'?'Off':`${formatShort(x.start)}–${formatShort(x.end)}`;
       div.innerHTML=`<div><strong>${who}</strong> · ${parseISO(x.date).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}<br><span style="color:var(--muted)">${shift}${x.label?` · ${x.label}`:''}</span></div><button aria-label="Delete">Delete</button>`;
       div.querySelector('button').addEventListener('click',()=>{exceptions.splice(idx,1);saveExceptions();refreshViews('schedule');});
@@ -4095,6 +4872,7 @@ document.querySelectorAll('[data-jump]').forEach(btn=>{
     }
   }, 60000);
 
+  renderHouseholdLabels();
   renderAll();
 })();
 </script>

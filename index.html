@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Calm UI v0.12</title>
+<title>Loochori — Information Hierarchy v0.12.1</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -532,6 +532,121 @@
   #dayDetails .summaryGrid{margin-top:10px}
   #dayDetails .section{background:#141719}
 
+
+  /* v0.12.1 — long-scroll first, with strong information hierarchy */
+  html{scroll-behavior:smooth}
+  .hero{padding:13px 16px}
+  .hero .dateBig{font-size:24px}
+
+  .nowSection{margin-top:8px}
+  .nowSection .sectionNote{display:none}
+  .nowSubhead{margin-top:13px}
+  #nowLoopsGroup{display:none !important}
+
+  .jumpBarWrap{
+    position:sticky;top:0;z-index:16;
+    margin:10px -14px 4px;padding:8px 14px;
+    background:rgba(15,17,19,.92);backdrop-filter:blur(18px);
+    border-top:1px solid rgba(255,255,255,.04);
+    border-bottom:1px solid rgba(255,255,255,.07)
+  }
+  .jumpBar{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}
+  .jumpBar::-webkit-scrollbar{display:none}
+  .jumpBtn{
+    flex:0 0 auto;border:1px solid var(--line);background:var(--panel);
+    color:var(--text);border-radius:999px;padding:9px 12px;
+    font-size:12px;font-weight:780;cursor:pointer
+  }
+
+  .majorDisclosure{
+    margin-top:12px;border:1px solid var(--line);border-radius:20px;
+    background:var(--panel);overflow:hidden;scroll-margin-top:70px
+  }
+  .majorDisclosure > summary{
+    list-style:none;cursor:pointer;padding:15px 16px;
+    display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center
+  }
+  .majorDisclosure > summary::-webkit-details-marker{display:none}
+  .majorDisclosureTitle{font-size:18px;font-weight:820;letter-spacing:-.02em}
+  .majorDisclosureMeta{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.35}
+  .majorDisclosureChevron{font-size:18px;color:var(--muted);transition:transform .18s ease}
+  .majorDisclosure[open] .majorDisclosureChevron,
+  .timeCalcDisclosure[open] .majorDisclosureChevron,
+  .modelDetails[open] .majorDisclosureChevron{transform:rotate(180deg)}
+  .majorBody{padding:0 12px 12px}
+  .majorBody > .section{
+    margin-top:0;border:0;background:transparent;padding:4px 0 0;box-shadow:none
+  }
+
+  #dailyCareSection > .sectionHead > div:first-child,
+  #mealsSection > .sectionHead > div:first-child,
+  #timeBlockSection > .sectionHead > div:first-child,
+  #checkinSection > .sectionHead > div:first-child{display:none}
+  #rhythmSection > .sectionHead{display:none}
+  #dailyCareSection > .sectionHead,
+  #mealsSection > .sectionHead,
+  #timeBlockSection > .sectionHead,
+  #checkinSection > .sectionHead{justify-content:flex-end;margin-bottom:8px}
+  #dailyCareSection .careFooter{display:none}
+
+  .householdSubhead,.scheduleSubhead{
+    font-size:12px;text-transform:uppercase;letter-spacing:.12em;
+    color:var(--muted);font-weight:800;margin:14px 2px 8px
+  }
+  .householdSubhead:first-child,.scheduleSubhead:first-child{margin-top:2px}
+
+  .houseLoops{display:grid;gap:8px}
+  .houseLoopItem{
+    display:flex;align-items:center;gap:10px;background:var(--panel2);
+    border-radius:14px;padding:10px 11px
+  }
+  .houseLoopText{font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+  .houseLoopActions{display:flex;justify-content:flex-end;gap:8px;margin-top:9px}
+  .houseLoopAction{
+    border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:11px;padding:7px 9px;font-size:11px;font-weight:760;cursor:pointer
+  }
+
+  .timeCalcDisclosure{
+    margin-top:12px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#141719
+  }
+  .timeCalcDisclosure > summary{
+    list-style:none;cursor:pointer;padding:13px 14px;
+    display:flex;justify-content:space-between;gap:12px;align-items:center
+  }
+  .timeCalcDisclosure > summary::-webkit-details-marker{display:none}
+  .timeCalcTitle{font-size:13px;font-weight:800}
+  .timeCalcNote{font-size:11px;color:var(--muted);margin-top:2px}
+  .timeCalcBody{padding:0 10px 10px}
+  .timeCalcBody .summaryGrid{margin:6px 0 10px}
+  .timeCalcBody .section{margin-top:0;background:transparent;border:0;padding:4px 0}
+
+  .modelDetails{
+    margin-top:12px;border:1px solid var(--line);border-radius:18px;background:var(--panel);
+    overflow:hidden;scroll-margin-top:70px
+  }
+  .modelDetails > summary{
+    list-style:none;cursor:pointer;padding:14px 16px;
+    display:flex;justify-content:space-between;gap:12px;align-items:center
+  }
+  .modelDetails > summary::-webkit-details-marker{display:none}
+  .modelDetailBody{padding:0 16px 15px;color:var(--muted);font-size:13px;line-height:1.5}
+  .modelFact{padding:9px 0;border-top:1px solid rgba(255,255,255,.055)}
+  .modelFact:first-child{border-top:0}
+
+  .captureFab{
+    position:fixed;right:16px;bottom:calc(82px + env(safe-area-inset-bottom));
+    z-index:25;width:52px;height:52px;border-radius:50%;
+    border:0;background:var(--accent);color:var(--accentText);
+    font-size:28px;font-weight:500;line-height:1;box-shadow:var(--shadow);cursor:pointer
+  }
+
+  #quickAccess,.calmDisclosure{display:none !important}
+
+  @media (min-width:680px){
+    .captureFab{right:max(16px,calc((100vw - 780px)/2 + 16px))}
+  }
+
   @media (min-width:680px){
     .quickAccess{grid-template-columns:repeat(3,minmax(0,1fr))}
   }
@@ -547,7 +662,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Calm UI v0.12</div>
+    <div class="version">Hierarchy v0.12.1</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -562,8 +677,6 @@
         <button class="iconBtn" id="nextDay" aria-label="Next day">›</button>
       </div>
       <div class="subline" id="todaySubline"></div>
-      <div class="subline" id="wakeSubline"></div>
-      <div class="subline" id="travelSubline"></div>
     </section>
 
     <section class="section nowSection" id="nowSection">
@@ -606,48 +719,195 @@
         </div>
       </div>
 
-      <div class="nowSubhead">Today at a glance</div>
-      <div class="miniTimeline" id="miniTimeline"></div>
     </section>
 
-    
-    <div class="quickAccess" id="quickAccess">
-      <button class="quickTile capture" id="quickCapture">
-        <div class="quickTileTitle">＋ Capture</div>
-        <div class="quickTileMeta">get it out of your head</div>
-      </button>
-      <button class="quickTile" data-open="checkinDisclosure">
-        <div class="quickTileTitle">Check in</div>
-        <div class="quickTileMeta" id="quickCheckinMeta">mood & energy</div>
-      </button>
-      <button class="quickTile" data-open="careDisclosure">
-        <div class="quickTileTitle">Care</div>
-        <div class="quickTileMeta" id="quickCareMeta">0 / 10</div>
-      </button>
-      <button class="quickTile" data-open="mealsDisclosure">
-        <div class="quickTileTitle">Meals</div>
-        <div class="quickTileMeta" id="quickMealsMeta">plan or log food</div>
-      </button>
-      <button class="quickTile" data-open="planDisclosure">
-        <div class="quickTileTitle">Plan</div>
-        <div class="quickTileMeta" id="quickPlanMeta">rhythm & time blocks</div>
-      </button>
-      <button class="quickTile" data-open="dayDetails">
-        <div class="quickTileTitle">Day details</div>
-        <div class="quickTileMeta">timeline & calculations</div>
-      </button>
+    <div class="jumpBarWrap" aria-label="Jump to section">
+      <div class="jumpBar">
+        <button class="jumpBtn" data-jump="careArea">Care</button>
+        <button class="jumpBtn" data-jump="mealsArea">Meals</button>
+        <button class="jumpBtn" data-jump="houseArea">House</button>
+        <button class="jumpBtn" data-jump="scheduleArea">Schedule</button>
+        <button class="jumpBtn" data-jump="checkinArea">Check-in</button>
+        <button class="jumpBtn" data-jump="modelDetails">Details</button>
+      </div>
     </div>
 
-    <details class="calmDisclosure" id="checkinDisclosure">
+    <details class="majorDisclosure" id="careArea" open>
       <summary>
         <div>
-          <div class="calmSummaryTitle">Check in</div>
-          <div class="calmSummaryMeta" id="checkinSummaryMeta">Mood and energy when you want them.</div>
+          <div class="majorDisclosureTitle">Daily care</div>
+          <div class="majorDisclosureMeta" id="careSummaryMeta">0 / 10 complete</div>
         </div>
-        <div class="calmChevron">⌄</div>
+        <div class="majorDisclosureChevron">⌄</div>
       </summary>
-      <div class="calmBody">
-        <section class="section" id="checkinSection">
+      <div class="majorBody"><section class="section" id="dailyCareSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Daily care</div>
+          <div class="sectionNote sectionIntroCompact">Tap a bubble when it happens.</div>
+        </div>
+        <div class="careHeaderRight"><div class="careProgress" id="careProgress">0 / 10</div></div>
+      </div>
+      <div class="futureCare" id="futureCare">This day hasn’t happened yet. Its care bubbles will unlock when it arrives.</div>
+      <div class="careGroups" id="careGroups"></div>
+      <div class="careFooter">Saved locally by date. No streaks, scoring, or judgment yet — we’re only building a clean record of what actually happens.</div>
+    </section></div>
+    </details>
+
+    <details class="majorDisclosure" id="mealsArea" open>
+      <summary>
+        <div>
+          <div class="majorDisclosureTitle">Meals</div>
+          <div class="majorDisclosureMeta" id="mealsSummaryMeta">Plan or log what actually happened.</div>
+        </div>
+        <div class="majorDisclosureChevron">⌄</div>
+      </summary>
+      <div class="majorBody"><section class="section mealSection" id="mealsSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Meals</div>
+          <div class="sectionNote sectionIntroCompact">Plans can change. Keep the plan, then log what actually happened.</div>
+        </div>
+        <button class="tinyBtn" id="openMealLibrary">Library</button>
+      </div>
+      <div class="mealSlots" id="mealSlots"></div>
+    </section></div>
+    </details>
+
+    <details class="majorDisclosure" id="houseArea" open>
+      <summary>
+        <div>
+          <div class="majorDisclosureTitle">Household</div>
+          <div class="majorDisclosureMeta" id="houseSummaryMeta">Today’s recurring work and open loops.</div>
+        </div>
+        <div class="majorDisclosureChevron">⌄</div>
+      </summary>
+      <div class="majorBody">
+        <div class="householdSubhead">Today’s rhythm</div>
+        <section class="section rhythmSection" id="rhythmSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Weekly rhythm</div>
+          <div class="sectionNote sectionIntroCompact">Predictable household things that return on their own.</div>
+        </div>
+      </div>
+      <div class="rhythmList" id="rhythmList"></div>
+    </section>
+        <div id="houseOpenLoopsGroup">
+          <div class="householdSubhead">Open loops</div>
+          <div class="houseLoops" id="houseOpenLoops"></div>
+          <div class="houseLoopActions">
+            <button class="houseLoopAction" id="houseCaptureBtn">＋ Capture</button>
+            <button class="houseLoopAction" id="houseReviewBtn">Review all</button>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="majorDisclosure" id="scheduleArea" open>
+      <summary>
+        <div>
+          <div class="majorDisclosureTitle">Full day</div>
+          <div class="majorDisclosureMeta">Your day shape, commitments and timeline.</div>
+        </div>
+        <div class="majorDisclosureChevron">⌄</div>
+      </summary>
+      <div class="majorBody">
+        <div class="scheduleSubhead">At a glance</div>
+        <div class="miniTimeline" id="miniTimeline"></div>
+
+        <div class="scheduleSubhead">Time blocks</div>
+        <section class="section timeBlockSection" id="timeBlockSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Time blocks</div>
+          <div class="sectionNote sectionIntroCompact">Plans or commitments that temporarily occupy part of the day.</div>
+        </div>
+        <button class="tinyBtn" id="addTimeBlockBtn">+ Add</button>
+      </div>
+      <div class="timeBlockList" id="timeBlockList"></div>
+    </section>
+
+        <div class="scheduleSubhead">Timeline</div>
+        <section class="section">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Day timeline</div>
+          <div class="sectionNote">5 AM–midnight</div>
+        </div>
+        <button class="tinyBtn" id="todayBtn">Today</button>
+      </div>
+      <div class="peopleKey">
+        <div class="key"><span class="dot you"></span>You work</div>
+        <div class="key"><span class="dot cori"></span>Cori work</div>
+        <div class="key"><span class="dot sleep"></span>Target sleep</div>
+        <div class="key"><span class="dot commute"></span>Travel</div>
+      </div>
+      <div class="timelineWrap">
+        <div class="timelineHeader">
+          <div>Time</div><div>You</div><div>Cori</div>
+        </div>
+        <div class="timeline" id="timeline"></div>
+      </div>
+    </section>
+
+        <details class="timeCalcDisclosure" id="timeCalculations">
+          <summary>
+            <div>
+              <div class="timeCalcTitle">Time calculations</div>
+              <div class="timeCalcNote">Overlap and home-presence math</div>
+            </div>
+            <div class="majorDisclosureChevron">⌄</div>
+          </summary>
+          <div class="timeCalcBody">
+            <div class="summaryGrid">
+      <div class="summaryCard">
+        <div class="summaryLabel">Shared awake at home</div>
+        <div class="summaryValue" id="sharedHours">—</div>
+        <div class="summaryHint">inside visible day</div>
+      </div>
+      <div class="summaryCard">
+        <div class="summaryLabel">Both working</div>
+        <div class="summaryValue" id="bothWorkHours">—</div>
+        <div class="summaryHint">overlapping shifts</div>
+      </div>
+      <div class="summaryCard">
+        <div class="summaryLabel">Your awake at home</div>
+        <div class="summaryValue" id="yourSoloHours">—</div>
+        <div class="summaryHint">when Cori isn’t awake at home</div>
+      </div>
+      <div class="summaryCard">
+        <div class="summaryLabel">Cori awake at home</div>
+        <div class="summaryValue" id="coriSoloHours">—</div>
+        <div class="summaryHint">when you aren’t awake at home</div>
+      </div>
+    </div>
+            <section class="section">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">What home presence implies</div>
+          <div class="sectionNote">Derived from work + sleep target + commute estimates.</div>
+        </div>
+      </div>
+      <div class="availability" id="availability"></div>
+      <div class="callout">
+        “Awake at home” still does not mean productive time. It means only that the person is estimated to be awake, not at work, and not traveling to or from work. Getting ready, errands, recovery, mood and energy still come later.
+      </div>
+    </section>
+          </div>
+        </details>
+      </div>
+    </details>
+
+    <details class="majorDisclosure" id="checkinArea" open>
+      <summary>
+        <div>
+          <div class="majorDisclosureTitle">Check-in</div>
+          <div class="majorDisclosureMeta" id="checkinSummaryMeta">Mood and energy when you want them.</div>
+        </div>
+        <div class="majorDisclosureChevron">⌄</div>
+      </summary>
+      <div class="majorBody"><section class="section" id="checkinSection">
       <div class="sectionHead">
         <div>
           <div class="sectionTitle">How are you right now?</div>
@@ -684,156 +944,27 @@
         <div class="checkStatusText" id="checkinStatus">No check-in yet today.</div>
       </div>
       <div class="historyList" id="checkinHistory"></div>
-    </section>
-      </div>
+    </section></div>
     </details>
 
-    <details class="calmDisclosure" id="careDisclosure">
+    <details class="modelDetails" id="modelDetails">
       <summary>
         <div>
-          <div class="calmSummaryTitle">Daily care</div>
-          <div class="calmSummaryMeta" id="careSummaryMeta">0 / 10 complete</div>
+          <div class="majorDisclosureTitle">Details & assumptions</div>
+          <div class="majorDisclosureMeta">Background model info when you actually want it.</div>
         </div>
-        <div class="calmChevron">⌄</div>
+        <div class="majorDisclosureChevron">⌄</div>
       </summary>
-      <div class="calmBody">
-        <section class="section" id="dailyCareSection">
-      <div class="sectionHead">
-        <div>
-          <div class="sectionTitle">Daily care</div>
-          <div class="sectionNote sectionIntroCompact">Tap a bubble when it happens.</div>
-        </div>
-        <div class="careHeaderRight"><div class="careProgress" id="careProgress">0 / 10</div></div>
-      </div>
-      <div class="futureCare" id="futureCare">This day hasn’t happened yet. Its care bubbles will unlock when it arrives.</div>
-      <div class="careGroups" id="careGroups"></div>
-      <div class="careFooter">Saved locally by date. No streaks, scoring, or judgment yet — we’re only building a clean record of what actually happens.</div>
-    </section>
+      <div class="modelDetailBody">
+        <div class="modelFact" id="wakeSubline"></div>
+        <div class="modelFact" id="travelSubline"></div>
+        <div class="modelFact">Cori’s current planning sleep start is about 10:15 PM. Your sleep model still targets roughly 7–8 hours.</div>
+        <div class="modelFact">“Awake at home” means structurally home and awake — not automatically productive, social, or high-energy.</div>
+        <div class="modelFact">Work, sleep, commute and time blocks affect the day map. Mood and energy are recorded but do not alter the schedule automatically yet.</div>
       </div>
     </details>
 
-    <details class="calmDisclosure" id="mealsDisclosure">
-      <summary>
-        <div>
-          <div class="calmSummaryTitle">Meals</div>
-          <div class="calmSummaryMeta" id="mealsSummaryMeta">Plan or log what actually happened.</div>
-        </div>
-        <div class="calmChevron">⌄</div>
-      </summary>
-      <div class="calmBody">
-        <section class="section mealSection" id="mealsSection">
-      <div class="sectionHead">
-        <div>
-          <div class="sectionTitle">Meals</div>
-          <div class="sectionNote sectionIntroCompact">Plans can change. Keep the plan, then log what actually happened.</div>
-        </div>
-        <button class="tinyBtn" id="openMealLibrary">Library</button>
-      </div>
-      <div class="mealSlots" id="mealSlots"></div>
-    </section>
-      </div>
-    </details>
-
-    <details class="calmDisclosure" id="planDisclosure">
-      <summary>
-        <div>
-          <div class="calmSummaryTitle">Plan & household</div>
-          <div class="calmSummaryMeta" id="planSummaryMeta">Rhythm and time blocks.</div>
-        </div>
-        <div class="calmChevron">⌄</div>
-      </summary>
-      <div class="calmBody">
-        <section class="section rhythmSection" id="rhythmSection">
-      <div class="sectionHead">
-        <div>
-          <div class="sectionTitle">Weekly rhythm</div>
-          <div class="sectionNote sectionIntroCompact">Predictable household things that return on their own.</div>
-        </div>
-      </div>
-      <div class="rhythmList" id="rhythmList"></div>
-    </section>
-        <section class="section timeBlockSection" id="timeBlockSection">
-      <div class="sectionHead">
-        <div>
-          <div class="sectionTitle">Time blocks</div>
-          <div class="sectionNote sectionIntroCompact">Plans or commitments that temporarily occupy part of the day.</div>
-        </div>
-        <button class="tinyBtn" id="addTimeBlockBtn">+ Add</button>
-      </div>
-      <div class="timeBlockList" id="timeBlockList"></div>
-    </section>
-      </div>
-    </details>
-
-    <details class="detailsDisclosure" id="dayDetails">
-      <summary>
-        <div>
-          <div class="detailsSummaryTitle">Full day details</div>
-          <div class="detailsSummaryNote">schedule, time blocks, timeline & calculations</div>
-        </div>
-      </summary>
-      <div class="detailsBody">
-
-    <div class="summaryGrid">
-      <div class="summaryCard">
-        <div class="summaryLabel">Shared awake at home</div>
-        <div class="summaryValue" id="sharedHours">—</div>
-        <div class="summaryHint">inside visible day</div>
-      </div>
-      <div class="summaryCard">
-        <div class="summaryLabel">Both working</div>
-        <div class="summaryValue" id="bothWorkHours">—</div>
-        <div class="summaryHint">overlapping shifts</div>
-      </div>
-      <div class="summaryCard">
-        <div class="summaryLabel">Your awake at home</div>
-        <div class="summaryValue" id="yourSoloHours">—</div>
-        <div class="summaryHint">when Cori isn’t awake at home</div>
-      </div>
-      <div class="summaryCard">
-        <div class="summaryLabel">Cori awake at home</div>
-        <div class="summaryValue" id="coriSoloHours">—</div>
-        <div class="summaryHint">when you aren’t awake at home</div>
-      </div>
-    </div>
-
-    <section class="section">
-      <div class="sectionHead">
-        <div>
-          <div class="sectionTitle">Daily home-presence map</div>
-          <div class="sectionNote">5 AM–midnight · target sleep + work + travel. Mood and energy are recorded, but do not alter the schedule yet.</div>
-        </div>
-        <button class="tinyBtn" id="todayBtn">Today</button>
-      </div>
-      <div class="peopleKey">
-        <div class="key"><span class="dot you"></span>You work</div>
-        <div class="key"><span class="dot cori"></span>Cori work</div>
-        <div class="key"><span class="dot sleep"></span>Target sleep</div>
-        <div class="key"><span class="dot commute"></span>Travel</div>
-      </div>
-      <div class="timelineWrap">
-        <div class="timelineHeader">
-          <div>Time</div><div>You</div><div>Cori</div>
-        </div>
-        <div class="timeline" id="timeline"></div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="sectionHead">
-        <div>
-          <div class="sectionTitle">What home presence implies</div>
-          <div class="sectionNote">Derived from work + sleep target + commute estimates.</div>
-        </div>
-      </div>
-      <div class="availability" id="availability"></div>
-      <div class="callout">
-        “Awake at home” still does not mean productive time. It means only that the person is estimated to be awake, not at work, and not traveling to or from work. Getting ready, errands, recovery, mood and energy still come later.
-      </div>
-    </section>
-
-      </div>
-    </details>
+    <button class="captureFab" id="captureFab" aria-label="Capture a thought">＋</button>
   </main>
 
   <main id="weekScreen" class="screen">
@@ -1198,6 +1329,7 @@
     saveOpenLoops();
     renderOpenLoopPreview();
     renderOpenLoopList();
+    renderHouseOpenLoops();
   }
 
   function defaultRhythmDefs(){
@@ -2148,6 +2280,35 @@
     $('reviewLoopsBtn').textContent=count>2 ? `Review all ${count}` : 'Review all';
   }
 
+
+  function renderHouseOpenLoops(){
+    const group=$('houseOpenLoopsGroup');
+    const box=$('houseOpenLoops');
+    if(!group || !box) return;
+
+    const items=activeOpenLoops();
+    group.style.display=items.length ? 'block' : 'none';
+    box.innerHTML='';
+
+    items.forEach(item=>{
+      const row=document.createElement('div');
+      row.className='houseLoopItem';
+
+      const done=document.createElement('button');
+      done.type='button';
+      done.className='loopDoneBubble';
+      done.setAttribute('aria-label',`Close loop: ${item.text}`);
+      done.addEventListener('click',()=>completeLoop(item.id));
+
+      const label=document.createElement('div');
+      label.className='houseLoopText';
+      label.textContent=item.text;
+
+      row.append(done,label);
+      box.appendChild(row);
+    });
+  }
+
   function renderOpenLoopList(){
     const box=$('openLoopList');
     if(!box) return;
@@ -2217,6 +2378,7 @@
     input.value='';
     renderOpenLoopPreview();
     renderOpenLoopList();
+    renderHouseOpenLoops();
 
     // Capture is meant to be a five-second unload, not a new management session.
     closeCaptureModal();
@@ -2832,7 +2994,6 @@
   function updateCalmSummaries(){
     const latest=latestSelectedDayCheckin();
     const checkText=latest ? `Mood ${latest.mood}/5 · Energy ${latest.energy}/5` : 'No check-in yet';
-    if($('quickCheckinMeta')) $('quickCheckinMeta').textContent=checkText;
     if($('checkinSummaryMeta')) $('checkinSummaryMeta').textContent=checkText;
 
     const dateStr=iso(selectedDate);
@@ -2842,9 +3003,7 @@
       total+=state.length;
       completed+=state.filter(Boolean).length;
     });
-    const careText=`${completed} / ${total} complete`;
-    if($('quickCareMeta')) $('quickCareMeta').textContent=careText;
-    if($('careSummaryMeta')) $('careSummaryMeta').textContent=careText;
+    if($('careSummaryMeta')) $('careSummaryMeta').textContent=`${completed} / ${total} complete`;
 
     const dinner=mealSlotRecord(dateStr,'dinner');
     const dinnerActual=(dinner.actualItems || []).map(actualItemLabel).filter(Boolean);
@@ -2852,7 +3011,6 @@
     let mealText='Nothing logged yet';
     if(dinnerActual.length) mealText=`Dinner: ${dinnerActual.slice(0,2).join(' + ')}`;
     else if(dinnerPlanned) mealText=`Dinner planned: ${dinnerPlanned}`;
-    if($('quickMealsMeta')) $('quickMealsMeta').textContent=mealText;
     if($('mealsSummaryMeta')) $('mealsSummaryMeta').textContent=mealText;
 
     const rhythmItems=routineOccurrencesForDate(selectedDate)
@@ -2861,13 +3019,11 @@
         if(item.source==='deferred') return true;
         return state.status==='pending';
       }).length;
-    const blocks=timeBlocksForDate(selectedDate).length;
+    const loops=activeOpenLoops().length;
     const bits=[];
     if(rhythmItems) bits.push(`${rhythmItems} routine${rhythmItems===1?'':'s'}`);
-    if(blocks) bits.push(`${blocks} time block${blocks===1?'':'s'}`);
-    const planText=bits.length ? bits.join(' · ') : 'Nothing scheduled';
-    if($('quickPlanMeta')) $('quickPlanMeta').textContent=planText;
-    if($('planSummaryMeta')) $('planSummaryMeta').textContent=planText;
+    if(loops) bits.push(`${loops} open loop${loops===1?'':'s'}`);
+    if($('houseSummaryMeta')) $('houseSummaryMeta').textContent=bits.length ? bits.join(' · ') : 'Nothing asking for attention';
   }
 
   function openDisclosure(id){
@@ -2877,7 +3033,7 @@
     requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'start'}));
   }
 
-    function renderAll(){ renderToday(); renderNow(); renderMeals(); renderRhythm(); renderTimeBlocks(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); renderOpenLoopList(); updateCalmSummaries(); }
+    function renderAll(){ renderToday(); renderNow(); renderMeals(); renderRhythm(); renderTimeBlocks(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); renderOpenLoopList(); renderHouseOpenLoops(); updateCalmSummaries(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));
@@ -2926,11 +3082,12 @@
       box.appendChild(div);
     });
   }
-
-  $('quickCapture').addEventListener('click',()=>openCaptureModal(true));
-  document.querySelectorAll('[data-open]').forEach(btn=>{
-    btn.addEventListener('click',()=>openDisclosure(btn.dataset.open));
+document.querySelectorAll('[data-jump]').forEach(btn=>{
+    btn.addEventListener('click',()=>openDisclosure(btn.dataset.jump));
   });
+  $('captureFab').addEventListener('click',()=>openCaptureModal(true));
+  $('houseCaptureBtn').addEventListener('click',()=>openCaptureModal(true));
+  $('houseReviewBtn').addEventListener('click',()=>openCaptureModal(false));
 
   $('saveCheckin').addEventListener('click', saveCurrentCheckin);
   $('skipCheckin').addEventListener('click', clearPendingCheckin);

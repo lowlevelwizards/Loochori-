@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Live Day v0.16</title>
+<title>Loochori — Routine Bundles v0.17</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -1012,6 +1012,102 @@
   .actualTimingNote{font-size:10px;color:var(--muted);line-height:1.4;margin-top:3px}
   .eventActual{box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
 
+
+  /* v0.17 — recurring routine bundles / reset checklists */
+  .bundleProgressWrap{margin-top:9px}
+  .bundleProgressTop{
+    display:flex;justify-content:space-between;gap:10px;align-items:center;
+    font-size:10px;color:var(--muted)
+  }
+  .bundleProgressTrack{
+    height:7px;border-radius:999px;background:rgba(255,255,255,.06);
+    overflow:hidden;margin-top:6px
+  }
+  .bundleProgressFill{
+    height:100%;border-radius:999px;background:var(--accent);
+    transition:width .18s ease
+  }
+  .bundleChecklist{
+    display:grid;gap:6px;margin-top:11px;padding-top:10px;
+    border-top:1px solid rgba(255,255,255,.06)
+  }
+  .bundleItem{
+    display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;
+    background:rgba(255,255,255,.025);border-radius:11px;padding:8px 9px
+  }
+  .bundleStateBtn{
+    width:28px;height:28px;border-radius:50%;border:1px solid var(--line);
+    background:transparent;color:var(--muted);font-size:13px;font-weight:850;cursor:pointer
+  }
+  .bundleStateBtn.in_progress{
+    background:rgba(222,193,143,.10);color:#e3c98f;border-color:rgba(222,193,143,.18)
+  }
+  .bundleStateBtn.done{
+    background:rgba(159,207,196,.13);color:#cce9e2;border-color:rgba(159,207,196,.20)
+  }
+  .bundleStateBtn.deferred{
+    background:rgba(203,219,248,.08);color:#cbdaf3;border-color:rgba(203,219,248,.14)
+  }
+  .bundleItemText{font-size:12px;font-weight:720}
+  .bundleItemMeta{font-size:9px;color:var(--muted);margin-top:2px}
+  .bundleItemMove{
+    border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:9px;padding:6px 7px;font-size:9px;font-weight:760;cursor:pointer
+  }
+  .bundleParentActions{
+    display:flex;gap:7px;flex-wrap:wrap;margin-top:10px
+  }
+
+  .deferredChild{
+    border:1px dashed rgba(203,219,248,.18);
+    background:rgba(203,219,248,.035)
+  }
+  .deferredChild .rhythmTitle{font-size:12px}
+
+  .nowBundleProgress{
+    min-width:70px;display:grid;gap:4px;align-self:center
+  }
+  .nowBundleCount{text-align:right;font-size:9px;color:var(--muted);font-weight:760}
+  .nowBundleTrack{
+    height:5px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden
+  }
+  .nowBundleFill{height:100%;background:var(--accent);border-radius:999px}
+
+  .routineChecklistEditor{
+    margin-top:12px;background:var(--panel2);border-radius:14px;padding:11px
+  }
+  .routineChecklistEditorTitle{font-size:12px;font-weight:820}
+  .routineChecklistEditorNote{font-size:10px;color:var(--muted);line-height:1.4;margin-top:3px}
+  .routineChecklistAdd{display:grid;grid-template-columns:1fr auto;gap:7px;margin-top:9px}
+  .routineChecklistAdd input{
+    width:100%;background:#111416;color:var(--text);border:1px solid var(--line);
+    border-radius:10px;padding:9px;font-size:12px
+  }
+  .routineChecklistAdd button{
+    border:1px solid var(--line);background:var(--soft);color:var(--text);
+    border-radius:10px;padding:8px 10px;font-size:11px;font-weight:780;cursor:pointer
+  }
+  .routineChecklistDraft{display:grid;gap:6px;margin-top:8px}
+  .routineChecklistDraftItem{
+    display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;
+    background:#121518;border-radius:10px;padding:7px 8px
+  }
+  .routineChecklistDraftItem input{
+    width:100%;background:transparent;border:0;color:var(--text);font-size:11px;outline:none
+  }
+  .routineDraftMove,.routineDraftDelete{
+    border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:8px;padding:5px 6px;font-size:9px;cursor:pointer
+  }
+  .routineManagerBundleBadge{
+    display:inline-flex;margin-left:5px;padding:2px 5px;border-radius:999px;
+    background:rgba(159,207,196,.09);color:#c5dfd0;font-size:8px;font-weight:800
+  }
+
+  .bundleMoveName{
+    font-size:13px;font-weight:800;margin-bottom:10px;line-height:1.4
+  }
+
   @media (min-width:680px){
     .historyStats{grid-template-columns:repeat(4,minmax(0,1fr))}
     .monthDay{min-height:92px;padding:8px}
@@ -1044,7 +1140,7 @@
   <div class="topbar">
     <div class="brand">Loochori</div>
     <div class="topbarRight">
-      <div class="version">Live Day v0.16</div>
+      <div class="version">Routine Bundles v0.17</div>
       <button class="settingsBtn" id="openSettingsBtn">Settings</button>
     </div>
   </div>
@@ -1502,6 +1598,16 @@
         Active
       </label>
 
+      <div class="routineChecklistEditor">
+        <div class="routineChecklistEditorTitle">Checklist <span class="muted">(optional)</span></div>
+        <div class="routineChecklistEditorNote">Add items to turn this into a reset/folder. Leave it empty for a simple one-tap routine.</div>
+        <div class="routineChecklistAdd">
+          <input type="text" id="routineChecklistNewItem" placeholder="Vacuum rugs">
+          <button type="button" id="addRoutineChecklistItemBtn">＋ Add</button>
+        </div>
+        <div class="routineChecklistDraft" id="routineChecklistDraft"></div>
+      </div>
+
       <button class="primary" id="saveRoutineDefinitionBtn">Save routine</button>
       <button class="danger" id="cancelRoutineEditBtn" style="display:none">Cancel edit</button>
     </div>
@@ -1657,6 +1763,25 @@
 
     <button class="primary" id="saveRealityBtn">Save observed reality</button>
     <button class="danger" id="clearRealityBtn">Clear this date’s overrides</button>
+  </div>
+</div>
+
+
+<div class="modalBackdrop" id="bundleItemMoveModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle">Move checklist item</div>
+        <div class="sectionNote">Move just this piece of the reset. It counts as resolved on the original day.</div>
+      </div>
+      <button class="closeBtn" id="closeBundleItemMoveBtn">×</button>
+    </div>
+    <div class="bundleMoveName" id="bundleItemMoveName"></div>
+    <div class="field">
+      <label>Move to</label>
+      <input type="date" id="bundleItemMoveDate">
+    </div>
+    <button class="primary" id="confirmBundleItemMoveBtn">Move item</button>
   </div>
 </div>
 
@@ -2045,6 +2170,8 @@
   let editingTimeBlockId = null;
   let movingRoutineContext = null;
   let editingRoutineDefinitionId = null;
+  let routineEditorItems = [];
+  let movingBundleItemContext = null;
 
   const $ = id => document.getElementById(id);
 
@@ -2374,12 +2501,183 @@
   }
 
   function setRhythmOccurrence(defId,dateStr,status,extra={}){
-    rhythmState[rhythmOccurrenceKey(defId,dateStr)] = {
+    const key=rhythmOccurrenceKey(defId,dateStr);
+    const existing=rhythmState[key] && typeof rhythmState[key]==='object' ? rhythmState[key] : {};
+    rhythmState[key] = {
+      ...existing,
       status,
       updatedAt:new Date().toISOString(),
       ...extra
     };
     saveRhythmState();
+  }
+
+
+  function routineItems(def){
+    return Array.isArray(def?.items) ? def.items.filter(item=>item && item.id && item.text) : [];
+  }
+
+  function isRoutineBundle(def){
+    return routineItems(def).length>0;
+  }
+
+  function bundleOccurrenceState(defId,dateStr){
+    const key=rhythmOccurrenceKey(defId,dateStr);
+    const state=rhythmState[key] && typeof rhythmState[key]==='object' ? rhythmState[key] : {};
+    return state;
+  }
+
+  function bundleItemState(defId,dateStr,itemId){
+    const occurrence=bundleOccurrenceState(defId,dateStr);
+    const itemState=occurrence.items && occurrence.items[itemId];
+    return itemState && typeof itemState==='object' ? itemState : {status:'pending'};
+  }
+
+  function bundleItemResolved(state){
+    return ['done','deferred','skipped'].includes(state?.status);
+  }
+
+  function bundleProgress(def,dateStr){
+    const items=routineItems(def);
+    const states=items.map(item=>bundleItemState(def.id,dateStr,item.id));
+    const resolved=states.filter(bundleItemResolved).length;
+    const inProgress=states.filter(state=>state.status==='in_progress').length;
+    return {total:items.length,resolved,inProgress};
+  }
+
+  function syncBundleParentStatus(def,dateStr){
+    if(!isRoutineBundle(def)) return;
+    const key=rhythmOccurrenceKey(def.id,dateStr);
+    const state=rhythmState[key] && typeof rhythmState[key]==='object' ? rhythmState[key] : {};
+    if(state.status==='skipped' || state.status==='deferred') return;
+
+    const progress=bundleProgress(def,dateStr);
+    if(progress.total>0 && progress.resolved===progress.total){
+      rhythmState[key]={
+        ...state,
+        status:'done',
+        autoBundle:true,
+        completedAt:state.completedAt || new Date().toISOString(),
+        updatedAt:new Date().toISOString()
+      };
+    }else if(state.status==='done' && state.autoBundle){
+      rhythmState[key]={
+        ...state,
+        status:'pending',
+        autoBundle:true,
+        completedAt:null,
+        updatedAt:new Date().toISOString()
+      };
+    }
+    saveRhythmState();
+  }
+
+  function setBundleItemState(def,dateStr,itemId,status,extra={}){
+    const key=rhythmOccurrenceKey(def.id,dateStr);
+    const occurrence=rhythmState[key] && typeof rhythmState[key]==='object'
+      ? rhythmState[key]
+      : {status:'pending'};
+    const items=occurrence.items && typeof occurrence.items==='object'
+      ? {...occurrence.items}
+      : {};
+    const previous=items[itemId] && typeof items[itemId]==='object' ? items[itemId] : {};
+
+    items[itemId]={
+      ...previous,
+      status,
+      updatedAt:new Date().toISOString(),
+      ...extra
+    };
+
+    rhythmState[key]={
+      ...occurrence,
+      items,
+      updatedAt:new Date().toISOString()
+    };
+    saveRhythmState();
+    syncBundleParentStatus(def,dateStr);
+  }
+
+  function cycleBundleItem(def,dateStr,itemId){
+    const current=bundleItemState(def.id,dateStr,itemId);
+    if(current.status==='deferred'){
+      openBundleItemMoveModal(def.id,dateStr,itemId);
+      return;
+    }
+
+    const next=current.status==='pending'
+      ? 'in_progress'
+      : current.status==='in_progress'
+        ? 'done'
+        : 'pending';
+
+    setBundleItemState(
+      def,dateStr,itemId,next,
+      next==='done' ? {completedAt:new Date().toISOString(),deferTo:null} : {completedAt:null,deferTo:null}
+    );
+    refreshViews('rhythm');
+  }
+
+  function bundleItemStateLabel(state){
+    if(state.status==='done') return 'Done';
+    if(state.status==='in_progress') return 'In progress';
+    if(state.status==='deferred') return state.deferTo ? `Moved to ${parseISO(state.deferTo).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}` : 'Moved';
+    return 'Not started';
+  }
+
+  function bundleItemStateGlyph(state){
+    if(state.status==='done') return '✓';
+    if(state.status==='in_progress') return '◐';
+    if(state.status==='deferred') return '→';
+    return '○';
+  }
+
+  function deferredBundleItemsIntoDate(dateStr){
+    const results=[];
+    for(const [key,state] of Object.entries(rhythmState)){
+      if(!state || !state.items || typeof state.items!=='object') continue;
+      const split=key.lastIndexOf('__');
+      if(split<0) continue;
+      const defId=key.slice(0,split);
+      const originDate=key.slice(split+2);
+      const def=rhythmDefs.find(d=>d.id===defId);
+      if(!def) continue;
+
+      for(const [itemId,itemState] of Object.entries(state.items)){
+        if(!itemState || itemState.status!=='deferred' || itemState.deferTo!==dateStr) continue;
+        const item=routineItems(def).find(x=>x.id===itemId);
+        if(item) results.push({def,item,itemState,originDate,targetDate:dateStr});
+      }
+    }
+    return results;
+  }
+
+  function completeDeferredBundleItem(entry){
+    setBundleItemState(
+      entry.def,
+      entry.originDate,
+      entry.item.id,
+      'done',
+      {
+        completedAt:new Date().toISOString(),
+        completedOn:entry.targetDate,
+        deferTo:null,
+        deferredProgress:null
+      }
+    );
+    refreshViews('rhythm');
+  }
+
+  function toggleDeferredBundleItemProgress(entry){
+    const next=entry.itemState.deferredProgress==='in_progress' ? null : 'in_progress';
+    setBundleItemState(
+      entry.def,
+      entry.originDate,
+      entry.item.id,
+      'deferred',
+      {deferTo:entry.targetDate,deferredProgress:next}
+    );
+    refreshViews('rhythm');
   }
 
   function deferredIntoDate(dateStr){
@@ -3226,6 +3524,61 @@
   }
 
 
+
+  function renderRoutineChecklistDraft(){
+    const box=$('routineChecklistDraft');
+    if(!box) return;
+    box.innerHTML='';
+
+    routineEditorItems.forEach((item,index)=>{
+      const row=document.createElement('div');
+      row.className='routineChecklistDraftItem';
+
+      const input=document.createElement('input');
+      input.type='text';
+      input.value=item.text;
+      input.setAttribute('aria-label','Checklist item');
+      input.addEventListener('input',()=>{ item.text=input.value; });
+
+      const up=document.createElement('button');
+      up.type='button';
+      up.className='routineDraftMove';
+      up.textContent='↑';
+      up.disabled=index===0;
+      up.addEventListener('click',()=>{
+        if(index===0) return;
+        [routineEditorItems[index-1],routineEditorItems[index]]=[routineEditorItems[index],routineEditorItems[index-1]];
+        renderRoutineChecklistDraft();
+      });
+
+      const del=document.createElement('button');
+      del.type='button';
+      del.className='routineDraftDelete';
+      del.textContent='×';
+      del.setAttribute('aria-label','Remove checklist item');
+      del.addEventListener('click',()=>{
+        routineEditorItems.splice(index,1);
+        renderRoutineChecklistDraft();
+      });
+
+      row.append(input,up,del);
+      box.appendChild(row);
+    });
+  }
+
+  function addRoutineChecklistDraftItem(){
+    const input=$('routineChecklistNewItem');
+    const text=input.value.trim();
+    if(!text) return;
+    routineEditorItems.push({
+      id:'ritem_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),
+      text
+    });
+    input.value='';
+    renderRoutineChecklistDraft();
+    input.focus();
+  }
+
   function renderRoutineEditWeekdays(selected=[]){
     const box=$('routineEditWeekdays');
     box.innerHTML='';
@@ -3243,11 +3596,14 @@
 
   function resetRoutineEditor(){
     editingRoutineDefinitionId=null;
+    routineEditorItems=[];
     $('routineEditorTitle').textContent='Add routine';
     $('routineEditName').value='';
     $('routineEditDaypart').value='anytime';
     $('routineEditActive').checked=true;
+    $('routineChecklistNewItem').value='';
     renderRoutineEditWeekdays([]);
+    renderRoutineChecklistDraft();
     $('cancelRoutineEditBtn').style.display='none';
   }
 
@@ -3260,7 +3616,9 @@
     $('routineEditName').value=def.name || '';
     $('routineEditDaypart').value=def.daypart || 'anytime';
     $('routineEditActive').checked=def.active!==false;
+    routineEditorItems=routineItems(def).map(item=>({...item}));
     renderRoutineEditWeekdays(Array.isArray(def.weekdays)?def.weekdays:[]);
+    renderRoutineChecklistDraft();
     $('cancelRoutineEditBtn').style.display='block';
     $('routineEditName').focus();
   }
@@ -3290,7 +3648,15 @@
       const meta=document.createElement('div');
       meta.className='routineManagerMeta';
       const days=(def.weekdays||[]).map(d=>WEEKDAY_NAMES[d]).join(', ') || 'no days';
-      meta.textContent=`${days} · ${def.daypart || 'anytime'}${def.active===false?' · paused':''}`;
+      const itemCount=routineItems(def).length;
+      meta.textContent=`${days} · ${def.daypart || 'anytime'}${itemCount?` · ${itemCount} checklist item${itemCount===1?'':'s'}`:''}${def.active===false?' · paused':''}`;
+
+      if(itemCount){
+        const badge=document.createElement('span');
+        badge.className='routineManagerBundleBadge';
+        badge.textContent='RESET';
+        title.appendChild(badge);
+      }
 
       copy.append(title,meta);
 
@@ -3352,6 +3718,9 @@
     const weekdays=[...$('routineEditWeekdays').querySelectorAll('input:checked')].map(x=>Number(x.value));
     const daypart=$('routineEditDaypart').value;
     const active=$('routineEditActive').checked;
+    const items=routineEditorItems
+      .map(item=>({...item,text:(item.text||'').trim()}))
+      .filter(item=>item.text);
 
     if(!name) return alert('Give the routine a name.');
     if(!weekdays.length) return alert('Choose at least one day.');
@@ -3363,6 +3732,7 @@
         def.weekdays=weekdays;
         def.daypart=daypart;
         def.active=active;
+        def.items=items;
         def.updatedAt=new Date().toISOString();
       }
     }else{
@@ -3372,6 +3742,7 @@
         weekdays,
         daypart,
         active,
+        items,
         createdAt:new Date().toISOString()
       });
     }
@@ -3387,43 +3758,187 @@
     if(!box) return;
     box.innerHTML='';
 
+    const dateStr=iso(selectedDate);
     const items=routineOccurrencesForDate(selectedDate)
       .filter(item=>{
-        const state=rhythmOccurrenceState(item.def.id,iso(selectedDate));
+        const state=rhythmOccurrenceState(item.def.id,dateStr);
         if(item.source==='deferred') return true;
-        return state.status==='pending';
+        return state.status==='pending' || (isRoutineBundle(item.def) && state.status==='done' && state.autoBundle!==true);
       });
 
+    const deferredChildren=deferredBundleItemsIntoDate(dateStr);
+    const totalVisible=items.length+deferredChildren.length;
+
     const group=$('nowRhythmGroup');
-    if(group) group.style.display=items.length ? 'block' : 'none';
-    if(!items.length) return;
+    if(group) group.style.display=totalVisible ? 'block' : 'none';
+    if(!totalVisible) return;
 
     items.slice(0,2).forEach(item=>{
       const row=document.createElement('div');
       row.className='rhythmNowItem';
 
       const copy=document.createElement('div');
-      copy.innerHTML=`<div class="rhythmNowText">${item.def.name}</div><div class="rhythmNowMeta">${routineMeta(item)}</div>`;
+      const title=document.createElement('div');
+      title.className='rhythmNowText';
+      title.textContent=item.def.name;
+      const meta=document.createElement('div');
+      meta.className='rhythmNowMeta';
+      meta.textContent=routineMeta(item);
+      copy.append(title,meta);
 
-      const btn=document.createElement('button');
-      btn.type='button';
-      btn.className='rhythmBubble';
-      btn.setAttribute('aria-label',`Complete ${item.def.name}`);
-      btn.addEventListener('click',()=>{
-        markRoutineDone(item.def,iso(selectedDate),item.source);
-      });
+      if(isRoutineBundle(item.def)){
+        const p=bundleProgress(item.def,dateStr);
+        const progress=document.createElement('button');
+        progress.type='button';
+        progress.className='nowBundleProgress';
+        progress.setAttribute('aria-label',`Open ${item.def.name}`);
+        progress.addEventListener('click',()=>{
+          $('rhythmSection')?.scrollIntoView({behavior:'smooth',block:'start'});
+        });
 
-      row.append(copy,btn);
+        const count=document.createElement('div');
+        count.className='nowBundleCount';
+        count.textContent=`${p.resolved}/${p.total}`;
+
+        const track=document.createElement('div');
+        track.className='nowBundleTrack';
+        const fill=document.createElement('div');
+        fill.className='nowBundleFill';
+        fill.style.width=`${p.total ? Math.round((p.resolved/p.total)*100) : 0}%`;
+        track.appendChild(fill);
+
+        progress.append(count,track);
+        row.append(copy,progress);
+      }else{
+        const btn=document.createElement('button');
+        btn.type='button';
+        btn.className='rhythmBubble';
+        btn.setAttribute('aria-label',`Complete ${item.def.name}`);
+        btn.addEventListener('click',()=>markRoutineDone(item.def,dateStr,item.source));
+        row.append(copy,btn);
+      }
+
       box.appendChild(row);
     });
 
-    if(items.length>2){
+    const remaining=Math.max(0,totalVisible-2);
+    if(remaining){
       const more=document.createElement('div');
       more.className='rhythmEmpty';
       more.style.padding='9px 11px';
-      more.textContent=`+ ${items.length-2} more in Plan`;
+      more.textContent=`+ ${remaining} more in Plan`;
       box.appendChild(more);
     }
+  }
+
+  function renderBundleProgressElement(def,dateStr){
+    const p=bundleProgress(def,dateStr);
+    const wrap=document.createElement('div');
+    wrap.className='bundleProgressWrap';
+
+    const top=document.createElement('div');
+    top.className='bundleProgressTop';
+
+    const label=document.createElement('span');
+    label.textContent=`${p.resolved} / ${p.total} resolved`;
+
+    const note=document.createElement('span');
+    note.textContent=p.inProgress ? `${p.inProgress} in progress` : (p.resolved===p.total && p.total ? 'reset resolved' : '');
+
+    top.append(label,note);
+
+    const track=document.createElement('div');
+    track.className='bundleProgressTrack';
+    const fill=document.createElement('div');
+    fill.className='bundleProgressFill';
+    fill.style.width=`${p.total ? Math.round((p.resolved/p.total)*100) : 0}%`;
+    track.appendChild(fill);
+
+    wrap.append(top,track);
+    return wrap;
+  }
+
+  function renderBundleChecklist(def,dateStr){
+    const list=document.createElement('div');
+    list.className='bundleChecklist';
+
+    routineItems(def).forEach(item=>{
+      const state=bundleItemState(def.id,dateStr,item.id);
+      const row=document.createElement('div');
+      row.className='bundleItem';
+
+      const stateBtn=document.createElement('button');
+      stateBtn.type='button';
+      stateBtn.className=`bundleStateBtn ${state.status || 'pending'}`;
+      stateBtn.textContent=bundleItemStateGlyph(state);
+      stateBtn.setAttribute('aria-label',`${item.text}: ${bundleItemStateLabel(state)}`);
+      stateBtn.addEventListener('click',()=>cycleBundleItem(def,dateStr,item.id));
+
+      const copy=document.createElement('div');
+      const title=document.createElement('div');
+      title.className='bundleItemText';
+      title.textContent=item.text;
+      const meta=document.createElement('div');
+      meta.className='bundleItemMeta';
+      meta.textContent=bundleItemStateLabel(state);
+      copy.append(title,meta);
+
+      const move=document.createElement('button');
+      move.type='button';
+      move.className='bundleItemMove';
+      move.textContent=state.status==='deferred' ? 'Move again' : 'Move';
+      move.addEventListener('click',()=>openBundleItemMoveModal(def.id,dateStr,item.id));
+
+      row.append(stateBtn,copy,move);
+      list.appendChild(row);
+    });
+
+    return list;
+  }
+
+  function renderDeferredBundleChild(entry){
+    const row=document.createElement('div');
+    row.className='rhythmItem deferredChild';
+
+    const top=document.createElement('div');
+    top.className='rhythmTop';
+
+    const copy=document.createElement('div');
+    const title=document.createElement('div');
+    title.className='rhythmTitle';
+    title.textContent=entry.item.text;
+    const meta=document.createElement('div');
+    meta.className='rhythmMeta';
+    meta.textContent=`moved from ${entry.def.name} · ${parseISO(entry.originDate).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}`;
+    copy.append(title,meta);
+
+    const status=document.createElement('div');
+    status.className='rhythmStatus';
+    status.textContent=entry.itemState.deferredProgress==='in_progress' ? 'In progress' : 'Moved here';
+    top.append(copy,status);
+    row.appendChild(top);
+
+    const actions=document.createElement('div');
+    actions.className='rhythmActions';
+
+    const progress=document.createElement('button');
+    progress.className='rhythmBtn defer';
+    progress.textContent=entry.itemState.deferredProgress==='in_progress' ? 'Pause' : 'Start';
+    progress.addEventListener('click',()=>toggleDeferredBundleItemProgress(entry));
+
+    const done=document.createElement('button');
+    done.className='rhythmBtn done';
+    done.textContent='Done';
+    done.addEventListener('click',()=>completeDeferredBundleItem(entry));
+
+    const move=document.createElement('button');
+    move.className='rhythmBtn defer';
+    move.textContent='Move again';
+    move.addEventListener('click',()=>openBundleItemMoveModal(entry.def.id,entry.originDate,entry.item.id));
+
+    actions.append(progress,done,move);
+    row.appendChild(actions);
+    return row;
   }
 
   function renderRhythm(){
@@ -3433,8 +3948,9 @@
 
     const dateStr=iso(selectedDate);
     const items=routineOccurrencesForDate(selectedDate);
+    const deferredChildren=deferredBundleItemsIntoDate(dateStr);
 
-    if(!items.length){
+    if(!items.length && !deferredChildren.length){
       const empty=document.createElement('div');
       empty.className='rhythmEmpty';
       empty.textContent='No recurring household routines are scheduled for this day.';
@@ -3454,16 +3970,48 @@
       top.className='rhythmTop';
 
       const copy=document.createElement('div');
-      copy.innerHTML=`<div class="rhythmTitle">${item.def.name}</div><div class="rhythmMeta">${routineMeta(item)}</div>`;
+      const title=document.createElement('div');
+      title.className='rhythmTitle';
+      title.textContent=item.def.name;
+      const meta=document.createElement('div');
+      meta.className='rhythmMeta';
+      meta.textContent=routineMeta(item);
+      copy.append(title,meta);
 
       const status=document.createElement('div');
       status.className='rhythmStatus'+(state.status==='done'?' done':state.status==='skipped'?' skipped':'');
-      status.textContent=state.status==='done'?'Done':state.status==='skipped'?'Skipped':item.source==='deferred'?'Moved here':'Pending';
+      status.textContent=
+        state.status==='done' ? 'Done' :
+        state.status==='skipped' ? 'Skipped' :
+        state.status==='deferred' ? 'Moved' :
+        item.source==='deferred' ? 'Moved here' :
+        'Pending';
 
       top.append(copy,status);
       row.appendChild(top);
 
-      if(state.status==='pending' || item.source==='deferred'){
+      if(isRoutineBundle(item.def) && (state.status==='pending' || state.status==='done')){
+        row.appendChild(renderBundleProgressElement(item.def,dateStr));
+        row.appendChild(renderBundleChecklist(item.def,dateStr));
+
+        if(state.status==='pending'){
+          const actions=document.createElement('div');
+          actions.className='bundleParentActions';
+
+          const defer=document.createElement('button');
+          defer.className='rhythmBtn defer';
+          defer.textContent='Move whole reset';
+          defer.addEventListener('click',()=>openRoutineMoveModal(item.def.id,dateStr,item.source));
+
+          const skip=document.createElement('button');
+          skip.className='rhythmBtn skip';
+          skip.textContent='Not this week';
+          skip.addEventListener('click',()=>skipRoutine(item.def,dateStr,item.source));
+
+          actions.append(defer,skip);
+          row.appendChild(actions);
+        }
+      }else if(state.status==='pending' || item.source==='deferred'){
         const actions=document.createElement('div');
         actions.className='rhythmActions';
 
@@ -3488,6 +4036,8 @@
 
       box.appendChild(row);
     });
+
+    deferredChildren.forEach(entry=>box.appendChild(renderDeferredBundleChild(entry)));
   }
 
   function renderOpenLoopPreview(){
@@ -4360,6 +4910,45 @@
     return null;
   }
 
+
+  function openBundleItemMoveModal(defId,originDate,itemId){
+    const def=rhythmDefs.find(d=>d.id===defId);
+    const item=routineItems(def).find(x=>x.id===itemId);
+    if(!def || !item) return;
+
+    const current=bundleItemState(defId,originDate,itemId);
+    movingBundleItemContext={defId,originDate,itemId};
+    $('bundleItemMoveName').textContent=`${item.text} · ${def.name}`;
+    $('bundleItemMoveDate').value=current.deferTo || iso(addDays(parseISO(originDate),1));
+    $('bundleItemMoveModal').classList.add('open');
+  }
+
+  function closeBundleItemMoveModal(){
+    $('bundleItemMoveModal').classList.remove('open');
+    movingBundleItemContext=null;
+  }
+
+  function confirmBundleItemMove(){
+    if(!movingBundleItemContext) return;
+    const target=$('bundleItemMoveDate').value;
+    if(!target) return alert('Choose a date.');
+
+    const {defId,originDate,itemId}=movingBundleItemContext;
+    if(target===originDate) return alert('Choose a different day.');
+
+    const def=rhythmDefs.find(d=>d.id===defId);
+    if(!def) return;
+
+    setBundleItemState(def,originDate,itemId,'deferred',{
+      deferTo:target,
+      originalDate:originDate,
+      deferredProgress:null
+    });
+
+    closeBundleItemMoveModal();
+    refreshViews('rhythm');
+  }
+
   function openRoutineMoveModal(defId,dateStr,source){
     const def=rhythmDefs.find(d=>d.id===defId);
     if(!def) return;
@@ -4550,7 +5139,18 @@
           row.className='weekRoutine';
 
           const copy=document.createElement('div');
-          copy.innerHTML=`<div class="weekRoutineName">${item.def.name}</div><div class="weekRoutineMeta">${item.source==='deferred'?'moved here':(item.def.daypart||'anytime')}</div>`;
+          const name=document.createElement('div');
+          name.className='weekRoutineName';
+          name.textContent=item.def.name;
+          const meta=document.createElement('div');
+          meta.className='weekRoutineMeta';
+          if(isRoutineBundle(item.def)){
+            const p=bundleProgress(item.def,dateStr);
+            meta.textContent=`${item.source==='deferred'?'moved here':(item.def.daypart||'anytime')} · ${p.resolved}/${p.total} resolved`;
+          }else{
+            meta.textContent=item.source==='deferred'?'moved here':(item.def.daypart||'anytime');
+          }
+          copy.append(name,meta);
 
           const move=document.createElement('button');
           move.className='weekRoutineMove';
@@ -5432,6 +6032,20 @@
     renderExceptionList();
   }
   function closeModal(){ $('exceptionModal').classList.remove('open'); }
+  $('addRoutineChecklistItemBtn').addEventListener('click',addRoutineChecklistDraftItem);
+  $('routineChecklistNewItem').addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      addRoutineChecklistDraftItem();
+    }
+  });
+
+  $('closeBundleItemMoveBtn').addEventListener('click',closeBundleItemMoveModal);
+  $('bundleItemMoveModal').addEventListener('click',e=>{
+    if(e.target===$('bundleItemMoveModal')) closeBundleItemMoveModal();
+  });
+  $('confirmBundleItemMoveBtn').addEventListener('click',confirmBundleItemMove);
+
   $('addRoutineBtn').addEventListener('click',()=>openRoutineManager(true));
   $('manageRoutinesBtn').addEventListener('click',()=>openRoutineManager(false));
   $('closeRoutineManagerBtn').addEventListener('click',closeRoutineManager);

@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Food Reality v0.8</title>
+<title>Loochori — Capture v0.9</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -340,6 +340,60 @@
   .planChanged{font-size:11px;color:var(--warn);margin-top:7px}
   .mealStatus.stack{grid-template-columns:62px 1fr auto;align-items:start}
 
+
+  .loopSummary{
+    background:var(--panel2);border-radius:17px;padding:13px
+  }
+  .loopSummaryTop{
+    display:flex;align-items:center;justify-content:space-between;gap:12px
+  }
+  .loopCount{font-weight:800;font-size:15px}
+  .loopHint{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .captureBtn{
+    border:0;background:var(--accent);color:var(--accentText);padding:9px 12px;
+    border-radius:12px;font-weight:820;cursor:pointer;white-space:nowrap
+  }
+  .loopPreview{display:grid;gap:7px;margin-top:10px}
+  .loopPreviewItem{
+    display:flex;align-items:center;gap:10px;background:#171b1e;border-radius:13px;padding:9px 10px
+  }
+  .loopDoneBubble{
+    width:28px;height:28px;border-radius:50%;border:2px solid #59616a;background:transparent;
+    flex:0 0 auto;cursor:pointer
+  }
+  .loopPreviewText{font-size:13px;line-height:1.35;min-width:0;overflow-wrap:anywhere}
+  .loopReviewRow{display:flex;justify-content:flex-end;margin-top:9px}
+  .loopReviewBtn{
+    border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:11px;padding:7px 9px;font-size:11px;font-weight:760;cursor:pointer
+  }
+  .capturePrompt{
+    background:var(--panel2);border-radius:16px;padding:13px;margin-top:10px
+  }
+  .capturePromptTitle{font-weight:780;font-size:14px}
+  .capturePromptNote{font-size:12px;color:var(--muted);line-height:1.4;margin-top:3px}
+  .captureRow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:11px}
+  .captureRow input{
+    width:100%;background:#101316;color:var(--text);border:1px solid var(--line);
+    border-radius:13px;padding:12px
+  }
+  .captureSave{
+    border:0;background:var(--accent);color:var(--accentText);padding:0 14px;
+    border-radius:13px;font-weight:820;cursor:pointer
+  }
+  .openLoopList{display:grid;gap:8px;margin-top:16px}
+  .openLoopItem{
+    display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start;
+    background:var(--panel2);border-radius:15px;padding:11px 12px
+  }
+  .openLoopItem .loopDoneBubble{width:30px;height:30px;margin-top:1px}
+  .openLoopText{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+  .openLoopMeta{font-size:11px;color:var(--muted);margin-top:4px}
+  .loopsEmpty{
+    color:var(--muted);font-size:13px;line-height:1.5;background:var(--panel2);
+    border-radius:15px;padding:13px;margin-top:14px
+  }
+
   @media (min-width:680px){
     .summaryGrid{grid-template-columns:repeat(4,1fr)}
     .weekGrid{grid-template-columns:repeat(2,1fr)}
@@ -351,7 +405,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Food Reality v0.8</div>
+    <div class="version">Capture v0.9</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -387,6 +441,21 @@
 
       <div class="nowSubhead">Care around now</div>
       <div class="nowCare" id="nowCare"></div>
+
+      <div class="nowSubhead">Open loops</div>
+      <div class="loopSummary">
+        <div class="loopSummaryTop">
+          <div>
+            <div class="loopCount" id="openLoopCount">0 open</div>
+            <div class="loopHint" id="openLoopHint">Loochori isn’t holding anything for you right now.</div>
+          </div>
+          <button class="captureBtn" id="captureNowBtn">+ Capture</button>
+        </div>
+        <div class="loopPreview" id="openLoopPreview"></div>
+        <div class="loopReviewRow" id="loopReviewRow" style="display:none">
+          <button class="loopReviewBtn" id="reviewLoopsBtn">Review all</button>
+        </div>
+      </div>
 
       <div class="nowSubhead">Today at a glance</div>
       <div class="miniTimeline" id="miniTimeline"></div>
@@ -563,6 +632,32 @@
 </nav>
 
 
+
+<div class="modalBackdrop" id="captureModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle">Capture</div>
+        <div class="sectionNote">Tell Loochori once. You don’t have to keep rehearsing the thought.</div>
+      </div>
+      <button class="closeBtn" id="closeCaptureModal">×</button>
+    </div>
+
+    <div class="capturePrompt">
+      <div class="capturePromptTitle">What do you want me to hold onto?</div>
+      <div class="capturePromptNote">No priority, category, or due date. Just get it out of your head.</div>
+      <div class="captureRow">
+        <input id="captureInput" type="text" placeholder="hand soap, closet door, text someone…" autocomplete="off">
+        <button class="captureSave" id="saveCaptureBtn">Hold it</button>
+      </div>
+    </div>
+
+    <div class="sectionTitle" style="margin-top:20px">Open loops</div>
+    <div class="sectionNote">Tap a circle when the thought no longer needs carrying.</div>
+    <div class="openLoopList" id="openLoopList"></div>
+  </div>
+</div>
+
 <div class="modalBackdrop" id="mealModal">
   <div class="modal">
     <div class="modalHead">
@@ -660,6 +755,7 @@
   const CHECKIN_STORAGE_KEY = 'loochori_checkins_v1';
   const MEAL_LIBRARY_KEY = 'loochori_meal_library_v1';
   const MEAL_HISTORY_KEY = 'loochori_meal_history_v1';
+  const OPEN_LOOP_KEY = 'loochori_open_loops_v1';
   const CARE_GROUPS = [
     {id:'morning', label:'Morning'},
     {id:'day', label:'Through the day'},
@@ -726,6 +822,7 @@
   let mealLibrary = loadMealLibrary();
   let mealHistory = loadMealHistory();
   let mealPickerContext = {mode:'library', slot:null, field:null};
+  let openLoops = loadOpenLoops();
 
   const $ = id => document.getElementById(id);
 
@@ -774,6 +871,40 @@
     catch(e){ return {}; }
   }
   function saveMealHistory(){ localStorage.setItem(MEAL_HISTORY_KEY,JSON.stringify(mealHistory)); }
+
+  function loadOpenLoops(){
+    try { return JSON.parse(localStorage.getItem(OPEN_LOOP_KEY) || '[]'); }
+    catch(e){ return []; }
+  }
+  function saveOpenLoops(){ localStorage.setItem(OPEN_LOOP_KEY, JSON.stringify(openLoops)); }
+
+  function activeOpenLoops(){
+    return openLoops
+      .filter(item=>item.status!=='done')
+      .sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+  }
+
+  function loopCreatedLabel(item){
+    const d=new Date(item.createdAt);
+    const now=new Date();
+    const dDay=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    const nDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    const diff=Math.round((nDay-dDay)/86400000);
+    const clock=d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+    if(diff===0) return `captured today ${clock}`;
+    if(diff===1) return `captured yesterday ${clock}`;
+    return `captured ${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})} ${clock}`;
+  }
+
+  function completeLoop(id){
+    const item=openLoops.find(x=>x.id===id);
+    if(!item) return;
+    item.status='done';
+    item.completedAt=new Date().toISOString();
+    saveOpenLoops();
+    renderOpenLoopPreview();
+    renderOpenLoopList();
+  }
 
   function mealSlotRecord(dateStr,slot){
     if(!mealHistory[dateStr]) mealHistory[dateStr]={};
@@ -1262,6 +1393,114 @@
     renderNow();
   }
 
+
+  function renderOpenLoopPreview(){
+    const items=activeOpenLoops();
+    const count=items.length;
+    $('openLoopCount').textContent=`${count} open`;
+    $('openLoopHint').textContent=count
+      ? 'These are safely outside your head until you choose to deal with them.'
+      : 'Loochori isn’t holding anything for you right now.';
+
+    const box=$('openLoopPreview');
+    box.innerHTML='';
+
+    items.slice(0,3).forEach(item=>{
+      const row=document.createElement('div');
+      row.className='loopPreviewItem';
+
+      const done=document.createElement('button');
+      done.type='button';
+      done.className='loopDoneBubble';
+      done.setAttribute('aria-label',`Close loop: ${item.text}`);
+      done.addEventListener('click',()=>completeLoop(item.id));
+
+      const label=document.createElement('div');
+      label.className='loopPreviewText';
+      label.textContent=item.text;
+
+      row.append(done,label);
+      box.appendChild(row);
+    });
+
+    $('loopReviewRow').style.display=count ? 'flex' : 'none';
+    $('reviewLoopsBtn').textContent=count>3 ? `Review all ${count}` : 'Review all';
+  }
+
+  function renderOpenLoopList(){
+    const box=$('openLoopList');
+    if(!box) return;
+    box.innerHTML='';
+    const items=activeOpenLoops();
+
+    if(!items.length){
+      const empty=document.createElement('div');
+      empty.className='loopsEmpty';
+      empty.textContent='Nothing open. When a thought arrives later, capture it once and let Loochori keep it here.';
+      box.appendChild(empty);
+      return;
+    }
+
+    items.forEach(item=>{
+      const row=document.createElement('div');
+      row.className='openLoopItem';
+
+      const done=document.createElement('button');
+      done.type='button';
+      done.className='loopDoneBubble';
+      done.setAttribute('aria-label',`Close loop: ${item.text}`);
+      done.addEventListener('click',()=>completeLoop(item.id));
+
+      const content=document.createElement('div');
+
+      const label=document.createElement('div');
+      label.className='openLoopText';
+      label.textContent=item.text;
+
+      const meta=document.createElement('div');
+      meta.className='openLoopMeta';
+      meta.textContent=loopCreatedLabel(item);
+
+      content.append(label,meta);
+      row.append(done,content);
+      box.appendChild(row);
+    });
+  }
+
+  function openCaptureModal(focusInput=true){
+    $('captureModal').classList.add('open');
+    renderOpenLoopList();
+    if(focusInput){
+      setTimeout(()=>$('captureInput').focus(),120);
+    }
+  }
+
+  function closeCaptureModal(){
+    $('captureModal').classList.remove('open');
+    $('captureInput').value='';
+  }
+
+  function captureThought(){
+    const input=$('captureInput');
+    const value=input.value.trim();
+    if(!value) return;
+
+    openLoops.push({
+      id:'loop_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),
+      text:value,
+      createdAt:new Date().toISOString(),
+      status:'open',
+      completedAt:null
+    });
+    saveOpenLoops();
+    input.value='';
+    renderOpenLoopPreview();
+    renderOpenLoopList();
+
+    // Capture is meant to be a five-second unload, not a new management session.
+    closeCaptureModal();
+  }
+
   function renderNowCare(minute){
     const box=$('nowCare');
     box.innerHTML='';
@@ -1365,6 +1604,7 @@
   }
 
   function renderNow(){
+    renderOpenLoopPreview();
     const todayStr=iso(new Date());
     const selectedStr=iso(selectedDate);
     const now=new Date();
@@ -1826,7 +2066,7 @@
     }
   }
 
-  function renderAll(){ renderToday(); renderNow(); renderMeals(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); }
+  function renderAll(){ renderToday(); renderNow(); renderMeals(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); renderOpenLoopList(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));
@@ -1878,6 +2118,13 @@
 
   $('saveCheckin').addEventListener('click', saveCurrentCheckin);
   $('skipCheckin').addEventListener('click', clearPendingCheckin);
+
+  $('captureNowBtn').addEventListener('click',()=>openCaptureModal(true));
+  $('reviewLoopsBtn').addEventListener('click',()=>openCaptureModal(false));
+  $('closeCaptureModal').addEventListener('click', closeCaptureModal);
+  $('captureModal').addEventListener('click',e=>{ if(e.target===$('captureModal')) closeCaptureModal(); });
+  $('saveCaptureBtn').addEventListener('click', captureThought);
+  $('captureInput').addEventListener('keydown',e=>{ if(e.key==='Enter') captureThought(); });
 
   $('openMealLibrary').addEventListener('click', openMealLibrary);
   $('closeMealModal').addEventListener('click', closeMealModal);

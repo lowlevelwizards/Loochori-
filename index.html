@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Household Config v0.14.2</title>
+<title>Loochori — Routines & Block Library v0.15</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -926,6 +926,68 @@
   .realityPersonTitle{font-size:13px;font-weight:820}
   .realityHint{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4}
 
+
+  /* v0.15 — tactile routine editing + reusable time blocks */
+  .rhythmManageRow{
+    display:flex;gap:8px;justify-content:flex-end;margin-top:10px
+  }
+  .rhythmManageBtn{
+    border:1px solid var(--line);background:transparent;color:var(--text);
+    border-radius:11px;padding:8px 10px;font-size:11px;font-weight:780;cursor:pointer
+  }
+
+  .routineManagerList{display:grid;gap:8px;margin-top:12px}
+  .routineManagerItem{
+    background:var(--panel2);border-radius:14px;padding:11px 12px;
+    display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center
+  }
+  .routineManagerTitle{font-size:13px;font-weight:800}
+  .routineManagerMeta{font-size:10px;color:var(--muted);margin-top:3px}
+  .routineManagerActions{display:flex;gap:6px}
+  .routineTinyBtn{
+    border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:9px;padding:6px 8px;font-size:10px;font-weight:760;cursor:pointer
+  }
+  .routineTinyBtn.primaryish{color:#cfe7d5}
+  .routineTinyBtn.warnish{color:#e4c998}
+
+  .routineEditorForm{
+    margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07)
+  }
+  .routineEditorWeekdays{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+  .routineDayChip{
+    display:flex;align-items:center;gap:4px;background:var(--panel2);
+    border-radius:9px;padding:6px 7px;font-size:10px;color:var(--muted)
+  }
+
+  .blockLibrary{
+    margin:8px 0 14px;padding:11px;background:var(--panel2);border-radius:15px
+  }
+  .blockLibraryHead{
+    display:flex;justify-content:space-between;align-items:center;gap:10px
+  }
+  .blockLibraryTitle{font-size:12px;font-weight:820}
+  .blockLibraryNote{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.35}
+  .savedBlockList{display:grid;gap:7px;margin-top:10px}
+  .savedBlockItem{
+    display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;
+    background:#121518;border-radius:12px;padding:9px 10px
+  }
+  .savedBlockName{font-size:12px;font-weight:780}
+  .savedBlockMeta{font-size:10px;color:var(--muted);margin-top:2px}
+  .savedBlockActions{display:flex;gap:5px}
+  .savedBlockUse,.savedBlockDelete{
+    border:1px solid var(--line);background:transparent;border-radius:9px;
+    padding:6px 8px;font-size:10px;font-weight:760;cursor:pointer
+  }
+  .savedBlockUse{color:#cfe7d5}
+  .savedBlockDelete{color:var(--muted)}
+  .saveTemplateRow{
+    display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);
+    margin-top:8px
+  }
+  .blockLibraryEmpty{font-size:11px;color:var(--muted);padding:3px 1px}
+
   @media (min-width:680px){
     .historyStats{grid-template-columns:repeat(4,minmax(0,1fr))}
     .monthDay{min-height:92px;padding:8px}
@@ -958,7 +1020,7 @@
   <div class="topbar">
     <div class="brand">Loochori</div>
     <div class="topbarRight">
-      <div class="version">Household Config v0.14.2</div>
+      <div class="version">Routines + Blocks v0.15</div>
       <button class="settingsBtn" id="openSettingsBtn">Settings</button>
     </div>
   </div>
@@ -1094,6 +1156,10 @@
       </div>
       <div class="rhythmList" id="rhythmList"></div>
     </section>
+        <div class="rhythmManageRow">
+          <button class="rhythmManageBtn" id="addRoutineBtn">＋ Add routine</button>
+          <button class="rhythmManageBtn" id="manageRoutinesBtn">Manage</button>
+        </div>
         <div id="houseOpenLoopsGroup">
           <div class="householdSubhead">Open loops</div>
           <div class="houseLoops" id="houseOpenLoops"></div>
@@ -1371,6 +1437,53 @@
 
 
 
+
+<div class="modalBackdrop" id="routineManagerModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle">Household rhythm</div>
+        <div class="sectionNote">These are recurring household patterns, not overdue tasks.</div>
+      </div>
+      <button class="closeBtn" id="closeRoutineManagerBtn">×</button>
+    </div>
+
+    <div class="routineManagerList" id="routineManagerList"></div>
+
+    <div class="routineEditorForm" id="routineEditorForm">
+      <div class="settingsSectionTitle" id="routineEditorTitle">Add routine</div>
+
+      <div class="field" style="margin-top:10px">
+        <label>Name</label>
+        <input type="text" id="routineEditName" placeholder="Kitchen reset">
+      </div>
+
+      <div class="field">
+        <label>Days</label>
+        <div class="routineEditorWeekdays" id="routineEditWeekdays"></div>
+      </div>
+
+      <div class="field">
+        <label>Daypart</label>
+        <select id="routineEditDaypart">
+          <option value="morning">Morning</option>
+          <option value="afternoon">Afternoon</option>
+          <option value="evening">Evening</option>
+          <option value="anytime">Anytime</option>
+        </select>
+      </div>
+
+      <label class="saveTemplateRow">
+        <input type="checkbox" id="routineEditActive" checked>
+        Active
+      </label>
+
+      <button class="primary" id="saveRoutineDefinitionBtn">Save routine</button>
+      <button class="danger" id="cancelRoutineEditBtn" style="display:none">Cancel edit</button>
+    </div>
+  </div>
+</div>
+
 <div class="modalBackdrop" id="householdSettingsModal">
   <div class="modal">
     <div class="modalHead">
@@ -1552,6 +1665,16 @@
       <button class="closeBtn" id="closeTimeBlockModal">×</button>
     </div>
 
+    <div class="blockLibrary">
+      <div class="blockLibraryHead">
+        <div>
+          <div class="blockLibraryTitle">Saved blocks</div>
+          <div class="blockLibraryNote">Pick one to fill this block, then adjust the time if today is different.</div>
+        </div>
+      </div>
+      <div class="savedBlockList" id="savedBlockList"></div>
+    </div>
+
     <div class="field">
       <label>What is it?</label>
       <input type="text" id="timeBlockTitle" placeholder="Helping a friend move">
@@ -1582,6 +1705,10 @@
       </select>
     </div>
 
+    <label class="saveTemplateRow">
+      <input type="checkbox" id="saveTimeBlockTemplate">
+      Save this as a reusable block
+    </label>
     <button class="primary" id="saveTimeBlockBtn">Save time block</button>
     <button class="danger" id="deleteTimeBlockBtn" style="display:none">Delete time block</button>
   </div>
@@ -1713,6 +1840,7 @@
   const RHYTHM_KEY = 'loochori_weekly_rhythm_v1';
   const RHYTHM_STATE_KEY = 'loochori_weekly_rhythm_state_v1';
   const TIME_BLOCK_KEY = 'loochori_time_blocks_v1';
+  const TIME_BLOCK_LIBRARY_KEY = 'loochori_time_block_library_v1';
   const HOUSEHOLD_CONFIG_KEY = 'loochori_household_config_v1';
   const DAY_REALITY_KEY = 'loochori_day_reality_v1';
   const CARE_GROUPS = [
@@ -1874,8 +2002,10 @@
   let rhythmDefs = loadRhythmDefs();
   let rhythmState = loadRhythmState();
   let timeBlocks = loadTimeBlocks();
+  let timeBlockLibrary = loadTimeBlockLibrary();
   let editingTimeBlockId = null;
   let movingRoutineContext = null;
+  let editingRoutineDefinitionId = null;
 
   const $ = id => document.getElementById(id);
 
@@ -1980,6 +2110,116 @@
     localStorage.setItem(TIME_BLOCK_KEY,JSON.stringify(timeBlocks));
   }
 
+
+  function loadTimeBlockLibrary(){
+    try{
+      const parsed=JSON.parse(localStorage.getItem(TIME_BLOCK_LIBRARY_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    }catch(e){ return []; }
+  }
+
+  function saveTimeBlockLibrary(){
+    localStorage.setItem(TIME_BLOCK_LIBRARY_KEY,JSON.stringify(timeBlockLibrary));
+  }
+
+  function blockDurationMinutes(start,end){
+    return Math.max(15,timeToMin(end)-timeToMin(start));
+  }
+
+  function timeFromMinutes(minutes){
+    const m=((Math.round(minutes)%1440)+1440)%1440;
+    return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+  }
+
+  function renderTimeBlockLibrary(){
+    const box=$('savedBlockList');
+    if(!box) return;
+    box.innerHTML='';
+
+    if(!timeBlockLibrary.length){
+      const empty=document.createElement('div');
+      empty.className='blockLibraryEmpty';
+      empty.textContent='No saved blocks yet.';
+      box.appendChild(empty);
+      return;
+    }
+
+    timeBlockLibrary.forEach(template=>{
+      const row=document.createElement('div');
+      row.className='savedBlockItem';
+
+      const copy=document.createElement('div');
+      const name=document.createElement('div');
+      name.className='savedBlockName';
+      name.textContent=template.title;
+      const meta=document.createElement('div');
+      meta.className='savedBlockMeta';
+      meta.textContent=`${durationLabel(template.durationMinutes || 60)} · ${personLabelForBlock(template.person || 'you')}`;
+      copy.append(name,meta);
+
+      const actions=document.createElement('div');
+      actions.className='savedBlockActions';
+
+      const use=document.createElement('button');
+      use.type='button';
+      use.className='savedBlockUse';
+      use.textContent='Use';
+      use.addEventListener('click',()=>applyTimeBlockTemplate(template));
+
+      const del=document.createElement('button');
+      del.type='button';
+      del.className='savedBlockDelete';
+      del.textContent='×';
+      del.setAttribute('aria-label',`Delete saved block ${template.title}`);
+      del.addEventListener('click',()=>{
+        timeBlockLibrary=timeBlockLibrary.filter(x=>x.id!==template.id);
+        saveTimeBlockLibrary();
+        renderTimeBlockLibrary();
+      });
+
+      actions.append(use,del);
+      row.append(copy,actions);
+      box.appendChild(row);
+    });
+  }
+
+  function applyTimeBlockTemplate(template){
+    $('timeBlockTitle').value=template.title || '';
+    $('timeBlockPerson').value=template.person || 'you';
+
+    const start=$('timeBlockStart').value || '12:00';
+    const duration=Number(template.durationMinutes) || 60;
+    $('timeBlockEnd').value=timeFromMinutes(timeToMin(start)+duration);
+  }
+
+  function saveBlockTemplateFromCurrentForm(){
+    const title=$('timeBlockTitle').value.trim();
+    if(!title) return;
+
+    const start=$('timeBlockStart').value;
+    const end=$('timeBlockEnd').value;
+    const durationMinutes=blockDurationMinutes(start,end);
+    const person=$('timeBlockPerson').value;
+
+    const existing=timeBlockLibrary.find(
+      item=>item.title.toLowerCase()===title.toLowerCase() && item.person===person
+    );
+
+    if(existing){
+      existing.durationMinutes=durationMinutes;
+      existing.updatedAt=new Date().toISOString();
+    }else{
+      timeBlockLibrary.push({
+        id:'blocktpl_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),
+        title,
+        person,
+        durationMinutes,
+        createdAt:new Date().toISOString()
+      });
+    }
+    saveTimeBlockLibrary();
+  }
+
   function timeBlocksForDate(date){
     const dateStr=typeof date==='string' ? date : iso(date);
     return timeBlocks
@@ -2041,7 +2281,7 @@
     const dateStr=iso(date);
     const weekday=date.getDay();
     const direct=rhythmDefs
-      .filter(def=>def.weekdays.includes(weekday))
+      .filter(def=>def.active!==false && def.weekdays.includes(weekday))
       .map(def=>({def,source:'scheduled',state:rhythmOccurrenceState(def.id,dateStr),dateStr}));
 
     const deferred=deferredIntoDate(dateStr)
@@ -2675,9 +2915,11 @@
     $('timeBlockTitle').value=existing ? existing.title : '';
     $('timeBlockDate').value=existing ? existing.date : defaultDate;
     $('timeBlockStart').value=existing ? existing.start : '12:00';
-    $('timeBlockEnd').value=existing ? existing.end : '15:00';
+    $('timeBlockEnd').value=existing ? existing.end : '13:00';
     $('timeBlockPerson').value=existing ? existing.person : 'you';
+    $('saveTimeBlockTemplate').checked=false;
     $('deleteTimeBlockBtn').style.display=existing ? 'block' : 'none';
+    renderTimeBlockLibrary();
     $('timeBlockModal').classList.add('open');
 
     setTimeout(()=>$('timeBlockTitle').focus(),120);
@@ -2723,6 +2965,9 @@
     }
 
     saveTimeBlocks();
+    if($('saveTimeBlockTemplate').checked){
+      saveBlockTemplateFromCurrentForm();
+    }
     closeTimeBlockModal();
     refreshViews('timeBlocks');
   }
@@ -2733,6 +2978,163 @@
     saveTimeBlocks();
     closeTimeBlockModal();
     refreshViews('timeBlocks');
+  }
+
+
+  function renderRoutineEditWeekdays(selected=[]){
+    const box=$('routineEditWeekdays');
+    box.innerHTML='';
+    WEEKDAY_NAMES.forEach((name,day)=>{
+      const label=document.createElement('label');
+      label.className='routineDayChip';
+      const input=document.createElement('input');
+      input.type='checkbox';
+      input.value=String(day);
+      input.checked=selected.includes(day);
+      label.append(input,document.createTextNode(name));
+      box.appendChild(label);
+    });
+  }
+
+  function resetRoutineEditor(){
+    editingRoutineDefinitionId=null;
+    $('routineEditorTitle').textContent='Add routine';
+    $('routineEditName').value='';
+    $('routineEditDaypart').value='anytime';
+    $('routineEditActive').checked=true;
+    renderRoutineEditWeekdays([]);
+    $('cancelRoutineEditBtn').style.display='none';
+  }
+
+  function editRoutineDefinition(id){
+    const def=rhythmDefs.find(r=>r.id===id);
+    if(!def) return;
+
+    editingRoutineDefinitionId=id;
+    $('routineEditorTitle').textContent='Edit routine';
+    $('routineEditName').value=def.name || '';
+    $('routineEditDaypart').value=def.daypart || 'anytime';
+    $('routineEditActive').checked=def.active!==false;
+    renderRoutineEditWeekdays(Array.isArray(def.weekdays)?def.weekdays:[]);
+    $('cancelRoutineEditBtn').style.display='block';
+    $('routineEditName').focus();
+  }
+
+  function renderRoutineManager(){
+    const box=$('routineManagerList');
+    if(!box) return;
+    box.innerHTML='';
+
+    if(!rhythmDefs.length){
+      const empty=document.createElement('div');
+      empty.className='empty';
+      empty.textContent='No household routines yet.';
+      box.appendChild(empty);
+      return;
+    }
+
+    rhythmDefs.forEach(def=>{
+      const row=document.createElement('div');
+      row.className='routineManagerItem';
+
+      const copy=document.createElement('div');
+      const title=document.createElement('div');
+      title.className='routineManagerTitle';
+      title.textContent=def.name;
+
+      const meta=document.createElement('div');
+      meta.className='routineManagerMeta';
+      const days=(def.weekdays||[]).map(d=>WEEKDAY_NAMES[d]).join(', ') || 'no days';
+      meta.textContent=`${days} · ${def.daypart || 'anytime'}${def.active===false?' · paused':''}`;
+
+      copy.append(title,meta);
+
+      const actions=document.createElement('div');
+      actions.className='routineManagerActions';
+
+      const edit=document.createElement('button');
+      edit.type='button';
+      edit.className='routineTinyBtn primaryish';
+      edit.textContent='Edit';
+      edit.addEventListener('click',()=>editRoutineDefinition(def.id));
+
+      const toggle=document.createElement('button');
+      toggle.type='button';
+      toggle.className='routineTinyBtn warnish';
+      toggle.textContent=def.active===false?'Resume':'Pause';
+      toggle.addEventListener('click',()=>{
+        def.active=def.active===false ? true : false;
+        saveRhythmDefs();
+        renderRoutineManager();
+        refreshViews('rhythm');
+      });
+
+      const del=document.createElement('button');
+      del.type='button';
+      del.className='routineTinyBtn';
+      del.textContent='Delete';
+      del.addEventListener('click',()=>{
+        if(!confirm(`Delete the recurring routine "${def.name}"? Existing dated history will stay in storage.`)) return;
+        rhythmDefs=rhythmDefs.filter(r=>r.id!==def.id);
+        saveRhythmDefs();
+        if(editingRoutineDefinitionId===def.id) resetRoutineEditor();
+        renderRoutineManager();
+        refreshViews('rhythm');
+      });
+
+      actions.append(edit,toggle,del);
+      row.append(copy,actions);
+      box.appendChild(row);
+    });
+  }
+
+  function openRoutineManager(startNew=false){
+    renderRoutineManager();
+    resetRoutineEditor();
+    $('routineManagerModal').classList.add('open');
+    if(startNew){
+      setTimeout(()=>$('routineEditName').focus(),120);
+    }
+  }
+
+  function closeRoutineManager(){
+    $('routineManagerModal').classList.remove('open');
+    editingRoutineDefinitionId=null;
+  }
+
+  function saveRoutineDefinition(){
+    const name=$('routineEditName').value.trim();
+    const weekdays=[...$('routineEditWeekdays').querySelectorAll('input:checked')].map(x=>Number(x.value));
+    const daypart=$('routineEditDaypart').value;
+    const active=$('routineEditActive').checked;
+
+    if(!name) return alert('Give the routine a name.');
+    if(!weekdays.length) return alert('Choose at least one day.');
+
+    if(editingRoutineDefinitionId){
+      const def=rhythmDefs.find(r=>r.id===editingRoutineDefinitionId);
+      if(def){
+        def.name=name;
+        def.weekdays=weekdays;
+        def.daypart=daypart;
+        def.active=active;
+        def.updatedAt=new Date().toISOString();
+      }
+    }else{
+      rhythmDefs.push({
+        id:'routine_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),
+        name,
+        weekdays,
+        daypart,
+        active,
+        createdAt:new Date().toISOString()
+      });
+    }
+
+    saveRhythmDefs();
+    renderRoutineManager();
+    resetRoutineEditor();
+    refreshViews('rhythm');
   }
 
   function renderRhythmNow(){
@@ -4129,6 +4531,7 @@
       RHYTHM_KEY,
       RHYTHM_STATE_KEY,
       TIME_BLOCK_KEY,
+      TIME_BLOCK_LIBRARY_KEY,
       HOUSEHOLD_CONFIG_KEY,
       DAY_REALITY_KEY
     ];
@@ -4193,6 +4596,7 @@
       RHYTHM_KEY,
       RHYTHM_STATE_KEY,
       TIME_BLOCK_KEY,
+      TIME_BLOCK_LIBRARY_KEY,
       HOUSEHOLD_CONFIG_KEY,
       DAY_REALITY_KEY
     ]);
@@ -4746,6 +5150,13 @@
     renderExceptionList();
   }
   function closeModal(){ $('exceptionModal').classList.remove('open'); }
+  $('addRoutineBtn').addEventListener('click',()=>openRoutineManager(true));
+  $('manageRoutinesBtn').addEventListener('click',()=>openRoutineManager(false));
+  $('closeRoutineManagerBtn').addEventListener('click',closeRoutineManager);
+  $('routineManagerModal').addEventListener('click',e=>{if(e.target===$('routineManagerModal'))closeRoutineManager();});
+  $('saveRoutineDefinitionBtn').addEventListener('click',saveRoutineDefinition);
+  $('cancelRoutineEditBtn').addEventListener('click',resetRoutineEditor);
+
   renderTempRuleWeekdayChecks();
 
   $('openSettingsBtn').addEventListener('click',openSettings);

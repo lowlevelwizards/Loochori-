@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Capture v0.9</title>
+<title>Loochori — Weekly Rhythm v0.10</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -394,6 +394,57 @@
     border-radius:15px;padding:13px;margin-top:14px
   }
 
+
+  .rhythmSection{border-color:#34413a}
+  .rhythmList{display:grid;gap:9px}
+  .rhythmItem{
+    background:var(--panel2);border-radius:16px;padding:12px
+  }
+  .rhythmTop{
+    display:flex;align-items:center;justify-content:space-between;gap:12px
+  }
+  .rhythmTitle{font-size:14px;font-weight:780;line-height:1.35}
+  .rhythmMeta{font-size:11px;color:var(--muted);margin-top:3px}
+  .rhythmActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+  .rhythmBtn{
+    border:1px solid var(--line);background:#171b1e;color:var(--muted);
+    border-radius:11px;padding:7px 9px;font-size:11px;font-weight:760;cursor:pointer
+  }
+  .rhythmBtn.done{
+    background:var(--accent);color:var(--accentText);border-color:var(--accent)
+  }
+  .rhythmBtn.skip{color:#d6c6ae}
+  .rhythmBtn.defer{color:#c9d7ff}
+  .rhythmEmpty{
+    color:var(--muted);font-size:13px;line-height:1.5;background:var(--panel2);
+    border-radius:15px;padding:13px
+  }
+  .rhythmStatus{
+    font-size:11px;padding:5px 8px;border-radius:999px;background:var(--soft);color:var(--muted)
+  }
+  .rhythmStatus.done{background:rgba(217,240,223,.12);color:var(--accent)}
+  .rhythmStatus.skipped{background:rgba(255,231,184,.08);color:#e6cfaa}
+  .rhythmNow{
+    display:grid;gap:7px
+  }
+  .rhythmNowItem{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:var(--panel2);border-radius:15px;padding:11px 12px
+  }
+  .rhythmNowText{font-size:13px;font-weight:720;line-height:1.35}
+  .rhythmNowMeta{font-size:10px;color:var(--muted);margin-top:2px}
+  .rhythmBubble{
+    width:32px;height:32px;border-radius:50%;border:2px solid #59616a;background:transparent;
+    flex:0 0 auto;cursor:pointer;position:relative
+  }
+  .rhythmBubble.filled{
+    background:var(--accent);border-color:var(--accent)
+  }
+  .rhythmBubble.filled:after{
+    content:"✓";position:absolute;inset:0;display:grid;place-items:center;
+    color:var(--accentText);font-weight:900;font-size:17px
+  }
+
   @media (min-width:680px){
     .summaryGrid{grid-template-columns:repeat(4,1fr)}
     .weekGrid{grid-template-columns:repeat(2,1fr)}
@@ -405,7 +456,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Capture v0.9</div>
+    <div class="version">Weekly Rhythm v0.10</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -442,6 +493,9 @@
       <div class="nowSubhead">Care around now</div>
       <div class="nowCare" id="nowCare"></div>
 
+      <div class="nowSubhead">Today’s rhythm</div>
+      <div class="rhythmNow" id="rhythmNow"></div>
+
       <div class="nowSubhead">Open loops</div>
       <div class="loopSummary">
         <div class="loopSummaryTop">
@@ -470,6 +524,16 @@
         <button class="tinyBtn" id="openMealLibrary">Library</button>
       </div>
       <div class="mealSlots" id="mealSlots"></div>
+    </section>
+
+    <section class="section rhythmSection" id="rhythmSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Weekly rhythm</div>
+          <div class="sectionNote">Predictable household things that return on their own. Each occurrence can be done, moved to tomorrow, or skipped.</div>
+        </div>
+      </div>
+      <div class="rhythmList" id="rhythmList"></div>
     </section>
 
     <details class="detailsDisclosure" id="dayDetails">
@@ -756,6 +820,8 @@
   const MEAL_LIBRARY_KEY = 'loochori_meal_library_v1';
   const MEAL_HISTORY_KEY = 'loochori_meal_history_v1';
   const OPEN_LOOP_KEY = 'loochori_open_loops_v1';
+  const RHYTHM_KEY = 'loochori_weekly_rhythm_v1';
+  const RHYTHM_STATE_KEY = 'loochori_weekly_rhythm_state_v1';
   const CARE_GROUPS = [
     {id:'morning', label:'Morning'},
     {id:'day', label:'Through the day'},
@@ -823,6 +889,8 @@
   let mealHistory = loadMealHistory();
   let mealPickerContext = {mode:'library', slot:null, field:null};
   let openLoops = loadOpenLoops();
+  let rhythmDefs = loadRhythmDefs();
+  let rhythmState = loadRhythmState();
 
   const $ = id => document.getElementById(id);
 
@@ -904,6 +972,135 @@
     saveOpenLoops();
     renderOpenLoopPreview();
     renderOpenLoopList();
+  }
+
+  function defaultRhythmDefs(){
+    return [
+      {id:'sat_kitchen_reset', name:'Kitchen reset', weekdays:[6], daypart:'morning'},
+      {id:'sat_general_pickup', name:'General pickup', weekdays:[6], daypart:'morning'},
+      {id:'sat_household_supplies', name:'Check household supplies', weekdays:[6], daypart:'morning'},
+      {id:'sat_laundry', name:'Laundry', weekdays:[6], daypart:'anytime'},
+      {id:'mon_weekly_lookahead', name:'Weekly look-ahead', weekdays:[1], daypart:'anytime'},
+      {id:'mon_med_containers', name:'Refill med containers', weekdays:[1], daypart:'anytime'}
+    ];
+  }
+
+  function loadRhythmDefs(){
+    try{
+      const saved=JSON.parse(localStorage.getItem(RHYTHM_KEY) || 'null');
+      if(Array.isArray(saved) && saved.length) return saved;
+    }catch(e){}
+    const seeded=defaultRhythmDefs();
+    localStorage.setItem(RHYTHM_KEY,JSON.stringify(seeded));
+    return seeded;
+  }
+  function saveRhythmDefs(){ localStorage.setItem(RHYTHM_KEY,JSON.stringify(rhythmDefs)); }
+
+  function loadRhythmState(){
+    try { return JSON.parse(localStorage.getItem(RHYTHM_STATE_KEY) || '{}'); }
+    catch(e){ return {}; }
+  }
+  function saveRhythmState(){ localStorage.setItem(RHYTHM_STATE_KEY,JSON.stringify(rhythmState)); }
+
+  function rhythmOccurrenceKey(defId,dateStr){ return `${defId}__${dateStr}`; }
+
+  function rhythmOccurrenceState(defId,dateStr){
+    return rhythmState[rhythmOccurrenceKey(defId,dateStr)] || {status:'pending',deferredFrom:null};
+  }
+
+  function setRhythmOccurrence(defId,dateStr,status,extra={}){
+    rhythmState[rhythmOccurrenceKey(defId,dateStr)] = {
+      status,
+      updatedAt:new Date().toISOString(),
+      ...extra
+    };
+    saveRhythmState();
+  }
+
+  function deferredIntoDate(dateStr){
+    return Object.entries(rhythmState)
+      .filter(([key,state])=>state && state.status==='deferred' && state.deferTo===dateStr)
+      .map(([key,state])=>{
+        const defId=key.split('__')[0];
+        const def=rhythmDefs.find(d=>d.id===defId);
+        return def ? {def,state} : null;
+      })
+      .filter(Boolean);
+  }
+
+  function routineOccurrencesForDate(date){
+    const dateStr=iso(date);
+    const weekday=date.getDay();
+    const direct=rhythmDefs
+      .filter(def=>def.weekdays.includes(weekday))
+      .map(def=>({def,source:'scheduled',state:rhythmOccurrenceState(def.id,dateStr),dateStr}));
+
+    const deferred=deferredIntoDate(dateStr)
+      .map(({def,state})=>({
+        def,
+        source:'deferred',
+        state:{status:'pending',deferredFrom:state.originalDate || state.deferredFrom || null},
+        dateStr
+      }));
+
+    // Avoid duplicate if something is both scheduled today and deferred into today.
+    const seen=new Set();
+    return [...deferred,...direct].filter(item=>{
+      const key=item.def.id+'__'+item.source;
+      if(seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  function markRoutineDone(def,dateStr,source='scheduled'){
+    setRhythmOccurrence(def.id,dateStr,'done',{source});
+    if(source==='deferred'){
+      // Close the originating deferred occurrence if we can find it.
+      for(const [key,state] of Object.entries(rhythmState)){
+        if(key.startsWith(def.id+'__') && state && state.status==='deferred' && state.deferTo===dateStr){
+          state.status='done';
+          state.completedAt=new Date().toISOString();
+        }
+      }
+      saveRhythmState();
+    }
+    renderRhythm();
+    renderRhythmNow();
+  }
+
+  function skipRoutine(def,dateStr,source='scheduled'){
+    setRhythmOccurrence(def.id,dateStr,'skipped',{source});
+    if(source==='deferred'){
+      for(const [key,state] of Object.entries(rhythmState)){
+        if(key.startsWith(def.id+'__') && state && state.status==='deferred' && state.deferTo===dateStr){
+          state.status='skipped';
+          state.updatedAt=new Date().toISOString();
+        }
+      }
+      saveRhythmState();
+    }
+    renderRhythm();
+    renderRhythmNow();
+  }
+
+  function deferRoutineToTomorrow(def,dateStr){
+    const d=parseISO(dateStr);
+    const tomorrow=addDays(d,1);
+    setRhythmOccurrence(def.id,dateStr,'deferred',{
+      deferTo:iso(tomorrow),
+      originalDate:dateStr
+    });
+    renderRhythm();
+    renderRhythmNow();
+  }
+
+  function routineMeta(item){
+    if(item.source==='deferred') return 'moved from yesterday';
+    if(item.def.daypart==='morning') return 'morning';
+    if(item.def.daypart==='afternoon') return 'afternoon';
+    if(item.def.daypart==='evening') return 'evening';
+    return 'anytime';
   }
 
   function mealSlotRecord(dateStr,slot){
@@ -1394,6 +1591,111 @@
   }
 
 
+
+  function renderRhythmNow(){
+    const box=$('rhythmNow');
+    if(!box) return;
+    box.innerHTML='';
+
+    const items=routineOccurrencesForDate(selectedDate)
+      .filter(item=>{
+        const state=rhythmOccurrenceState(item.def.id,iso(selectedDate));
+        if(item.source==='deferred') return true;
+        return state.status==='pending';
+      });
+
+    if(!items.length){
+      const empty=document.createElement('div');
+      empty.className='rhythmEmpty';
+      empty.textContent='Nothing recurring needs your attention today.';
+      box.appendChild(empty);
+      return;
+    }
+
+    items.slice(0,4).forEach(item=>{
+      const row=document.createElement('div');
+      row.className='rhythmNowItem';
+
+      const copy=document.createElement('div');
+      copy.innerHTML=`<div class="rhythmNowText">${item.def.name}</div><div class="rhythmNowMeta">${routineMeta(item)}</div>`;
+
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='rhythmBubble';
+      btn.setAttribute('aria-label',`Complete ${item.def.name}`);
+      btn.addEventListener('click',()=>{
+        markRoutineDone(item.def,iso(selectedDate),item.source);
+      });
+
+      row.append(copy,btn);
+      box.appendChild(row);
+    });
+  }
+
+  function renderRhythm(){
+    const box=$('rhythmList');
+    if(!box) return;
+    box.innerHTML='';
+
+    const dateStr=iso(selectedDate);
+    const items=routineOccurrencesForDate(selectedDate);
+
+    if(!items.length){
+      const empty=document.createElement('div');
+      empty.className='rhythmEmpty';
+      empty.textContent='No recurring household routines are scheduled for this day.';
+      box.appendChild(empty);
+      return;
+    }
+
+    items.forEach(item=>{
+      const state = item.source==='deferred'
+        ? {status:'pending'}
+        : rhythmOccurrenceState(item.def.id,dateStr);
+
+      const row=document.createElement('div');
+      row.className='rhythmItem';
+
+      const top=document.createElement('div');
+      top.className='rhythmTop';
+
+      const copy=document.createElement('div');
+      copy.innerHTML=`<div class="rhythmTitle">${item.def.name}</div><div class="rhythmMeta">${routineMeta(item)}</div>`;
+
+      const status=document.createElement('div');
+      status.className='rhythmStatus'+(state.status==='done'?' done':state.status==='skipped'?' skipped':'');
+      status.textContent=state.status==='done'?'Done':state.status==='skipped'?'Skipped':item.source==='deferred'?'Moved here':'Pending';
+
+      top.append(copy,status);
+      row.appendChild(top);
+
+      if(state.status==='pending' || item.source==='deferred'){
+        const actions=document.createElement('div');
+        actions.className='rhythmActions';
+
+        const done=document.createElement('button');
+        done.className='rhythmBtn done';
+        done.textContent='Done';
+        done.addEventListener('click',()=>markRoutineDone(item.def,dateStr,item.source));
+
+        const defer=document.createElement('button');
+        defer.className='rhythmBtn defer';
+        defer.textContent='Move to tomorrow';
+        defer.addEventListener('click',()=>deferRoutineToTomorrow(item.def,dateStr));
+
+        const skip=document.createElement('button');
+        skip.className='rhythmBtn skip';
+        skip.textContent='Not this week';
+        skip.addEventListener('click',()=>skipRoutine(item.def,dateStr,item.source));
+
+        actions.append(done,defer,skip);
+        row.appendChild(actions);
+      }
+
+      box.appendChild(row);
+    });
+  }
+
   function renderOpenLoopPreview(){
     const items=activeOpenLoops();
     const count=items.length;
@@ -1605,6 +1907,7 @@
 
   function renderNow(){
     renderOpenLoopPreview();
+    renderRhythmNow();
     const todayStr=iso(new Date());
     const selectedStr=iso(selectedDate);
     const now=new Date();
@@ -2066,7 +2369,7 @@
     }
   }
 
-  function renderAll(){ renderToday(); renderNow(); renderMeals(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); renderOpenLoopList(); }
+  function renderAll(){ renderToday(); renderNow(); renderMeals(); renderRhythm(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); renderOpenLoopList(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));

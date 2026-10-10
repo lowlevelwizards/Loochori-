@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Meals v0.7</title>
+<title>Loochori — Food Reality v0.8</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -326,6 +326,20 @@
     border-radius:13px;padding:10px;margin-top:10px;cursor:pointer
   }
 
+
+  .actualFoods{display:flex;flex-wrap:wrap;gap:7px;min-width:0}
+  .foodChip{display:inline-flex;align-items:center;gap:7px;max-width:100%;background:var(--soft);border-radius:999px;padding:6px 9px;font-size:12px}
+  .foodChipText{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .foodChipRemove{border:0;background:transparent;color:var(--muted);padding:0;cursor:pointer;font-size:15px;line-height:1}
+  .foodQuickBox{margin-top:12px;background:var(--panel2);border-radius:16px;padding:12px}
+  .foodQuickTitle{font-weight:760;font-size:14px}
+  .foodQuickNote{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .foodQuickRow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}
+  .foodQuickRow input{width:100%;background:#101316;color:var(--text);border:1px solid var(--line);border-radius:13px;padding:12px}
+  .foodQuickAdd{border:0;background:var(--accent);color:var(--accentText);padding:0 14px;border-radius:13px;font-weight:800;cursor:pointer}
+  .planChanged{font-size:11px;color:var(--warn);margin-top:7px}
+  .mealStatus.stack{grid-template-columns:62px 1fr auto;align-items:start}
+
   @media (min-width:680px){
     .summaryGrid{grid-template-columns:repeat(4,1fr)}
     .weekGrid{grid-template-columns:repeat(2,1fr)}
@@ -337,7 +351,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Meals v0.7</div>
+    <div class="version">Food Reality v0.8</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -382,7 +396,7 @@
       <div class="sectionHead">
         <div>
           <div class="sectionTitle">Meals</div>
-          <div class="sectionNote">Plan what sounds good; separately record what you actually ate.</div>
+          <div class="sectionNote">Plans can change. Keep the plan, then log what actually happened.</div>
         </div>
         <button class="tinyBtn" id="openMealLibrary">Library</button>
       </div>
@@ -564,6 +578,15 @@
     <div class="mealAddRow">
       <input id="newMealName" type="text" placeholder="Add a meal…" autocomplete="off">
       <button class="mealAddBtn" id="addMealBtn">Add</button>
+    </div>
+
+    <div id="quickFoodBox" class="foodQuickBox" style="display:none">
+      <div class="foodQuickTitle">Ate something else?</div>
+      <div class="foodQuickNote">Quick-log it without adding it to your permanent meal library.</div>
+      <div class="foodQuickRow">
+        <input id="quickFoodInput" type="text" placeholder="e.g. half Subway sandwich" autocomplete="off">
+        <button class="foodQuickAdd" id="quickFoodAddBtn">Add</button>
+      </div>
     </div>
 
     <div class="mealLibraryList" id="mealLibraryList"></div>
@@ -754,12 +777,31 @@
 
   function mealSlotRecord(dateStr,slot){
     if(!mealHistory[dateStr]) mealHistory[dateStr]={};
-    if(!mealHistory[dateStr][slot]) mealHistory[dateStr][slot]={plannedMealId:null,eatenMealId:null};
-    return mealHistory[dateStr][slot];
+    if(!mealHistory[dateStr][slot]) mealHistory[dateStr][slot]={plannedMealId:null,actualItems:[]};
+    const rec=mealHistory[dateStr][slot];
+
+    if(!Array.isArray(rec.actualItems)) rec.actualItems=[];
+    if(rec.eatenMealId && !rec.actualItems.some(x=>x.kind==='meal' && x.mealId===rec.eatenMealId)){
+      rec.actualItems.push({
+        id:'legacy_'+rec.eatenMealId,
+        kind:'meal',
+        mealId:rec.eatenMealId,
+        addedAt:new Date().toISOString()
+      });
+      delete rec.eatenMealId;
+      saveMealHistory();
+    }
+    if(rec.plannedMealId===undefined) rec.plannedMealId=null;
+    return rec;
   }
 
   function mealById(id){ return mealLibrary.find(m=>m.id===id) || null; }
   function mealName(id){ const m=mealById(id); return m ? m.name : null; }
+  function actualItemLabel(item){
+    if(!item) return '';
+    if(item.kind==='meal') return mealName(item.mealId) || 'Unknown saved meal';
+    return item.text || 'Food';
+  }
 
   function seedTonightMeal(){
     const seedDate='2026-10-09';
@@ -986,28 +1028,58 @@
     slots.forEach(slot=>{
       const rec=mealSlotRecord(dateStr,slot.id);
       const planned=mealName(rec.plannedMealId);
-      const eaten=mealName(rec.eatenMealId);
+      const actuals=rec.actualItems || [];
+      const changed=planned && actuals.length && !actuals.some(item=>item.kind==='meal' && item.mealId===rec.plannedMealId);
 
       const card=document.createElement('div');
       card.className='mealSlot';
       card.innerHTML=`
         <div class="mealSlotHead">
-          <div class="mealSlotName">${slot.label}</div>
+          <div>
+            <div class="mealSlotName">${slot.label}</div>
+            ${changed ? '<div class="planChanged">Plan changed — that’s useful data, not a failure.</div>' : ''}
+          </div>
         </div>
         <div class="mealStatus">
           <div class="mealStatusLabel">Planned</div>
           <div class="mealStatusValue ${planned?'':'mealEmpty'}">${planned || 'Not chosen'}</div>
-          <button class="mealAction" data-field="planned">Choose</button>
+          <button class="mealAction" data-action="plan">Choose</button>
         </div>
-        <div class="mealStatus">
-          <div class="mealStatusLabel">Eaten</div>
-          <div class="mealStatusValue ${eaten?'':'mealEmpty'}">${eaten || 'Not recorded'}</div>
-          <button class="mealAction" data-field="eaten">Record</button>
+        <div class="mealStatus stack">
+          <div class="mealStatusLabel">Actually had</div>
+          <div class="actualFoods" data-actuals></div>
+          <button class="mealAction" data-action="actual">Add</button>
         </div>
       `;
-      card.querySelectorAll('.mealAction').forEach(btn=>{
-        btn.addEventListener('click',()=>openMealPicker(slot.id,btn.dataset.field));
-      });
+
+      const actualBox=card.querySelector('[data-actuals]');
+      if(!actuals.length){
+        actualBox.innerHTML='<span class="mealEmpty" style="font-size:13px">Nothing recorded yet</span>';
+      }else{
+        actuals.forEach(item=>{
+          const chip=document.createElement('span');
+          chip.className='foodChip';
+          const label=document.createElement('span');
+          label.className='foodChipText';
+          label.textContent=actualItemLabel(item);
+          const remove=document.createElement('button');
+          remove.className='foodChipRemove';
+          remove.type='button';
+          remove.textContent='×';
+          remove.setAttribute('aria-label',`Remove ${actualItemLabel(item)}`);
+          remove.addEventListener('click',()=>{
+            rec.actualItems=rec.actualItems.filter(x=>x.id!==item.id);
+            saveMealHistory();
+            renderMeals();
+            renderNow();
+          });
+          chip.append(label,remove);
+          actualBox.appendChild(chip);
+        });
+      }
+
+      card.querySelector('[data-action="plan"]').addEventListener('click',()=>openMealPicker(slot.id,'planned'));
+      card.querySelector('[data-action="actual"]').addEventListener('click',()=>openMealPicker(slot.id,'actual'));
       box.appendChild(card);
     });
   }
@@ -1016,7 +1088,10 @@
     let count=0;
     Object.values(mealHistory).forEach(day=>{
       Object.values(day).forEach(rec=>{
-        if(rec && rec.eatenMealId===mealId) count++;
+        if(!rec) return;
+        const actuals=Array.isArray(rec.actualItems) ? rec.actualItems : [];
+        count += actuals.filter(item=>item.kind==='meal' && item.mealId===mealId).length;
+        if(rec.eatenMealId===mealId) count++;
       });
     });
     return count;
@@ -1060,7 +1135,11 @@
           del.textContent='Delete';
           del.addEventListener('click',()=>{
             const inUse = Object.values(mealHistory).some(day=>
-              Object.values(day).some(rec=>rec && (rec.plannedMealId===meal.id || rec.eatenMealId===meal.id))
+              Object.values(day).some(rec=>rec && (
+                rec.plannedMealId===meal.id ||
+                rec.eatenMealId===meal.id ||
+                (Array.isArray(rec.actualItems) && rec.actualItems.some(item=>item.kind==='meal' && item.mealId===meal.id))
+              ))
             );
             if(inUse){
               alert('This meal is already used in your history, so Loochori will keep it for now.');
@@ -1084,6 +1163,7 @@
     $('mealModalNote').textContent='A running menu of meals that actually belong in your life.';
     $('mealModalMode').textContent='Library';
     $('clearMealSelection').style.display='none';
+    $('quickFoodBox').style.display='none';
     $('mealModal').classList.add('open');
     renderMealLibrary();
   }
@@ -1091,12 +1171,13 @@
   function openMealPicker(slot,field,preselectId=null){
     mealPickerContext={mode:'picker',slot,field};
     const slotLabel=slot.charAt(0).toUpperCase()+slot.slice(1);
-    $('mealModalTitle').textContent=field==='planned' ? `Plan ${slotLabel}` : `Record ${slotLabel}`;
+    $('mealModalTitle').textContent=field==='planned' ? `Plan ${slotLabel}` : `Add to ${slotLabel}`;
     $('mealModalNote').textContent=field==='planned'
       ? 'Choose what you currently expect to have. This can change later.'
-      : 'Choose what you actually ate. This is kept separate from the plan.';
-    $('mealModalMode').textContent=field==='planned' ? 'Planned' : 'Actually eaten';
-    $('clearMealSelection').style.display='block';
+      : 'Add a saved meal or quick-log something else. You can add more than one thing.';
+    $('mealModalMode').textContent=field==='planned' ? 'Planned' : 'Actually had';
+    $('clearMealSelection').style.display=field==='planned' ? 'block' : 'none';
+    $('quickFoodBox').style.display=field==='actual' ? 'block' : 'none';
     $('mealModal').classList.add('open');
     renderMealLibrary();
   }
@@ -1110,9 +1191,15 @@
     const {slot,field}=mealPickerContext;
     if(!slot || !field) return;
     const rec=mealSlotRecord(iso(selectedDate),slot);
-    if(field==='planned') rec.plannedMealId=mealId;
-    else {
-      rec.eatenMealId=mealId;
+    if(field==='planned'){
+      rec.plannedMealId=mealId;
+    }else{
+      rec.actualItems.push({
+        id:'actual_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),
+        kind:'meal',
+        mealId,
+        addedAt:new Date().toISOString()
+      });
       const habit=CARE_DEFS.find(h=>h.id===slot);
       if(habit) setCareUnit(iso(selectedDate),habit,0,true);
     }
@@ -1125,10 +1212,9 @@
 
   function clearMealPickerSelection(){
     const {slot,field}=mealPickerContext;
-    if(!slot || !field) return;
+    if(!slot || field!=='planned') return;
     const rec=mealSlotRecord(iso(selectedDate),slot);
-    if(field==='planned') rec.plannedMealId=null;
-    else rec.eatenMealId=null;
+    rec.plannedMealId=null;
     saveMealHistory();
     closeMealModal();
     renderMeals();
@@ -1151,6 +1237,29 @@
     input.value='';
     renderMealLibrary();
     if(mealPickerContext.mode==='picker') selectMealForPicker(mealId);
+  }
+
+  function addQuickActualFood(){
+    const {slot,field}=mealPickerContext;
+    if(!slot || field!=='actual') return;
+    const input=$('quickFoodInput');
+    const value=input.value.trim();
+    if(!value) return;
+    const rec=mealSlotRecord(iso(selectedDate),slot);
+    rec.actualItems.push({
+      id:'quick_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),
+      kind:'quick',
+      text:value,
+      addedAt:new Date().toISOString()
+    });
+    const habit=CARE_DEFS.find(h=>h.id===slot);
+    if(habit) setCareUnit(iso(selectedDate),habit,0,true);
+    saveMealHistory();
+    input.value='';
+    closeMealModal();
+    renderMeals();
+    renderCare();
+    renderNow();
   }
 
   function renderNowCare(minute){
@@ -1776,6 +1885,8 @@
   $('addMealBtn').addEventListener('click', addMealFromInput);
   $('newMealName').addEventListener('keydown',e=>{ if(e.key==='Enter') addMealFromInput(); });
   $('clearMealSelection').addEventListener('click', clearMealPickerSelection);
+  $('quickFoodAddBtn').addEventListener('click', addQuickActualFood);
+  $('quickFoodInput').addEventListener('keydown',e=>{ if(e.key==='Enter') addQuickActualFood(); });
 
   setInterval(()=>{
     if(iso(selectedDate)===iso(new Date())){

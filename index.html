@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Month & History v0.14</title>
+<title>Loochori — Refresh Pipeline v0.14.1</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -877,7 +877,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Month & History v0.14</div>
+    <div class="version">Foundation v0.14.1</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -1619,9 +1619,7 @@
     item.status='done';
     item.completedAt=new Date().toISOString();
     saveOpenLoops();
-    renderOpenLoopPreview();
-    renderOpenLoopList();
-    renderHouseOpenLoops();
+    refreshViews('loops');
   }
 
   function defaultRhythmDefs(){
@@ -1772,9 +1770,7 @@
       }
       saveRhythmState();
     }
-    renderRhythm();
-    renderRhythmNow();
-    updateCalmSummaries();
+    refreshViews('rhythm');
   }
 
   function skipRoutine(def,dateStr,source='scheduled'){
@@ -1788,9 +1784,7 @@
       }
       saveRhythmState();
     }
-    renderRhythm();
-    renderRhythmNow();
-    updateCalmSummaries();
+    refreshViews('rhythm');
   }
 
   function deferRoutineToTomorrow(def,dateStr){
@@ -1800,9 +1794,7 @@
       deferTo:iso(tomorrow),
       originalDate:dateStr
     });
-    renderRhythm();
-    renderRhythmNow();
-    updateCalmSummaries();
+    refreshViews('rhythm');
   }
 
   function routineMeta(item){
@@ -2108,8 +2100,7 @@
           remove.addEventListener('click',()=>{
             rec.actualItems=rec.actualItems.filter(x=>x.id!==item.id);
             saveMealHistory();
-            renderMeals();
-            renderNow();
+            refreshViews('meals');
           });
           chip.append(label,remove);
           actualBox.appendChild(chip);
@@ -2185,8 +2176,7 @@
             }
             mealLibrary=mealLibrary.filter(m=>m.id!==meal.id);
             saveMealLibrary();
-            renderMealLibrary();
-            renderMeals();
+            refreshViews('mealLibrary');
           });
           row.appendChild(del);
         }
@@ -2243,10 +2233,7 @@
     }
     saveMealHistory();
     closeMealModal();
-    renderMeals();
-    renderCare();
-    renderNow();
-    updateCalmSummaries();
+    refreshViews('meals','care');
   }
 
   function clearMealPickerSelection(){
@@ -2256,9 +2243,7 @@
     rec.plannedMealId=null;
     saveMealHistory();
     closeMealModal();
-    renderMeals();
-    renderNow();
-    updateCalmSummaries();
+    refreshViews('meals');
   }
 
   function addMealFromInput(){
@@ -2275,7 +2260,7 @@
       saveMealLibrary();
     }
     input.value='';
-    renderMealLibrary();
+    refreshViews('mealLibrary');
     if(mealPickerContext.mode==='picker') selectMealForPicker(mealId);
   }
 
@@ -2297,10 +2282,7 @@
     saveMealHistory();
     input.value='';
     closeMealModal();
-    renderMeals();
-    renderCare();
-    renderNow();
-    updateCalmSummaries();
+    refreshViews('meals','care');
   }
 
 
@@ -2354,7 +2336,7 @@
       del.addEventListener('click',()=>{
         timeBlocks=timeBlocks.filter(x=>x.id!==item.id);
         saveTimeBlocks();
-        renderAll();
+        refreshViews('timeBlocks');
       });
 
       actions.append(edit,del);
@@ -2423,7 +2405,7 @@
 
     saveTimeBlocks();
     closeTimeBlockModal();
-    renderAll();
+    refreshViews('timeBlocks');
   }
 
   function deleteEditingTimeBlock(){
@@ -2431,7 +2413,7 @@
     timeBlocks=timeBlocks.filter(x=>x.id!==editingTimeBlockId);
     saveTimeBlocks();
     closeTimeBlockModal();
-    renderAll();
+    refreshViews('timeBlocks');
   }
 
   function renderRhythmNow(){
@@ -2671,12 +2653,10 @@
     });
     saveOpenLoops();
     input.value='';
-    renderOpenLoopPreview();
-    renderOpenLoopList();
-    renderHouseOpenLoops();
 
     // Capture is meant to be a five-second unload, not a new management session.
     closeCaptureModal();
+    refreshViews('loops');
   }
 
   function renderNowCare(minute){
@@ -2730,8 +2710,7 @@
         btn.setAttribute('aria-label',`${habit.label}${habit.units>1?` ${index+1} of ${habit.units}`:''}: ${done?'done':'not done'}`);
         btn.addEventListener('click',()=>{
           setCareUnit(dateStr,habit,index,!done);
-          renderCare();
-          renderNow();
+          refreshViews('care');
         });
         bubbles.appendChild(btn);
       });
@@ -2969,7 +2948,7 @@
           btn.setAttribute('aria-label', `${habit.label}${habit.units>1 ? ` ${index+1} of ${habit.units}` : ''}: ${done ? 'done' : 'not done'}`);
           btn.addEventListener('click',()=>{
             setCareUnit(dateStr, habit, index, !done);
-            renderCare();
+            refreshViews('care');
           });
           bubbles.appendChild(btn);
         });
@@ -3055,8 +3034,7 @@
         saveCheckinHistory();
         pendingMood = null;
         pendingEnergy = null;
-        renderCheckin();
-        renderNow();
+        refreshViews('checkin');
       });
       box.appendChild(row);
     });
@@ -3105,9 +3083,7 @@
     saveCheckinHistory();
     pendingMood = null;
     pendingEnergy = null;
-    renderCheckin();
-    renderNow();
-    updateCalmSummaries();
+    refreshViews('checkin');
   }
 
   function renderToday(){
@@ -3409,7 +3385,7 @@
     }
 
     closeRoutineMoveModal();
-    renderAll();
+    refreshViews('rhythm');
   }
 
   function openDayFromWeek(date){
@@ -3888,6 +3864,74 @@
     location.reload();
   }
 
+
+  /*
+   * v0.14.1 refresh pipeline
+   *
+   * Mutations say WHAT changed; this table decides WHICH derived views
+   * must be recomputed. This replaces the growing pattern of individual
+   * handlers remembering to manually refresh 2–5 different UI surfaces.
+   */
+  const VIEW_DEPENDENCIES = {
+    care:        ['care','now','month','summaries'],
+    checkin:     ['checkin','now','month','summaries'],
+    meals:       ['meals','now','week','month','summaries'],
+    mealLibrary: ['meals','week','month','summaries','mealLibrary'],
+    loops:       ['openLoopList','houseLoops','summaries'],
+    rhythm:      ['rhythm','now','week','month','summaries'],
+    timeBlocks:  ['timeBlocks','today','now','week','month'],
+    schedule:    ['today','now','week','exceptionList'],
+    all:         ['today','now','meals','rhythm','timeBlocks','checkin','care','week','month','exceptionList','openLoopList','houseLoops','summaries']
+  };
+
+  const VIEW_RENDERERS = {
+    today:()=>renderToday(),
+    now:()=>renderNow(),
+    meals:()=>renderMeals(),
+    rhythm:()=>renderRhythm(),
+    timeBlocks:()=>renderTimeBlocks(),
+    checkin:()=>renderCheckin(),
+    care:()=>renderCare(),
+    week:()=>renderWeek(),
+    month:()=>renderMonth(),
+    exceptionList:()=>renderExceptionList(),
+    openLoopList:()=>renderOpenLoopList(),
+    houseLoops:()=>renderHouseOpenLoops(),
+    summaries:()=>updateCalmSummaries(),
+    mealLibrary:()=>{
+      if($('mealModal') && $('mealModal').classList.contains('open')){
+        renderMealLibrary();
+      }
+    }
+  };
+
+  const VIEW_RENDER_ORDER = [
+    'today','now','meals','rhythm','timeBlocks','checkin','care',
+    'week','month','exceptionList','openLoopList','houseLoops',
+    'summaries','mealLibrary'
+  ];
+
+  function refreshViews(...domains){
+    const requested=new Set();
+
+    domains.flat().forEach(domain=>{
+      const deps=VIEW_DEPENDENCIES[domain];
+      if(!deps){
+        console.warn(`Unknown Loochori refresh domain: ${domain}`);
+        return;
+      }
+      deps.forEach(view=>requested.add(view));
+    });
+
+    VIEW_RENDER_ORDER.forEach(view=>{
+      if(requested.has(view)) VIEW_RENDERERS[view]();
+    });
+  }
+
+  function refreshAllViews(){
+    refreshViews('all');
+  }
+
   function updateCalmSummaries(){
     const latest=latestSelectedDayCheckin();
     const checkText=latest ? `Mood ${latest.mood}/5 · Energy ${latest.energy}/5` : 'No check-in yet';
@@ -3930,7 +3974,7 @@
     requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'start'}));
   }
 
-    function renderAll(){ renderToday(); renderNow(); renderMeals(); renderRhythm(); renderTimeBlocks(); renderCheckin(); renderCare(); renderWeek(); renderMonth(); renderExceptionList(); renderOpenLoopList(); renderHouseOpenLoops(); updateCalmSummaries(); }
+    function renderAll(){ refreshAllViews(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));
@@ -3997,7 +4041,7 @@
     if(type==='work'){item.start=$('exStart').value;item.end=$('exEnd').value;}
     exceptions=exceptions.filter(x=>!(x.person===person && x.date===date));
     exceptions.push(item); exceptions.sort((a,b)=>a.date.localeCompare(b.date));
-    saveExceptions(); $('exLabel').value=''; renderAll();
+    saveExceptions(); $('exLabel').value=''; refreshViews('schedule');
   });
 
   function renderExceptionList(){
@@ -4009,7 +4053,7 @@
       const who=x.person==='you'?'You':'Cori';
       const shift=x.type==='off'?'Off':`${formatShort(x.start)}–${formatShort(x.end)}`;
       div.innerHTML=`<div><strong>${who}</strong> · ${parseISO(x.date).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}<br><span style="color:var(--muted)">${shift}${x.label?` · ${x.label}`:''}</span></div><button aria-label="Delete">Delete</button>`;
-      div.querySelector('button').addEventListener('click',()=>{exceptions.splice(idx,1);saveExceptions();renderAll();});
+      div.querySelector('button').addEventListener('click',()=>{exceptions.splice(idx,1);saveExceptions();refreshViews('schedule');});
       box.appendChild(div);
     });
   }

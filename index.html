@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Time Blocks v0.11</title>
+<title>Loochori — Calm UI v0.12</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -483,6 +483,59 @@
   }
   .weekEvent strong{color:var(--text)}
 
+
+  /* v0.12 — calm, layered information architecture */
+  #wakeSubline,#travelSubline{display:none}
+
+  .hero{padding:14px 16px}
+  .hero .dateBig{font-size:24px}
+  .hero .subline{margin-top:7px}
+  .hero .todayPill{margin-top:7px}
+
+  .quickAccess{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0
+  }
+  .quickTile{
+    border:1px solid var(--line);background:var(--panel);border-radius:17px;padding:12px;
+    text-align:left;cursor:pointer;min-width:0;color:var(--text)
+  }
+  .quickTile.capture{background:var(--accent);color:var(--accentText);border-color:var(--accent)}
+  .quickTileTitle{font-size:13px;font-weight:820;line-height:1.15}
+  .quickTileMeta{
+    font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis
+  }
+  .quickTile.capture .quickTileMeta{color:rgba(16,32,22,.66)}
+
+  .calmDisclosure{
+    margin-top:10px;border:1px solid var(--line);border-radius:18px;background:var(--panel);overflow:hidden
+  }
+  .calmDisclosure > summary{
+    list-style:none;cursor:pointer;padding:14px 16px;display:grid;
+    grid-template-columns:1fr auto;gap:12px;align-items:center
+  }
+  .calmDisclosure > summary::-webkit-details-marker{display:none}
+  .calmSummaryTitle{font-size:15px;font-weight:820}
+  .calmSummaryMeta{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.35}
+  .calmChevron{font-size:18px;color:var(--muted);transition:transform .18s ease}
+  .calmDisclosure[open] .calmChevron{transform:rotate(180deg)}
+  .calmBody{padding:0 10px 10px}
+  .calmBody > .section{margin-top:0;border-radius:15px;box-shadow:none}
+  .sectionIntroCompact{display:none}
+
+  .nowSection{margin-top:8px}
+  .nowSection .sectionNote{display:none}
+  .nowSubhead{margin-top:13px}
+  #nowRhythmGroup,#nowLoopsGroup{margin-top:0}
+
+  #dayDetails{margin-top:10px}
+  #dayDetails .summaryGrid{margin-top:10px}
+  #dayDetails .section{background:#141719}
+
+  @media (min-width:680px){
+    .quickAccess{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+
   @media (min-width:680px){
     .summaryGrid{grid-template-columns:repeat(4,1fr)}
     .weekGrid{grid-template-columns:repeat(2,1fr)}
@@ -494,7 +547,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Time Blocks v0.11</div>
+    <div class="version">Calm UI v0.12</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -531,11 +584,14 @@
       <div class="nowSubhead">Care around now</div>
       <div class="nowCare" id="nowCare"></div>
 
-      <div class="nowSubhead">Today’s rhythm</div>
-      <div class="rhythmNow" id="rhythmNow"></div>
+      <div id="nowRhythmGroup">
+        <div class="nowSubhead">Today’s rhythm</div>
+        <div class="rhythmNow" id="rhythmNow"></div>
+      </div>
 
-      <div class="nowSubhead">Open loops</div>
-      <div class="loopSummary">
+      <div id="nowLoopsGroup">
+        <div class="nowSubhead">Open loops</div>
+        <div class="loopSummary">
         <div class="loopSummaryTop">
           <div>
             <div class="loopCount" id="openLoopCount">0 open</div>
@@ -547,82 +603,55 @@
         <div class="loopReviewRow" id="loopReviewRow" style="display:none">
           <button class="loopReviewBtn" id="reviewLoopsBtn">Review all</button>
         </div>
+        </div>
       </div>
 
       <div class="nowSubhead">Today at a glance</div>
       <div class="miniTimeline" id="miniTimeline"></div>
     </section>
 
-    <section class="section mealSection" id="mealsSection">
-      <div class="sectionHead">
-        <div>
-          <div class="sectionTitle">Meals</div>
-          <div class="sectionNote">Plans can change. Keep the plan, then log what actually happened.</div>
-        </div>
-        <button class="tinyBtn" id="openMealLibrary">Library</button>
-      </div>
-      <div class="mealSlots" id="mealSlots"></div>
-    </section>
-
-    <section class="section rhythmSection" id="rhythmSection">
-      <div class="sectionHead">
-        <div>
-          <div class="sectionTitle">Weekly rhythm</div>
-          <div class="sectionNote">Predictable household things that return on their own. Each occurrence can be done, moved to tomorrow, or skipped.</div>
-        </div>
-      </div>
-      <div class="rhythmList" id="rhythmList"></div>
-    </section>
-
-    <section class="section timeBlockSection" id="timeBlockSection">
-      <div class="sectionHead">
-        <div>
-          <div class="sectionTitle">Time blocks</div>
-          <div class="sectionNote">Plans or commitments that temporarily occupy part of the day.</div>
-        </div>
-        <button class="tinyBtn" id="addTimeBlockBtn">+ Add</button>
-      </div>
-      <div class="timeBlockList" id="timeBlockList"></div>
-    </section>
-
-    <details class="detailsDisclosure" id="dayDetails">
-      <summary>
-        <div>
-          <div class="detailsSummaryTitle">Full day details</div>
-          <div class="detailsSummaryNote">schedule, time blocks, timeline & calculations</div>
-        </div>
-      </summary>
-      <div class="detailsBody">
-
-    <div class="summaryGrid">
-      <div class="summaryCard">
-        <div class="summaryLabel">Shared awake at home</div>
-        <div class="summaryValue" id="sharedHours">—</div>
-        <div class="summaryHint">inside visible day</div>
-      </div>
-      <div class="summaryCard">
-        <div class="summaryLabel">Both working</div>
-        <div class="summaryValue" id="bothWorkHours">—</div>
-        <div class="summaryHint">overlapping shifts</div>
-      </div>
-      <div class="summaryCard">
-        <div class="summaryLabel">Your awake at home</div>
-        <div class="summaryValue" id="yourSoloHours">—</div>
-        <div class="summaryHint">when Cori isn’t awake at home</div>
-      </div>
-      <div class="summaryCard">
-        <div class="summaryLabel">Cori awake at home</div>
-        <div class="summaryValue" id="coriSoloHours">—</div>
-        <div class="summaryHint">when you aren’t awake at home</div>
-      </div>
+    
+    <div class="quickAccess" id="quickAccess">
+      <button class="quickTile capture" id="quickCapture">
+        <div class="quickTileTitle">＋ Capture</div>
+        <div class="quickTileMeta">get it out of your head</div>
+      </button>
+      <button class="quickTile" data-open="checkinDisclosure">
+        <div class="quickTileTitle">Check in</div>
+        <div class="quickTileMeta" id="quickCheckinMeta">mood & energy</div>
+      </button>
+      <button class="quickTile" data-open="careDisclosure">
+        <div class="quickTileTitle">Care</div>
+        <div class="quickTileMeta" id="quickCareMeta">0 / 10</div>
+      </button>
+      <button class="quickTile" data-open="mealsDisclosure">
+        <div class="quickTileTitle">Meals</div>
+        <div class="quickTileMeta" id="quickMealsMeta">plan or log food</div>
+      </button>
+      <button class="quickTile" data-open="planDisclosure">
+        <div class="quickTileTitle">Plan</div>
+        <div class="quickTileMeta" id="quickPlanMeta">rhythm & time blocks</div>
+      </button>
+      <button class="quickTile" data-open="dayDetails">
+        <div class="quickTileTitle">Day details</div>
+        <div class="quickTileMeta">timeline & calculations</div>
+      </button>
     </div>
 
-
-    <section class="section" id="checkinSection">
+    <details class="calmDisclosure" id="checkinDisclosure">
+      <summary>
+        <div>
+          <div class="calmSummaryTitle">Check in</div>
+          <div class="calmSummaryMeta" id="checkinSummaryMeta">Mood and energy when you want them.</div>
+        </div>
+        <div class="calmChevron">⌄</div>
+      </summary>
+      <div class="calmBody">
+        <section class="section" id="checkinSection">
       <div class="sectionHead">
         <div>
           <div class="sectionTitle">How are you right now?</div>
-          <div class="sectionNote">A tiny observation, not a judgment. Update it whenever your state changes.</div>
+          <div class="sectionNote sectionIntroCompact">Update whenever your state changes.</div>
         </div>
         <button class="tinyBtn" id="skipCheckin">Clear</button>
       </div>
@@ -656,12 +685,23 @@
       </div>
       <div class="historyList" id="checkinHistory"></div>
     </section>
+      </div>
+    </details>
 
-    <section class="section" id="dailyCareSection">
+    <details class="calmDisclosure" id="careDisclosure">
+      <summary>
+        <div>
+          <div class="calmSummaryTitle">Daily care</div>
+          <div class="calmSummaryMeta" id="careSummaryMeta">0 / 10 complete</div>
+        </div>
+        <div class="calmChevron">⌄</div>
+      </summary>
+      <div class="calmBody">
+        <section class="section" id="dailyCareSection">
       <div class="sectionHead">
         <div>
           <div class="sectionTitle">Daily care</div>
-          <div class="sectionNote">Small maintenance signals, not a to-do backlog. Tap a bubble when it happens.</div>
+          <div class="sectionNote sectionIntroCompact">Tap a bubble when it happens.</div>
         </div>
         <div class="careHeaderRight"><div class="careProgress" id="careProgress">0 / 10</div></div>
       </div>
@@ -669,6 +709,93 @@
       <div class="careGroups" id="careGroups"></div>
       <div class="careFooter">Saved locally by date. No streaks, scoring, or judgment yet — we’re only building a clean record of what actually happens.</div>
     </section>
+      </div>
+    </details>
+
+    <details class="calmDisclosure" id="mealsDisclosure">
+      <summary>
+        <div>
+          <div class="calmSummaryTitle">Meals</div>
+          <div class="calmSummaryMeta" id="mealsSummaryMeta">Plan or log what actually happened.</div>
+        </div>
+        <div class="calmChevron">⌄</div>
+      </summary>
+      <div class="calmBody">
+        <section class="section mealSection" id="mealsSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Meals</div>
+          <div class="sectionNote sectionIntroCompact">Plans can change. Keep the plan, then log what actually happened.</div>
+        </div>
+        <button class="tinyBtn" id="openMealLibrary">Library</button>
+      </div>
+      <div class="mealSlots" id="mealSlots"></div>
+    </section>
+      </div>
+    </details>
+
+    <details class="calmDisclosure" id="planDisclosure">
+      <summary>
+        <div>
+          <div class="calmSummaryTitle">Plan & household</div>
+          <div class="calmSummaryMeta" id="planSummaryMeta">Rhythm and time blocks.</div>
+        </div>
+        <div class="calmChevron">⌄</div>
+      </summary>
+      <div class="calmBody">
+        <section class="section rhythmSection" id="rhythmSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Weekly rhythm</div>
+          <div class="sectionNote sectionIntroCompact">Predictable household things that return on their own.</div>
+        </div>
+      </div>
+      <div class="rhythmList" id="rhythmList"></div>
+    </section>
+        <section class="section timeBlockSection" id="timeBlockSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Time blocks</div>
+          <div class="sectionNote sectionIntroCompact">Plans or commitments that temporarily occupy part of the day.</div>
+        </div>
+        <button class="tinyBtn" id="addTimeBlockBtn">+ Add</button>
+      </div>
+      <div class="timeBlockList" id="timeBlockList"></div>
+    </section>
+      </div>
+    </details>
+
+    <details class="detailsDisclosure" id="dayDetails">
+      <summary>
+        <div>
+          <div class="detailsSummaryTitle">Full day details</div>
+          <div class="detailsSummaryNote">schedule, time blocks, timeline & calculations</div>
+        </div>
+      </summary>
+      <div class="detailsBody">
+
+    <div class="summaryGrid">
+      <div class="summaryCard">
+        <div class="summaryLabel">Shared awake at home</div>
+        <div class="summaryValue" id="sharedHours">—</div>
+        <div class="summaryHint">inside visible day</div>
+      </div>
+      <div class="summaryCard">
+        <div class="summaryLabel">Both working</div>
+        <div class="summaryValue" id="bothWorkHours">—</div>
+        <div class="summaryHint">overlapping shifts</div>
+      </div>
+      <div class="summaryCard">
+        <div class="summaryLabel">Your awake at home</div>
+        <div class="summaryValue" id="yourSoloHours">—</div>
+        <div class="summaryHint">when Cori isn’t awake at home</div>
+      </div>
+      <div class="summaryCard">
+        <div class="summaryLabel">Cori awake at home</div>
+        <div class="summaryValue" id="coriSoloHours">—</div>
+        <div class="summaryHint">when you aren’t awake at home</div>
+      </div>
+    </div>
 
     <section class="section">
       <div class="sectionHead">
@@ -1223,6 +1350,7 @@
     }
     renderRhythm();
     renderRhythmNow();
+    updateCalmSummaries();
   }
 
   function skipRoutine(def,dateStr,source='scheduled'){
@@ -1238,6 +1366,7 @@
     }
     renderRhythm();
     renderRhythmNow();
+    updateCalmSummaries();
   }
 
   function deferRoutineToTomorrow(def,dateStr){
@@ -1249,6 +1378,7 @@
     });
     renderRhythm();
     renderRhythmNow();
+    updateCalmSummaries();
   }
 
   function routineMeta(item){
@@ -1692,6 +1822,7 @@
     renderMeals();
     renderCare();
     renderNow();
+    updateCalmSummaries();
   }
 
   function clearMealPickerSelection(){
@@ -1703,6 +1834,7 @@
     closeMealModal();
     renderMeals();
     renderNow();
+    updateCalmSummaries();
   }
 
   function addMealFromInput(){
@@ -1744,6 +1876,7 @@
     renderMeals();
     renderCare();
     renderNow();
+    updateCalmSummaries();
   }
 
 
@@ -1886,15 +2019,11 @@
         return state.status==='pending';
       });
 
-    if(!items.length){
-      const empty=document.createElement('div');
-      empty.className='rhythmEmpty';
-      empty.textContent='Nothing recurring needs your attention today.';
-      box.appendChild(empty);
-      return;
-    }
+    const group=$('nowRhythmGroup');
+    if(group) group.style.display=items.length ? 'block' : 'none';
+    if(!items.length) return;
 
-    items.slice(0,4).forEach(item=>{
+    items.slice(0,2).forEach(item=>{
       const row=document.createElement('div');
       row.className='rhythmNowItem';
 
@@ -1912,6 +2041,14 @@
       row.append(copy,btn);
       box.appendChild(row);
     });
+
+    if(items.length>2){
+      const more=document.createElement('div');
+      more.className='rhythmEmpty';
+      more.style.padding='9px 11px';
+      more.textContent=`+ ${items.length-2} more in Plan`;
+      box.appendChild(more);
+    }
   }
 
   function renderRhythm(){
@@ -1981,15 +2118,15 @@
   function renderOpenLoopPreview(){
     const items=activeOpenLoops();
     const count=items.length;
+    const group=$('nowLoopsGroup');
+    if(group) group.style.display=count ? 'block' : 'none';
     $('openLoopCount').textContent=`${count} open`;
-    $('openLoopHint').textContent=count
-      ? 'These are safely outside your head until you choose to deal with them.'
-      : 'Loochori isn’t holding anything for you right now.';
+    $('openLoopHint').textContent='Safely outside your head until you choose to deal with them.';
 
     const box=$('openLoopPreview');
     box.innerHTML='';
 
-    items.slice(0,3).forEach(item=>{
+    items.slice(0,2).forEach(item=>{
       const row=document.createElement('div');
       row.className='loopPreviewItem';
 
@@ -2008,7 +2145,7 @@
     });
 
     $('loopReviewRow').style.display=count ? 'flex' : 'none';
-    $('reviewLoopsBtn').textContent=count>3 ? `Review all ${count}` : 'Review all';
+    $('reviewLoopsBtn').textContent=count>2 ? `Review all ${count}` : 'Review all';
   }
 
   function renderOpenLoopList(){
@@ -2513,6 +2650,7 @@
     pendingEnergy = null;
     renderCheckin();
     renderNow();
+    updateCalmSummaries();
   }
 
   function renderToday(){
@@ -2690,7 +2828,56 @@
     }
   }
 
-  function renderAll(){ renderToday(); renderNow(); renderMeals(); renderRhythm(); renderTimeBlocks(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); renderOpenLoopList(); }
+
+  function updateCalmSummaries(){
+    const latest=latestSelectedDayCheckin();
+    const checkText=latest ? `Mood ${latest.mood}/5 · Energy ${latest.energy}/5` : 'No check-in yet';
+    if($('quickCheckinMeta')) $('quickCheckinMeta').textContent=checkText;
+    if($('checkinSummaryMeta')) $('checkinSummaryMeta').textContent=checkText;
+
+    const dateStr=iso(selectedDate);
+    let completed=0,total=0;
+    CARE_DEFS.forEach(h=>{
+      const state=careStateFor(dateStr,h);
+      total+=state.length;
+      completed+=state.filter(Boolean).length;
+    });
+    const careText=`${completed} / ${total} complete`;
+    if($('quickCareMeta')) $('quickCareMeta').textContent=careText;
+    if($('careSummaryMeta')) $('careSummaryMeta').textContent=careText;
+
+    const dinner=mealSlotRecord(dateStr,'dinner');
+    const dinnerActual=(dinner.actualItems || []).map(actualItemLabel).filter(Boolean);
+    const dinnerPlanned=mealName(dinner.plannedMealId);
+    let mealText='Nothing logged yet';
+    if(dinnerActual.length) mealText=`Dinner: ${dinnerActual.slice(0,2).join(' + ')}`;
+    else if(dinnerPlanned) mealText=`Dinner planned: ${dinnerPlanned}`;
+    if($('quickMealsMeta')) $('quickMealsMeta').textContent=mealText;
+    if($('mealsSummaryMeta')) $('mealsSummaryMeta').textContent=mealText;
+
+    const rhythmItems=routineOccurrencesForDate(selectedDate)
+      .filter(item=>{
+        const state=rhythmOccurrenceState(item.def.id,dateStr);
+        if(item.source==='deferred') return true;
+        return state.status==='pending';
+      }).length;
+    const blocks=timeBlocksForDate(selectedDate).length;
+    const bits=[];
+    if(rhythmItems) bits.push(`${rhythmItems} routine${rhythmItems===1?'':'s'}`);
+    if(blocks) bits.push(`${blocks} time block${blocks===1?'':'s'}`);
+    const planText=bits.length ? bits.join(' · ') : 'Nothing scheduled';
+    if($('quickPlanMeta')) $('quickPlanMeta').textContent=planText;
+    if($('planSummaryMeta')) $('planSummaryMeta').textContent=planText;
+  }
+
+  function openDisclosure(id){
+    const el=$(id);
+    if(!el) return;
+    el.open=true;
+    requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'start'}));
+  }
+
+    function renderAll(){ renderToday(); renderNow(); renderMeals(); renderRhythm(); renderTimeBlocks(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); renderOpenLoopList(); updateCalmSummaries(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));
@@ -2739,6 +2926,11 @@
       box.appendChild(div);
     });
   }
+
+  $('quickCapture').addEventListener('click',()=>openCaptureModal(true));
+  document.querySelectorAll('[data-open]').forEach(btn=>{
+    btn.addEventListener('click',()=>openDisclosure(btn.dataset.open));
+  });
 
   $('saveCheckin').addEventListener('click', saveCurrentCheckin);
   $('skipCheckin').addEventListener('click', clearPendingCheckin);

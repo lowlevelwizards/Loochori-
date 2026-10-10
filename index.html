@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Weekly Rhythm v0.10</title>
+<title>Loochori — Time Blocks v0.11</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -24,6 +24,8 @@
     --sleepText:#d8dde2;
     --commute:#d8bd91;
     --commuteText:#211b12;
+    --event:#9fcfc4;
+    --eventText:#10211d;
     --warn:#ffe7b8;
     --shadow:0 14px 36px rgba(0,0,0,.28);
     --radius:22px;
@@ -88,6 +90,11 @@
     background:var(--commute);color:var(--commuteText);z-index:3;
     padding:2px 6px;border-radius:6px;font-size:9px;line-height:1.05;
     min-height:4px;display:flex;align-items:center
+  }
+  .block.event{
+    background:var(--event);color:var(--eventText);z-index:4;
+    padding:5px 7px;border-radius:9px;font-size:10px;line-height:1.1;
+    min-height:8px;display:flex;align-items:flex-start;flex-direction:column
   }
   .block small{display:block;font-weight:650;opacity:.72;margin-top:2px}
   .wakeMarker{position:absolute;left:8px;right:8px;border-top:1px dashed rgba(255,255,255,.35);z-index:3}
@@ -255,6 +262,7 @@
   .miniSeg.work-you{background:var(--you)}
   .miniSeg.work-cori{background:var(--cori)}
   .miniSeg.commute{background:var(--commute)}
+  .miniSeg.event{background:var(--event)}
   .miniSeg.home{background:#28322d}
   .miniLegend{
     display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:10px;margin-top:9px
@@ -445,6 +453,36 @@
     color:var(--accentText);font-weight:900;font-size:17px
   }
 
+
+  .timeBlockSection{border-color:#31423e}
+  .timeBlockList{display:grid;gap:9px}
+  .timeBlockItem{
+    background:var(--panel2);border-radius:16px;padding:12px
+  }
+  .timeBlockTop{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:12px
+  }
+  .timeBlockTitle{font-size:14px;font-weight:800;line-height:1.35}
+  .timeBlockMeta{font-size:11px;color:var(--muted);margin-top:4px}
+  .timeBlockActions{display:flex;gap:7px;margin-top:10px}
+  .timeBlockBtn{
+    border:1px solid var(--line);background:#171b1e;color:var(--muted);
+    border-radius:11px;padding:7px 9px;font-size:11px;font-weight:760;cursor:pointer
+  }
+  .timeBlockEmpty{
+    color:var(--muted);font-size:13px;line-height:1.5;background:var(--panel2);
+    border-radius:15px;padding:13px
+  }
+  .timeBlockBadge{
+    font-size:10px;padding:5px 8px;border-radius:999px;background:rgba(159,207,196,.12);
+    color:#bfe7de;white-space:nowrap
+  }
+  .weekEvent{
+    margin-top:8px;padding:8px 10px;background:rgba(159,207,196,.08);
+    border-radius:11px;font-size:11px;color:var(--muted);line-height:1.35
+  }
+  .weekEvent strong{color:var(--text)}
+
   @media (min-width:680px){
     .summaryGrid{grid-template-columns:repeat(4,1fr)}
     .weekGrid{grid-template-columns:repeat(2,1fr)}
@@ -456,7 +494,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Weekly Rhythm v0.10</div>
+    <div class="version">Time Blocks v0.11</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -536,11 +574,22 @@
       <div class="rhythmList" id="rhythmList"></div>
     </section>
 
+    <section class="section timeBlockSection" id="timeBlockSection">
+      <div class="sectionHead">
+        <div>
+          <div class="sectionTitle">Time blocks</div>
+          <div class="sectionNote">Plans or commitments that temporarily occupy part of the day.</div>
+        </div>
+        <button class="tinyBtn" id="addTimeBlockBtn">+ Add</button>
+      </div>
+      <div class="timeBlockList" id="timeBlockList"></div>
+    </section>
+
     <details class="detailsDisclosure" id="dayDetails">
       <summary>
         <div>
           <div class="detailsSummaryTitle">Full day details</div>
-          <div class="detailsSummaryNote">schedule, timeline & calculations</div>
+          <div class="detailsSummaryNote">schedule, time blocks, timeline & calculations</div>
         </div>
       </summary>
       <div class="detailsBody">
@@ -677,9 +726,9 @@
     <section class="section">
       <div class="sectionTitle">Time assumptions in this build</div>
       <div class="callout">
-        <strong style="color:var(--text)">Goal:</strong> 7–8 hours. For calculation, Loochori uses the midpoint: <strong style="color:var(--text)">7.5 hours</strong>.<br><br>
+        <strong style="color:var(--text)">Your sleep target:</strong> 7–8 hours. For calculation, Loochori uses the midpoint: <strong style="color:var(--text)">7.5 hours</strong>.<br><br>
         <strong style="color:var(--text)">You:</strong> off 9a · 8a shift 7a · 9a shift 8a · late shift 9:30a.<br><br>
-        <strong style="color:var(--text)">Cori:</strong> off 9a · Wed/Thu ~9:15a · Fri 6a · Sat ~6:45a.<br><br>
+        <strong style="color:var(--text)">Cori:</strong> off 9a · Wed/Thu ~9:15a · Fri 6a · Sat ~6:45a · usually asleep around <strong style="color:var(--text)">10:15p</strong>.<br><br>
         <strong style="color:var(--text)">Your commute:</strong> bus ~25m to work (usual range 20–30m) · ~35m home (usual range 30–40m).<br><br>
         <strong style="color:var(--text)">Cori commute:</strong> ~5m walk each way.<br><br>
         These are planning estimates, not tracking. The app uses the midpoint/typical value to calculate the day.
@@ -696,6 +745,52 @@
 </nav>
 
 
+
+
+<div class="modalBackdrop" id="timeBlockModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle" id="timeBlockModalTitle">Add time block</div>
+        <div class="sectionNote">A concrete chunk of the day that is already spoken for.</div>
+      </div>
+      <button class="closeBtn" id="closeTimeBlockModal">×</button>
+    </div>
+
+    <div class="field">
+      <label>What is it?</label>
+      <input type="text" id="timeBlockTitle" placeholder="Helping a friend move">
+    </div>
+
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="timeBlockDate">
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Start</label>
+        <input type="time" id="timeBlockStart" value="12:00">
+      </div>
+      <div class="field">
+        <label>End</label>
+        <input type="time" id="timeBlockEnd" value="15:00">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Who is occupied?</label>
+      <select id="timeBlockPerson">
+        <option value="you">Me</option>
+        <option value="cori">Cori</option>
+        <option value="both">Both of us</option>
+      </select>
+    </div>
+
+    <button class="primary" id="saveTimeBlockBtn">Save time block</button>
+    <button class="danger" id="deleteTimeBlockBtn" style="display:none">Delete time block</button>
+  </div>
+</div>
 
 <div class="modalBackdrop" id="captureModal">
   <div class="modal">
@@ -822,6 +917,8 @@
   const OPEN_LOOP_KEY = 'loochori_open_loops_v1';
   const RHYTHM_KEY = 'loochori_weekly_rhythm_v1';
   const RHYTHM_STATE_KEY = 'loochori_weekly_rhythm_state_v1';
+  const TIME_BLOCK_KEY = 'loochori_time_blocks_v1';
+  const CORI_SLEEP_START = 22*60 + 15;
   const CARE_GROUPS = [
     {id:'morning', label:'Morning'},
     {id:'day', label:'Through the day'},
@@ -891,6 +988,8 @@
   let openLoops = loadOpenLoops();
   let rhythmDefs = loadRhythmDefs();
   let rhythmState = loadRhythmState();
+  let timeBlocks = loadTimeBlocks();
+  let editingTimeBlockId = null;
 
   const $ = id => document.getElementById(id);
 
@@ -928,7 +1027,7 @@
       id:'thai_red_curry_soup',
       name:'Thai Red Curry Soup',
       createdAt:new Date().toISOString()
-    }];
+    }]; // Saved menu item only; never auto-planned.
     localStorage.setItem(MEAL_LIBRARY_KEY,JSON.stringify(seeded));
     return seeded;
   }
@@ -1001,6 +1100,63 @@
     catch(e){ return {}; }
   }
   function saveRhythmState(){ localStorage.setItem(RHYTHM_STATE_KEY,JSON.stringify(rhythmState)); }
+
+  function defaultTimeBlocks(){
+    return [{
+      id:'move_friend_2026_10_10',
+      title:'Helping friend move',
+      date:'2026-10-10',
+      start:'12:00',
+      end:'15:00',
+      person:'you',
+      createdAt:new Date().toISOString()
+    }];
+  }
+
+  function loadTimeBlocks(){
+    try{
+      const raw=localStorage.getItem(TIME_BLOCK_KEY);
+      if(raw!==null) return JSON.parse(raw);
+    }catch(e){}
+    const seeded=defaultTimeBlocks();
+    localStorage.setItem(TIME_BLOCK_KEY,JSON.stringify(seeded));
+    return seeded;
+  }
+
+  function saveTimeBlocks(){
+    localStorage.setItem(TIME_BLOCK_KEY,JSON.stringify(timeBlocks));
+  }
+
+  function timeBlocksForDate(date){
+    const dateStr=typeof date==='string' ? date : iso(date);
+    return timeBlocks
+      .filter(item=>item.date===dateStr)
+      .sort((a,b)=>a.start.localeCompare(b.start));
+  }
+
+  function timeBlockAppliesTo(item,person){
+    return item.person==='both' || item.person===person;
+  }
+
+  function timeBlockAt(person,date,minute){
+    return timeBlocksForDate(date).find(item=>
+      timeBlockAppliesTo(item,person) &&
+      minute>=timeToMin(item.start) &&
+      minute<timeToMin(item.end)
+    ) || null;
+  }
+
+  function nextTimeBlockForPerson(person,date,minute){
+    return timeBlocksForDate(date)
+      .filter(item=>timeBlockAppliesTo(item,person) && timeToMin(item.start)>minute)
+      .sort((a,b)=>a.start.localeCompare(b.start))[0] || null;
+  }
+
+  function personLabelForBlock(person){
+    if(person==='you') return 'You';
+    if(person==='cori') return 'Cori';
+    return 'Both';
+  }
 
   function rhythmOccurrenceKey(defId,dateStr){ return `${defId}__${dateStr}`; }
 
@@ -1131,14 +1287,6 @@
     return item.text || 'Food';
   }
 
-  function seedTonightMeal(){
-    const seedDate='2026-10-09';
-    const rec=mealSlotRecord(seedDate,'dinner');
-    if(!rec.plannedMealId && !rec.eatenMealId){
-      rec.plannedMealId='thai_red_curry_soup';
-      saveMealHistory();
-    }
-  }
   function careStateFor(dateStr, habit){
     const day = careHistory[dateStr] || {};
     const stored = day[habit.id];
@@ -1234,7 +1382,9 @@
   function sleepBlocks(person,date){
     const wake=getWakeMinutes(person,date);
     const nextWake=getWakeMinutes(person,addDays(date,1));
-    const eveningStart=1440 + nextWake - TARGET_SLEEP_MIN;
+    const eveningStart=person==='cori'
+      ? CORI_SLEEP_START
+      : 1440 + nextWake - TARGET_SLEEP_MIN;
     const blocks=[];
 
     if(wake>DAY_START) blocks.push({start:DAY_START,end:Math.min(wake,DAY_END),kind:'morning'});
@@ -1281,12 +1431,15 @@
   function isAwakeAtHome(person,date,minute){
     return !isSleeping(person,date,minute) &&
            !isWorking(person,date,minute) &&
-           !isCommuting(person,date,minute);
+           !isCommuting(person,date,minute) &&
+           !timeBlockAt(person,date,minute);
   }
 
 
   function personState(person,date,minute){
     if(isSleeping(person,date,minute)) return {type:'sleep'};
+    const event=timeBlockAt(person,date,minute);
+    if(event) return {type:'event', event};
     const cb = commuteBlocks(person,date).find(b=>minute>=b.start && minute<b.end);
     if(cb) return {type:'commute', direction:cb.direction, label:cb.label, minutes:cb.minutes};
     if(isWorking(person,date,minute)) return {type:'work'};
@@ -1302,6 +1455,9 @@
     }
     sleepBlocks(person,date).forEach(b=>{points.add(b.start);points.add(b.end);});
     commuteBlocks(person,date).forEach(b=>{points.add(b.start);points.add(b.end);});
+    timeBlocksForDate(date)
+      .filter(item=>timeBlockAppliesTo(item,person))
+      .forEach(item=>{points.add(timeToMin(item.start));points.add(timeToMin(item.end));});
     const sorted=[...points].sort((a,b)=>a-b);
     const out=[];
     for(let i=0;i<sorted.length-1;i++){
@@ -1591,6 +1747,132 @@
   }
 
 
+
+
+  function renderTimeBlocks(){
+    const box=$('timeBlockList');
+    if(!box) return;
+    box.innerHTML='';
+    const items=timeBlocksForDate(selectedDate);
+
+    if(!items.length){
+      const empty=document.createElement('div');
+      empty.className='timeBlockEmpty';
+      empty.textContent='No time blocks on this day.';
+      box.appendChild(empty);
+      return;
+    }
+
+    items.forEach(item=>{
+      const row=document.createElement('div');
+      row.className='timeBlockItem';
+
+      const top=document.createElement('div');
+      top.className='timeBlockTop';
+
+      const copy=document.createElement('div');
+      copy.innerHTML=`
+        <div class="timeBlockTitle">${item.title}</div>
+        <div class="timeBlockMeta">${formatShort(item.start)}–${formatShort(item.end)} · ${personLabelForBlock(item.person)}</div>
+      `;
+
+      const badge=document.createElement('div');
+      badge.className='timeBlockBadge';
+      badge.textContent='Busy';
+
+      top.append(copy,badge);
+      row.appendChild(top);
+
+      const actions=document.createElement('div');
+      actions.className='timeBlockActions';
+
+      const edit=document.createElement('button');
+      edit.className='timeBlockBtn';
+      edit.textContent='Edit';
+      edit.addEventListener('click',()=>openTimeBlockModal(item.id));
+
+      const del=document.createElement('button');
+      del.className='timeBlockBtn';
+      del.textContent='Delete';
+      del.addEventListener('click',()=>{
+        timeBlocks=timeBlocks.filter(x=>x.id!==item.id);
+        saveTimeBlocks();
+        renderAll();
+      });
+
+      actions.append(edit,del);
+      row.appendChild(actions);
+      box.appendChild(row);
+    });
+  }
+
+  function openTimeBlockModal(id=null){
+    editingTimeBlockId=id;
+    const existing=id ? timeBlocks.find(x=>x.id===id) : null;
+
+    $('timeBlockModalTitle').textContent=existing ? 'Edit time block' : 'Add time block';
+    $('timeBlockTitle').value=existing ? existing.title : '';
+    $('timeBlockDate').value=existing ? existing.date : iso(selectedDate);
+    $('timeBlockStart').value=existing ? existing.start : '12:00';
+    $('timeBlockEnd').value=existing ? existing.end : '15:00';
+    $('timeBlockPerson').value=existing ? existing.person : 'you';
+    $('deleteTimeBlockBtn').style.display=existing ? 'block' : 'none';
+    $('timeBlockModal').classList.add('open');
+
+    setTimeout(()=>$('timeBlockTitle').focus(),120);
+  }
+
+  function closeTimeBlockModal(){
+    $('timeBlockModal').classList.remove('open');
+    editingTimeBlockId=null;
+  }
+
+  function saveTimeBlockFromModal(){
+    const title=$('timeBlockTitle').value.trim();
+    const date=$('timeBlockDate').value;
+    const start=$('timeBlockStart').value;
+    const end=$('timeBlockEnd').value;
+    const person=$('timeBlockPerson').value;
+
+    if(!title || !date || !start || !end){
+      alert('Add a title, date, start time, and end time.');
+      return;
+    }
+    if(timeToMin(end)<=timeToMin(start)){
+      alert('End time needs to be after start time.');
+      return;
+    }
+
+    if(editingTimeBlockId){
+      const item=timeBlocks.find(x=>x.id===editingTimeBlockId);
+      if(item){
+        item.title=title;
+        item.date=date;
+        item.start=start;
+        item.end=end;
+        item.person=person;
+        item.updatedAt=new Date().toISOString();
+      }
+    }else{
+      timeBlocks.push({
+        id:'block_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),
+        title,date,start,end,person,
+        createdAt:new Date().toISOString()
+      });
+    }
+
+    saveTimeBlocks();
+    closeTimeBlockModal();
+    renderAll();
+  }
+
+  function deleteEditingTimeBlock(){
+    if(!editingTimeBlockId) return;
+    timeBlocks=timeBlocks.filter(x=>x.id!==editingTimeBlockId);
+    saveTimeBlocks();
+    closeTimeBlockModal();
+    renderAll();
+  }
 
   function renderRhythmNow(){
     const box=$('rhythmNow');
@@ -1883,6 +2165,7 @@
         const st=seg.state;
         let cls='home';
         if(st.type==='sleep') cls='sleep';
+        else if(st.type==='event') cls='event';
         else if(st.type==='commute') cls='commute';
         else if(st.type==='work') cls=person==='you'?'work-you':'work-cori';
         el.className=`miniSeg ${cls}`;
@@ -1899,6 +2182,7 @@
     legend.innerHTML=`
       <span><i class="miniSwatch" style="background:#3a4046"></i>sleep</span>
       <span><i class="miniSwatch" style="background:var(--commute)"></i>travel</span>
+      <span><i class="miniSwatch" style="background:var(--event)"></i>time block</span>
       <span><i class="miniSwatch" style="background:var(--you)"></i>your work</span>
       <span><i class="miniSwatch" style="background:var(--cori)"></i>Cori work</span>
       <span><i class="miniSwatch" style="background:#28322d"></i>home/awake</span>`;
@@ -1939,6 +2223,10 @@
     if(you.type==='sleep'){
       title='Target sleep';
       subtitle=`Wake around ${minToTime(getWakeMinutes('you',selectedDate))}.`;
+    }else if(you.type==='event'){
+      title=you.event.title;
+      subtitle=`Time block until ${minToTime(timeToMin(you.event.end))}.`;
+      if(you.event.person==='both') subtitle+=' You and Cori are both marked busy.';
     }else if(you.type==='commute'){
       title=you.direction==='outbound' ? `${you.label} to work` : `${you.label} home`;
       subtitle=`About ${you.minutes} minutes in the planning model.`;
@@ -1961,12 +2249,22 @@
       if(cori.type==='work'){
         const arrival=homeArrivalMinute('cori',selectedDate);
         subtitle=arrival ? `Cori should be home around ${minToTime(arrival)}.` : 'Cori is at work.';
+      }else if(cori.type==='event'){
+        subtitle=`Cori is busy with ${cori.event.title} until ${minToTime(timeToMin(cori.event.end))}.`;
       }else if(cori.type==='commute'){
         subtitle=cori.direction==='inbound' ? 'Cori is on the way home.' : 'Cori is heading to work.';
       }else if(cori.type==='sleep'){
         subtitle=`Cori is in the target sleep window until about ${minToTime(getWakeMinutes('cori',selectedDate))}.`;
       }else{
         subtitle='You are awake at home.';
+      }
+    }
+
+    if(you.type==='home'){
+      const nextBlock=nextTimeBlockForPerson('you',selectedDate,minute);
+      if(nextBlock){
+        const nextText=`Next: ${nextBlock.title} at ${minToTime(timeToMin(nextBlock.start))}.`;
+        subtitle=subtitle ? `${subtitle} ${nextText}` : nextText;
       }
     }
 
@@ -2000,14 +2298,18 @@
       }
       sleepBlocks(person,date).forEach(b=>{points.add(b.start);points.add(b.end);});
       commuteBlocks(person,date).forEach(b=>{points.add(b.start);points.add(b.end);});
+      timeBlocksForDate(date)
+        .filter(item=>timeBlockAppliesTo(item,person))
+        .forEach(item=>{points.add(timeToMin(item.start));points.add(timeToMin(item.end));});
     });
 
     const sorted=[...points].sort((a,b)=>a-b);
     const segs=[];
     for(let i=0;i<sorted.length-1;i++){
       const a=sorted[i], b=sorted[i+1], mid=(a+b)/2;
-      const yWork=isWorking('you',date,mid), cWork=isWorking('cori',date,mid);
-      const yHome=isAwakeAtHome('you',date,mid), cHome=isAwakeAtHome('cori',date,mid);
+      const yState=personState('you',date,mid), cState=personState('cori',date,mid);
+      const yWork=yState.type==='work', cWork=cState.type==='work';
+      const yHome=yState.type==='home', cHome=cState.type==='home';
       let state='other';
 
       if(yWork && cWork) state='bothWorking';
@@ -2224,7 +2526,7 @@
     $('todaySubline').textContent=`${yText} · ${cText}`;
 
     const yw=getWakeMinutes('you',selectedDate), cw=getWakeMinutes('cori',selectedDate);
-    $('wakeSubline').textContent=`Wake assumptions: you ~${minToShort(yw)} · Cori ~${minToShort(cw)} · sleep goal 7–8h`;
+    $('wakeSubline').textContent=`Wake assumptions: you ~${minToShort(yw)} · Cori ~${minToShort(cw)} · Cori sleep ~10:15p`;
     $('travelSubline').textContent='Travel: you bus ~25m out / ~35m home · Cori walk ~5m each way';
 
     const totals=aggregateStates(selectedDate);
@@ -2300,9 +2602,27 @@
       });
     }
 
+    function addTimeBlocks(lane,person){
+      timeBlocksForDate(selectedDate)
+        .filter(item=>timeBlockAppliesTo(item,person))
+        .forEach(item=>{
+          const st=timeToMin(item.start), en=timeToMin(item.end);
+          const top=(Math.max(st,DAY_START)-DAY_START)*PX_PER_MIN;
+          const height=(Math.min(en,DAY_END)-Math.max(st,DAY_START))*PX_PER_MIN;
+          if(height<=0) return;
+          const block=document.createElement('div');
+          block.className='block event';
+          block.style.top=`${top}px`;
+          block.style.height=`${Math.max(8,height)}px`;
+          block.innerHTML=`${item.title}<small>${formatShort(item.start)}–${formatShort(item.end)}</small>`;
+          lane.appendChild(block);
+        });
+    }
+
     addSleep(youLane,'you'); addSleep(coriLane,'cori');
     addCommute(youLane,'you'); addCommute(coriLane,'cori');
     addWork(youLane,'you','you'); addWork(coriLane,'cori','cori');
+    addTimeBlocks(youLane,'you'); addTimeBlocks(coriLane,'cori');
 
     if(iso(selectedDate)===iso(new Date())){
       const now=new Date(), mins=now.getHours()*60+now.getMinutes();
@@ -2363,13 +2683,14 @@
         <div class="shiftLine"><div class="personLabel">You</div><div class="shiftText">${formatShift(y)} · wake ~${minToShort(yw)}</div></div>
         <div class="shiftLine"><div class="personLabel">Cori</div><div class="shiftText">${formatShift(c)} · wake ~${minToShort(cw)}</div></div>
         <div class="weekOverlap">Shared awake at home: <strong style="color:var(--text)">${durationLabel(totals.sharedHome)}</strong></div>
+        ${timeBlocksForDate(d).slice(0,2).map(item=>`<div class="weekEvent"><strong>${item.title}</strong> · ${formatShort(item.start)}–${formatShort(item.end)} · ${personLabelForBlock(item.person)}</div>`).join('')}
       `;
       card.addEventListener('click',()=>{selectedDate=d;pendingMood=null;pendingEnergy=null;showScreen('todayScreen');renderAll();});
       grid.appendChild(card);
     }
   }
 
-  function renderAll(){ renderToday(); renderNow(); renderMeals(); renderRhythm(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); renderOpenLoopList(); }
+  function renderAll(){ renderToday(); renderNow(); renderMeals(); renderRhythm(); renderTimeBlocks(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); renderOpenLoopList(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));
@@ -2422,6 +2743,12 @@
   $('saveCheckin').addEventListener('click', saveCurrentCheckin);
   $('skipCheckin').addEventListener('click', clearPendingCheckin);
 
+  $('addTimeBlockBtn').addEventListener('click',()=>openTimeBlockModal());
+  $('closeTimeBlockModal').addEventListener('click',closeTimeBlockModal);
+  $('timeBlockModal').addEventListener('click',e=>{ if(e.target===$('timeBlockModal')) closeTimeBlockModal(); });
+  $('saveTimeBlockBtn').addEventListener('click',saveTimeBlockFromModal);
+  $('deleteTimeBlockBtn').addEventListener('click',deleteEditingTimeBlock);
+
   $('captureNowBtn').addEventListener('click',()=>openCaptureModal(true));
   $('reviewLoopsBtn').addEventListener('click',()=>openCaptureModal(false));
   $('closeCaptureModal').addEventListener('click', closeCaptureModal);
@@ -2444,7 +2771,6 @@
     }
   }, 60000);
 
-  seedTonightMeal();
   renderAll();
 })();
 </script>

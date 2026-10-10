@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Information Hierarchy v0.12.1</title>
+<title>Loochori — Week Planner v0.13</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -643,6 +643,123 @@
 
   #quickAccess,.calmDisclosure{display:none !important}
 
+
+  /* v0.13 — Week becomes a planning surface, not seven mini dashboards */
+  .weekHero{padding:14px 16px}
+  .weekHeroTop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .weekHero .dateBig{font-size:24px}
+  .weekHeroNote{font-size:12px;color:var(--muted);line-height:1.45;margin-top:5px}
+
+  .weekNav{
+    display:grid;grid-template-columns:48px 1fr 48px;gap:8px;align-items:center;margin-top:13px
+  }
+  .weekNavBtn{
+    height:42px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--text);border-radius:13px;font-size:20px;font-weight:700;cursor:pointer
+  }
+  .weekTodayBtn{
+    height:42px;border:1px solid var(--line);background:var(--soft);
+    color:var(--text);border-radius:13px;font-size:12px;font-weight:780;cursor:pointer
+  }
+
+  .weekGrid{display:grid;gap:12px;margin-top:12px}
+  .dayCard{
+    background:var(--panel);border:1px solid var(--line);border-radius:20px;
+    padding:14px;cursor:default;scroll-margin-top:70px
+  }
+  .dayCard.selected{outline:2px solid rgba(255,255,255,.16)}
+  .dayCard.todayCard{border-color:#405047}
+  .dayTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .dayIdentity{display:flex;align-items:baseline;gap:8px;min-width:0}
+  .dayName{font-size:18px;font-weight:830;letter-spacing:-.02em}
+  .dayDate{font-size:12px;color:var(--muted)}
+  .dayBadges{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+  .dayShape{
+    font-size:10px;border-radius:999px;padding:5px 8px;font-weight:820;
+    letter-spacing:.04em;background:var(--soft);color:var(--muted);white-space:nowrap
+  }
+  .dayShape.open{background:rgba(217,240,223,.10);color:#cdebd5}
+  .dayShape.shared{background:rgba(232,201,246,.10);color:#e2c6ed}
+  .dayShape.work{background:rgba(203,219,248,.10);color:#cbdaf3}
+  .dayShape.split{background:rgba(222,193,143,.10);color:#e4c998}
+  .dayShape.full{background:rgba(255,190,190,.08);color:#efc1c1}
+
+  .weekSchedule{
+    margin-top:11px;background:#15191c;border-radius:14px;padding:10px 11px;
+    font-size:13px;line-height:1.45
+  }
+  .weekSchedule strong{font-weight:790}
+  .weekSchedule .muted{color:var(--muted)}
+  .weekLeave{display:inline-flex;align-items:center;gap:5px}
+  .weekLeaveBadge{
+    font-size:9px;background:var(--warn);color:#34280f;padding:2px 5px;border-radius:999px;font-weight:800
+  }
+
+  .weekSectionLabel{
+    font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--muted);font-weight:800;margin:12px 2px 6px
+  }
+  .weekWindows{display:grid;gap:6px}
+  .weekWindow{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:var(--panel2);border-radius:12px;padding:8px 10px;font-size:12px
+  }
+  .weekWindowLabel{font-weight:720}
+  .weekWindowTime{color:var(--muted);white-space:nowrap}
+  .weekNoWindow{font-size:12px;color:var(--muted);padding:2px}
+
+  .weekEvents{display:grid;gap:6px}
+  .weekEventRow{
+    display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;
+    background:rgba(159,207,196,.08);border-radius:12px;padding:9px 10px
+  }
+  .weekEventName{font-size:12px;font-weight:760}
+  .weekEventMeta{font-size:10px;color:var(--muted);margin-top:2px}
+  .weekEventEdit{
+    border:1px solid rgba(159,207,196,.25);background:transparent;color:#bfe7de;
+    border-radius:10px;padding:6px 8px;font-size:10px;font-weight:760;cursor:pointer
+  }
+
+  .weekRoutines{display:grid;gap:6px}
+  .weekRoutine{
+    display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;
+    background:var(--panel2);border-radius:12px;padding:8px 10px
+  }
+  .weekRoutineName{font-size:12px;font-weight:720}
+  .weekRoutineMeta{font-size:10px;color:var(--muted);margin-top:2px}
+  .weekRoutineMove{
+    border:1px solid var(--line);background:transparent;color:#c9d7ff;
+    border-radius:10px;padding:6px 8px;font-size:10px;font-weight:760;cursor:pointer
+  }
+  .weekMore{font-size:11px;color:var(--muted);padding:2px 3px}
+
+  .weekMeal{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+    background:rgba(222,193,143,.07);border-radius:12px;padding:9px 10px
+  }
+  .weekMealTitle{font-size:12px;font-weight:760}
+  .weekMealMeta{font-size:10px;color:var(--muted);margin-top:2px}
+
+  .weekCardActions{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}
+  .weekOpenDay{
+    border:0;background:var(--accent);color:var(--accentText);
+    border-radius:12px;padding:10px 12px;font-size:12px;font-weight:820;cursor:pointer
+  }
+  .weekAddBlock{
+    border:1px solid var(--line);background:transparent;color:var(--text);
+    border-radius:12px;padding:10px 12px;font-size:12px;font-weight:780;cursor:pointer
+  }
+
+  .weekEmpty{
+    font-size:12px;color:var(--muted);background:var(--panel2);
+    border-radius:12px;padding:9px 10px
+  }
+
+  @media (min-width:680px){
+    .weekGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .dayCard:first-child{grid-column:1/-1}
+  }
+
   @media (min-width:680px){
     .captureFab{right:max(16px,calc((100vw - 780px)/2 + 16px))}
   }
@@ -662,7 +779,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Hierarchy v0.12.1</div>
+    <div class="version">Week Planner v0.13</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -968,30 +1085,24 @@
   </main>
 
   <main id="weekScreen" class="screen">
-    <section class="hero">
-      <div class="sectionHead" style="margin:0">
+    <section class="hero weekHero">
+      <div class="weekHeroTop">
         <div>
-          <div class="dow">WEEKLY OVERVIEW</div>
+          <div class="dow">7-DAY PLAN</div>
           <div class="dateBig" id="weekTitle"></div>
-          <div class="subline" style="text-align:left">Same schedule facts, zoomed out one level. Care and check-in history are saved but not summarized here yet.</div>
+          <div class="weekHeroNote">Work, commitments, useful home windows, household rhythm and meals — just enough to see how the week fits together.</div>
         </div>
         <button class="tinyBtn" id="manageExceptions">Exceptions</button>
+      </div>
+
+      <div class="weekNav">
+        <button class="weekNavBtn" id="prevWeek" aria-label="Previous seven days">‹</button>
+        <button class="weekTodayBtn" id="thisWeek">Start from today</button>
+        <button class="weekNavBtn" id="nextWeek" aria-label="Next seven days">›</button>
       </div>
     </section>
 
     <div class="weekGrid" id="weekGrid"></div>
-
-    <section class="section">
-      <div class="sectionTitle">Time assumptions in this build</div>
-      <div class="callout">
-        <strong style="color:var(--text)">Your sleep target:</strong> 7–8 hours. For calculation, Loochori uses the midpoint: <strong style="color:var(--text)">7.5 hours</strong>.<br><br>
-        <strong style="color:var(--text)">You:</strong> off 9a · 8a shift 7a · 9a shift 8a · late shift 9:30a.<br><br>
-        <strong style="color:var(--text)">Cori:</strong> off 9a · Wed/Thu ~9:15a · Fri 6a · Sat ~6:45a · usually asleep around <strong style="color:var(--text)">10:15p</strong>.<br><br>
-        <strong style="color:var(--text)">Your commute:</strong> bus ~25m to work (usual range 20–30m) · ~35m home (usual range 30–40m).<br><br>
-        <strong style="color:var(--text)">Cori commute:</strong> ~5m walk each way.<br><br>
-        These are planning estimates, not tracking. The app uses the midpoint/typical value to calculate the day.
-      </div>
-    </section>
   </main>
 </div>
 
@@ -1004,6 +1115,26 @@
 
 
 
+
+
+<div class="modalBackdrop" id="routineMoveModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle">Move household routine</div>
+        <div class="sectionNote" id="routineMoveName">Choose the day this occurrence fits better.</div>
+      </div>
+      <button class="closeBtn" id="closeRoutineMoveModal">×</button>
+    </div>
+
+    <div class="field">
+      <label>Move to</label>
+      <input type="date" id="routineMoveDate">
+    </div>
+
+    <button class="primary" id="saveRoutineMove">Move routine</button>
+  </div>
+</div>
 
 <div class="modalBackdrop" id="timeBlockModal">
   <div class="modal">
@@ -1235,6 +1366,7 @@
   };
 
   let selectedDate = stripTime(new Date());
+  let weekAnchorDate = stripTime(new Date());
   let exceptions = loadExceptions();
   let careHistory = loadCareHistory();
   let checkinHistory = loadCheckinHistory();
@@ -1248,6 +1380,7 @@
   let rhythmState = loadRhythmState();
   let timeBlocks = loadTimeBlocks();
   let editingTimeBlockId = null;
+  let movingRoutineContext = null;
 
   const $ = id => document.getElementById(id);
 
@@ -2071,13 +2204,16 @@
     });
   }
 
-  function openTimeBlockModal(id=null){
+  function openTimeBlockModal(id=null,dateOverride=null){
     editingTimeBlockId=id;
     const existing=id ? timeBlocks.find(x=>x.id===id) : null;
+    const defaultDate = dateOverride
+      ? (typeof dateOverride==='string' ? dateOverride : iso(dateOverride))
+      : iso(selectedDate);
 
     $('timeBlockModalTitle').textContent=existing ? 'Edit time block' : 'Add time block';
     $('timeBlockTitle').value=existing ? existing.title : '';
-    $('timeBlockDate').value=existing ? existing.date : iso(selectedDate);
+    $('timeBlockDate').value=existing ? existing.date : defaultDate;
     $('timeBlockStart').value=existing ? existing.start : '12:00';
     $('timeBlockEnd').value=existing ? existing.end : '15:00';
     $('timeBlockPerson').value=existing ? existing.person : 'you';
@@ -2955,37 +3091,347 @@
   }
 
   function getWeekStart(date){
+    // Retained for older internal assumptions; the Week screen itself is now a rolling seven-day horizon.
     const d=stripTime(date); d.setDate(d.getDate()-d.getDay()); return d;
   }
 
-  function renderWeek(){
-    const start=getWeekStart(selectedDate), end=addDays(start,6);
-    const sameMonth=start.getMonth()===end.getMonth();
-    $('weekTitle').textContent=sameMonth
-      ? `${start.toLocaleDateString(undefined,{month:'long'})} ${start.getDate()}–${end.getDate()}`
-      : `${start.toLocaleDateString(undefined,{month:'short',day:'numeric'})}–${end.toLocaleDateString(undefined,{month:'short',day:'numeric'})}`;
+  function shiftMinutesFor(schedule){
+    if(!schedule || !schedule.shift) return 0;
+    return Math.max(0,timeToMin(schedule.shift.end)-timeToMin(schedule.shift.start));
+  }
 
-    const grid=$('weekGrid'); grid.innerHTML='';
+  function blockMinutesFor(person,date){
+    return timeBlocksForDate(date)
+      .filter(item=>timeBlockAppliesTo(item,person))
+      .reduce((sum,item)=>sum+Math.max(0,timeToMin(item.end)-timeToMin(item.start)),0);
+  }
+
+  function dayShape(date){
+    const y=getSchedule('you',date);
+    const c=getSchedule('cori',date);
+    const work=shiftMinutesFor(y);
+    const blocks=blockMinutesFor('you',date);
+    const totals=aggregateStates(date);
+
+    if((work>=5*60 && blocks>=90) || (work>=4*60 && blocks>=3*60)){
+      return {label:'FULL DAY',className:'full'};
+    }
+    if(blocks>=90){
+      return {label:'SPLIT DAY',className:'split'};
+    }
+    if(!y.shift && !c.shift && totals.sharedHome>=6*60){
+      return {label:'SHARED DAY',className:'shared'};
+    }
+    if(y.shift){
+      return {label:'WORK DAY',className:'work'};
+    }
+    if(work+blocks<=3*60){
+      return {label:'OPEN',className:'open'};
+    }
+    return {label:'SPLIT DAY',className:'split'};
+  }
+
+  function compactShiftText(schedule){
+    if(!schedule.shift){
+      if(schedule.source==='temporary'){
+        return `<span class="weekLeave"><span class="weekLeaveBadge">${schedule.label}</span><span>off</span></span>`;
+      }
+      return 'off';
+    }
+    return `${formatShort(schedule.shift.start)}–${formatShort(schedule.shift.end)}`;
+  }
+
+  function planningWindows(date){
+    const raw=segmentStates(date)
+      .filter(s=>(s.state==='youHome' || s.state==='sharedHome') && (s.end-s.start)>=45)
+      .map(s=>({
+        start:s.start,
+        end:s.end,
+        kind:s.state==='sharedHome'?'together':'home solo'
+      }));
+
+    const merged=[];
+    raw.forEach(item=>{
+      const prev=merged[merged.length-1];
+      if(prev && prev.kind===item.kind && prev.end===item.start){
+        prev.end=item.end;
+      }else{
+        merged.push({...item});
+      }
+    });
+    return merged;
+  }
+
+  function weekRoutineItems(date){
+    const dateStr=iso(date);
+    return routineOccurrencesForDate(date).filter(item=>{
+      if(item.source==='deferred') return true;
+      return rhythmOccurrenceState(item.def.id,dateStr).status==='pending';
+    });
+  }
+
+  function peekMealRecord(dateStr,slot){
+    const day=mealHistory[dateStr];
+    if(!day || !day[slot]) return {plannedMealId:null,actualItems:[]};
+    const rec=day[slot];
+    return {
+      plannedMealId:rec.plannedMealId || null,
+      actualItems:Array.isArray(rec.actualItems) ? rec.actualItems : []
+    };
+  }
+
+  function weekMealSummary(date){
+    const dateStr=iso(date);
+    const order=['dinner','lunch','breakfast'];
+    for(const slot of order){
+      const rec=peekMealRecord(dateStr,slot);
+      const actual=(rec.actualItems||[]).map(actualItemLabel).filter(Boolean);
+      const planned=mealName(rec.plannedMealId);
+      if(actual.length){
+        return {
+          title:slot.charAt(0).toUpperCase()+slot.slice(1),
+          text:actual.slice(0,2).join(' + '),
+          kind:'had'
+        };
+      }
+      if(planned){
+        return {
+          title:slot.charAt(0).toUpperCase()+slot.slice(1),
+          text:planned,
+          kind:'planned'
+        };
+      }
+    }
+    return null;
+  }
+
+  function openRoutineMoveModal(defId,dateStr,source){
+    const def=rhythmDefs.find(d=>d.id===defId);
+    if(!def) return;
+    movingRoutineContext={defId,dateStr,source};
+    $('routineMoveName').textContent=`${def.name} · currently on ${parseISO(dateStr).toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})}`;
+    $('routineMoveDate').value=iso(addDays(parseISO(dateStr),1));
+    $('routineMoveModal').classList.add('open');
+  }
+
+  function closeRoutineMoveModal(){
+    $('routineMoveModal').classList.remove('open');
+    movingRoutineContext=null;
+  }
+
+  function moveRoutineOccurrence(){
+    if(!movingRoutineContext) return;
+    const target=$('routineMoveDate').value;
+    if(!target) return alert('Choose a date.');
+    const {defId,dateStr,source}=movingRoutineContext;
+    if(target===dateStr) return alert('Choose a different day.');
+
+    if(source==='scheduled'){
+      setRhythmOccurrence(defId,dateStr,'deferred',{
+        deferTo:target,
+        originalDate:dateStr
+      });
+    }else{
+      let moved=false;
+      for(const [key,state] of Object.entries(rhythmState)){
+        if(key.startsWith(defId+'__') && state && state.status==='deferred' && state.deferTo===dateStr){
+          state.deferTo=target;
+          state.updatedAt=new Date().toISOString();
+          moved=true;
+        }
+      }
+      if(!moved){
+        setRhythmOccurrence(defId,dateStr,'deferred',{
+          deferTo:target,
+          originalDate:dateStr
+        });
+      }
+      saveRhythmState();
+    }
+
+    closeRoutineMoveModal();
+    renderAll();
+  }
+
+  function openDayFromWeek(date){
+    selectedDate=stripTime(date);
+    pendingMood=null;
+    pendingEnergy=null;
+    showScreen('todayScreen');
+    renderAll();
+  }
+
+  function renderWeek(){
+    const start=stripTime(weekAnchorDate);
+    const end=addDays(start,6);
+    $('weekTitle').textContent=
+      `${start.toLocaleDateString(undefined,{month:'short',day:'numeric'})} – ${end.toLocaleDateString(undefined,{month:'short',day:'numeric'})}`;
+
+    const grid=$('weekGrid');
+    grid.innerHTML='';
+
     for(let i=0;i<7;i++){
       const d=addDays(start,i);
-      const y=getSchedule('you',d), c=getSchedule('cori',d);
-      const yw=getWakeMinutes('you',d), cw=getWakeMinutes('cori',d);
-      const totals=aggregateStates(d);
+      const dateStr=iso(d);
+      const y=getSchedule('you',d);
+      const c=getSchedule('cori',d);
+      const shape=dayShape(d);
+      const windows=planningWindows(d);
+      const events=timeBlocksForDate(d);
+      const routines=weekRoutineItems(d);
+      const meal=weekMealSummary(d);
 
-      const card=document.createElement('div');
-      card.className='dayCard'+(iso(d)===iso(selectedDate)?' selected':'');
-      card.innerHTML=`
-        <div class="dayTop">
-          <div><div class="dayName">${d.toLocaleDateString(undefined,{weekday:'long'})}</div>
-          <div class="dayDate">${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</div></div>
-          ${iso(d)===iso(new Date())?'<span class="tag">Today</span>':''}
+      const card=document.createElement('article');
+      card.className='dayCard'
+        +(dateStr===iso(selectedDate)?' selected':'')
+        +(dateStr===iso(new Date())?' todayCard':'');
+
+      const top=document.createElement('div');
+      top.className='dayTop';
+      top.innerHTML=`
+        <div class="dayIdentity">
+          <div class="dayName">${d.toLocaleDateString(undefined,{weekday:'short'}).toUpperCase()}</div>
+          <div class="dayDate">${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</div>
         </div>
-        <div class="shiftLine"><div class="personLabel">You</div><div class="shiftText">${formatShift(y)} · wake ~${minToShort(yw)}</div></div>
-        <div class="shiftLine"><div class="personLabel">Cori</div><div class="shiftText">${formatShift(c)} · wake ~${minToShort(cw)}</div></div>
-        <div class="weekOverlap">Shared awake at home: <strong style="color:var(--text)">${durationLabel(totals.sharedHome)}</strong></div>
-        ${timeBlocksForDate(d).slice(0,2).map(item=>`<div class="weekEvent"><strong>${item.title}</strong> · ${formatShort(item.start)}–${formatShort(item.end)} · ${personLabelForBlock(item.person)}</div>`).join('')}
-      `;
-      card.addEventListener('click',()=>{selectedDate=d;pendingMood=null;pendingEnergy=null;showScreen('todayScreen');renderAll();});
+        <div class="dayBadges">
+          ${dateStr===iso(new Date())?'<span class="tag">Today</span>':''}
+          <span class="dayShape ${shape.className}">${shape.label}</span>
+        </div>`;
+      card.appendChild(top);
+
+      const schedule=document.createElement('div');
+      schedule.className='weekSchedule';
+      schedule.innerHTML=
+        `<strong>You</strong> ${compactShiftText(y)} <span class="muted">·</span> <strong>Cori</strong> ${compactShiftText(c)}`;
+      card.appendChild(schedule);
+
+      const winLabel=document.createElement('div');
+      winLabel.className='weekSectionLabel';
+      winLabel.textContent='Useful home windows';
+      card.appendChild(winLabel);
+
+      const winBox=document.createElement('div');
+      winBox.className='weekWindows';
+      if(!windows.length){
+        winBox.innerHTML='<div class="weekNoWindow">No large home window in the current model.</div>';
+      }else{
+        windows.slice(0,2).forEach(w=>{
+          const row=document.createElement('div');
+          row.className='weekWindow';
+          row.innerHTML=`<div class="weekWindowLabel">${w.kind}</div><div class="weekWindowTime">${minToShort(w.start)}–${minToShort(w.end)}</div>`;
+          winBox.appendChild(row);
+        });
+        if(windows.length>2){
+          const more=document.createElement('div');
+          more.className='weekMore';
+          more.textContent=`+ ${windows.length-2} more window${windows.length-2===1?'':'s'}`;
+          winBox.appendChild(more);
+        }
+      }
+      card.appendChild(winBox);
+
+      if(events.length){
+        const label=document.createElement('div');
+        label.className='weekSectionLabel';
+        label.textContent='Commitments';
+        card.appendChild(label);
+
+        const eventBox=document.createElement('div');
+        eventBox.className='weekEvents';
+        events.slice(0,3).forEach(item=>{
+          const row=document.createElement('div');
+          row.className='weekEventRow';
+
+          const copy=document.createElement('div');
+          copy.innerHTML=`<div class="weekEventName">${item.title}</div><div class="weekEventMeta">${formatShort(item.start)}–${formatShort(item.end)} · ${personLabelForBlock(item.person)}</div>`;
+
+          const edit=document.createElement('button');
+          edit.className='weekEventEdit';
+          edit.type='button';
+          edit.textContent='Edit';
+          edit.addEventListener('click',e=>{
+            e.stopPropagation();
+            openTimeBlockModal(item.id);
+          });
+
+          row.append(copy,edit);
+          eventBox.appendChild(row);
+        });
+        if(events.length>3){
+          const more=document.createElement('div');
+          more.className='weekMore';
+          more.textContent=`+ ${events.length-3} more`;
+          eventBox.appendChild(more);
+        }
+        card.appendChild(eventBox);
+      }
+
+      if(routines.length){
+        const label=document.createElement('div');
+        label.className='weekSectionLabel';
+        label.textContent='Household';
+        card.appendChild(label);
+
+        const routineBox=document.createElement('div');
+        routineBox.className='weekRoutines';
+        routines.slice(0,3).forEach(item=>{
+          const row=document.createElement('div');
+          row.className='weekRoutine';
+
+          const copy=document.createElement('div');
+          copy.innerHTML=`<div class="weekRoutineName">${item.def.name}</div><div class="weekRoutineMeta">${item.source==='deferred'?'moved here':(item.def.daypart||'anytime')}</div>`;
+
+          const move=document.createElement('button');
+          move.className='weekRoutineMove';
+          move.type='button';
+          move.textContent='Move';
+          move.addEventListener('click',e=>{
+            e.stopPropagation();
+            openRoutineMoveModal(item.def.id,dateStr,item.source);
+          });
+
+          row.append(copy,move);
+          routineBox.appendChild(row);
+        });
+        if(routines.length>3){
+          const more=document.createElement('div');
+          more.className='weekMore';
+          more.textContent=`+ ${routines.length-3} more household item${routines.length-3===1?'':'s'}`;
+          routineBox.appendChild(more);
+        }
+        card.appendChild(routineBox);
+      }
+
+      if(meal){
+        const label=document.createElement('div');
+        label.className='weekSectionLabel';
+        label.textContent='Food';
+        card.appendChild(label);
+
+        const mealRow=document.createElement('div');
+        mealRow.className='weekMeal';
+        mealRow.innerHTML=`<div><div class="weekMealTitle">${meal.title}</div><div class="weekMealMeta">${meal.kind==='planned'?'planned':'actually had'}</div></div><div class="weekMealTitle" style="text-align:right">${meal.text}</div>`;
+        card.appendChild(mealRow);
+      }
+
+      const actions=document.createElement('div');
+      actions.className='weekCardActions';
+
+      const open=document.createElement('button');
+      open.type='button';
+      open.className='weekOpenDay';
+      open.textContent='Open day';
+      open.addEventListener('click',()=>openDayFromWeek(d));
+
+      const addBlock=document.createElement('button');
+      addBlock.type='button';
+      addBlock.className='weekAddBlock';
+      addBlock.textContent='+ Block';
+      addBlock.addEventListener('click',()=>openTimeBlockModal(null,d));
+
+      actions.append(open,addBlock);
+      card.appendChild(actions);
+
       grid.appendChild(card);
     }
   }
@@ -3041,7 +3487,10 @@
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
-  document.querySelectorAll('.navBtn').forEach(btn=>btn.addEventListener('click',()=>showScreen(btn.dataset.screen)));
+  document.querySelectorAll('.navBtn').forEach(btn=>btn.addEventListener('click',()=>{
+    showScreen(btn.dataset.screen);
+    if(btn.dataset.screen==='weekScreen') renderWeek();
+  }));
   $('prevDay').addEventListener('click',()=>{selectedDate=addDays(selectedDate,-1);pendingMood=null;pendingEnergy=null;renderAll();});
   $('nextDay').addEventListener('click',()=>{selectedDate=addDays(selectedDate,1);pendingMood=null;pendingEnergy=null;renderAll();});
   $('todayBtn').addEventListener('click',()=>{selectedDate=stripTime(new Date());pendingMood=null;pendingEnergy=null;renderAll();});
@@ -3052,6 +3501,14 @@
     renderExceptionList();
   }
   function closeModal(){ $('exceptionModal').classList.remove('open'); }
+  $('prevWeek').addEventListener('click',()=>{weekAnchorDate=addDays(weekAnchorDate,-7);renderWeek();});
+  $('nextWeek').addEventListener('click',()=>{weekAnchorDate=addDays(weekAnchorDate,7);renderWeek();});
+  $('thisWeek').addEventListener('click',()=>{weekAnchorDate=stripTime(new Date());renderWeek();});
+
+  $('closeRoutineMoveModal').addEventListener('click',closeRoutineMoveModal);
+  $('routineMoveModal').addEventListener('click',e=>{if(e.target===$('routineMoveModal'))closeRoutineMoveModal();});
+  $('saveRoutineMove').addEventListener('click',moveRoutineOccurrence);
+
   $('manageExceptions').addEventListener('click',openModal);
   $('closeModal').addEventListener('click',closeModal);
   $('exceptionModal').addEventListener('click',e=>{if(e.target===$('exceptionModal'))closeModal();});

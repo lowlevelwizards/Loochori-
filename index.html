@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Week Planner v0.13</title>
+<title>Loochori — Month & History v0.14</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -755,6 +755,104 @@
     border-radius:12px;padding:9px 10px
   }
 
+
+  /* v0.14 — Month / History */
+  .bottomNavInner{grid-template-columns:repeat(3,1fr)}
+
+  .monthHero{padding:14px 16px}
+  .monthHeroTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .monthHero .dateBig{font-size:24px}
+  .monthHeroNote{font-size:12px;color:var(--muted);line-height:1.45;margin-top:5px}
+
+  .monthNav{
+    display:grid;grid-template-columns:48px 1fr 48px;gap:8px;align-items:center;margin-top:13px
+  }
+  .monthNavBtn{
+    height:42px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--text);border-radius:13px;font-size:20px;font-weight:700;cursor:pointer
+  }
+  .monthTodayBtn{
+    height:42px;border:1px solid var(--line);background:var(--soft);
+    color:var(--text);border-radius:13px;font-size:12px;font-weight:780;cursor:pointer
+  }
+
+  .weekHistorySummary{
+    margin-top:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:20px;padding:14px
+  }
+  .historySummaryHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .historySummaryTitle{font-size:16px;font-weight:820}
+  .historySummaryRange{font-size:11px;color:var(--muted);margin-top:3px}
+  .historySummaryNote{font-size:10px;color:var(--muted);line-height:1.4;text-align:right}
+  .historyStats{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:11px
+  }
+  .historyStat{background:var(--panel2);border-radius:14px;padding:10px}
+  .historyStatValue{font-size:18px;font-weight:830;letter-spacing:-.02em}
+  .historyStatLabel{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.3}
+
+  .monthCalendar{
+    margin-top:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:20px;padding:11px 8px 12px
+  }
+  .monthWeekdays{
+    display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;padding:0 2px 6px
+  }
+  .monthWeekday{
+    text-align:center;font-size:9px;color:var(--muted);font-weight:800;letter-spacing:.06em
+  }
+  .monthGrid{
+    display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px
+  }
+  .monthBlank{min-height:75px}
+  .monthDay{
+    min-height:75px;border:1px solid transparent;background:#15191c;color:var(--text);
+    border-radius:12px;padding:6px 5px;text-align:left;cursor:pointer;overflow:hidden
+  }
+  .monthDay.todayMonthDay{border-color:#64766c}
+  .monthDay.selectedMonthDay{outline:2px solid rgba(255,255,255,.15)}
+  .monthDay.futureMonthDay{opacity:.72}
+  .monthDayNum{font-size:12px;font-weight:820}
+  .monthDayCare{font-size:9px;color:#cfe4d4;margin-top:5px;white-space:nowrap}
+  .monthDayState{font-size:9px;color:var(--muted);margin-top:2px;white-space:nowrap}
+  .monthSignals{display:flex;gap:3px;flex-wrap:wrap;margin-top:5px}
+  .monthSignal{
+    font-size:7px;line-height:1;border-radius:999px;padding:3px 4px;
+    background:var(--soft);color:var(--muted);white-space:nowrap
+  }
+  .monthSignal.food{background:rgba(222,193,143,.09);color:#e1c996}
+  .monthSignal.house{background:rgba(217,240,223,.09);color:#c9e2cf}
+  .monthSignal.block{background:rgba(159,207,196,.09);color:#b8ddd5}
+
+  .monthLegend{
+    display:flex;gap:10px;flex-wrap:wrap;margin:9px 4px 1px;
+    color:var(--muted);font-size:9px
+  }
+  .monthLegend span{display:flex;align-items:center;gap:4px}
+  .legendDot{width:6px;height:6px;border-radius:50%;background:var(--soft)}
+  .legendDot.food{background:#b39b70}
+  .legendDot.house{background:#9eb9a5}
+  .legendDot.block{background:#82aaa1}
+
+  .dataTools{
+    margin-top:14px;border-top:1px solid rgba(255,255,255,.07);padding-top:12px
+  }
+  .dataToolsTitle{font-size:13px;font-weight:800;color:var(--text)}
+  .dataToolsNote{font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px}
+  .dataToolsActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .dataToolBtn{
+    border:1px solid var(--line);background:var(--panel2);color:var(--text);
+    border-radius:12px;padding:10px;font-size:11px;font-weight:780;cursor:pointer
+  }
+  .dataToolStatus{font-size:10px;color:var(--muted);margin-top:8px;min-height:14px}
+
+  @media (min-width:680px){
+    .historyStats{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .monthDay{min-height:92px;padding:8px}
+    .monthDayNum{font-size:13px}
+    .monthDayCare,.monthDayState{font-size:10px}
+  }
+
   @media (min-width:680px){
     .weekGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .dayCard:first-child{grid-column:1/-1}
@@ -779,7 +877,7 @@
 <div class="app">
   <div class="topbar">
     <div class="brand">Loochori</div>
-    <div class="version">Week Planner v0.13</div>
+    <div class="version">Month & History v0.14</div>
   </div>
 
   <main id="todayScreen" class="screen active">
@@ -1078,6 +1176,17 @@
         <div class="modelFact">Cori’s current planning sleep start is about 10:15 PM. Your sleep model still targets roughly 7–8 hours.</div>
         <div class="modelFact">“Awake at home” means structurally home and awake — not automatically productive, social, or high-energy.</div>
         <div class="modelFact">Work, sleep, commute and time blocks affect the day map. Mood and energy are recorded but do not alter the schedule automatically yet.</div>
+
+        <div class="dataTools">
+          <div class="dataToolsTitle">Loochori data</div>
+          <div class="dataToolsNote">Your history currently lives in this browser. Export a backup whenever you want a portable copy.</div>
+          <div class="dataToolsActions">
+            <button class="dataToolBtn" id="exportBackupBtn">Export backup</button>
+            <button class="dataToolBtn" id="importBackupBtn">Import backup</button>
+          </div>
+          <input type="file" id="importBackupFile" accept="application/json,.json" style="display:none">
+          <div class="dataToolStatus" id="backupStatus"></div>
+        </div>
       </div>
     </details>
 
@@ -1104,12 +1213,61 @@
 
     <div class="weekGrid" id="weekGrid"></div>
   </main>
+
+  <main id="monthScreen" class="screen">
+    <section class="hero monthHero">
+      <div class="monthHeroTop">
+        <div>
+          <div class="dow">HISTORY</div>
+          <div class="dateBig" id="monthTitle"></div>
+          <div class="monthHeroNote">A quiet record of what actually happened. Unlogged days stay unjudged.</div>
+        </div>
+      </div>
+
+      <div class="monthNav">
+        <button class="monthNavBtn" id="prevMonth" aria-label="Previous month">‹</button>
+        <button class="monthTodayBtn" id="thisMonth">This month</button>
+        <button class="monthNavBtn" id="nextMonth" aria-label="Next month">›</button>
+      </div>
+    </section>
+
+    <section class="weekHistorySummary">
+      <div class="historySummaryHead">
+        <div>
+          <div class="historySummaryTitle">This week so far</div>
+          <div class="historySummaryRange" id="historyWeekRange"></div>
+        </div>
+        <div class="historySummaryNote">Observed only.<br>Missing data ≠ zero.</div>
+      </div>
+      <div class="historyStats" id="historyStats"></div>
+    </section>
+
+    <section class="monthCalendar">
+      <div class="monthWeekdays">
+        <div class="monthWeekday">SUN</div>
+        <div class="monthWeekday">MON</div>
+        <div class="monthWeekday">TUE</div>
+        <div class="monthWeekday">WED</div>
+        <div class="monthWeekday">THU</div>
+        <div class="monthWeekday">FRI</div>
+        <div class="monthWeekday">SAT</div>
+      </div>
+      <div class="monthGrid" id="monthGrid"></div>
+      <div class="monthLegend">
+        <span><i class="legendDot food"></i>food</span>
+        <span><i class="legendDot house"></i>house</span>
+        <span><i class="legendDot block"></i>time block</span>
+      </div>
+    </section>
+  </main>
+
 </div>
 
 <nav class="bottomNav">
   <div class="bottomNavInner">
     <button class="navBtn active" data-screen="todayScreen">Today</button>
     <button class="navBtn" data-screen="weekScreen">Week</button>
+    <button class="navBtn" data-screen="monthScreen">Month</button>
   </div>
 </nav>
 
@@ -1367,6 +1525,7 @@
 
   let selectedDate = stripTime(new Date());
   let weekAnchorDate = stripTime(new Date());
+  let monthAnchorDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   let exceptions = loadExceptions();
   let careHistory = loadCareHistory();
   let checkinHistory = loadCheckinHistory();
@@ -3437,6 +3596,298 @@
   }
 
 
+
+  function careSnapshotForDate(dateStr){
+    const day=careHistory[dateStr];
+    if(!day) return null;
+
+    let complete=0,total=0,hasStored=false;
+    CARE_DEFS.forEach(habit=>{
+      const stored=day[habit.id];
+      if(Array.isArray(stored)) hasStored=true;
+      const state=careStateFor(dateStr,habit);
+      complete+=state.filter(Boolean).length;
+      total+=habit.units;
+    });
+
+    return hasStored ? {complete,total} : null;
+  }
+
+  function checkinsForDate(dateStr){
+    return checkinHistory
+      .filter(c=>c.date===dateStr)
+      .sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  }
+
+  function latestCheckinForDate(dateStr){
+    const arr=checkinsForDate(dateStr);
+    return arr.length ? arr[arr.length-1] : null;
+  }
+
+  function dateHasFood(dateStr){
+    const day=mealHistory[dateStr];
+    if(!day) return false;
+    return ['breakfast','lunch','dinner'].some(slot=>{
+      const rec=day[slot];
+      if(!rec) return false;
+      return Boolean(rec.plannedMealId) || (Array.isArray(rec.actualItems) && rec.actualItems.length>0) || Boolean(rec.eatenMealId);
+    });
+  }
+
+  function actualMealPeriodsForDate(dateStr){
+    const day=mealHistory[dateStr];
+    if(!day) return 0;
+    return ['breakfast','lunch','dinner'].reduce((sum,slot)=>{
+      const rec=day[slot];
+      if(!rec) return sum;
+      const actual=Array.isArray(rec.actualItems) ? rec.actualItems.length : (rec.eatenMealId ? 1 : 0);
+      return sum + (actual>0 ? 1 : 0);
+    },0);
+  }
+
+  function completedRoutineCountForDate(dateStr){
+    let count=0;
+    Object.entries(rhythmState).forEach(([key,state])=>{
+      if(!state || state.status!=='done' || state.deferTo) return;
+      const idx=key.lastIndexOf('__');
+      if(idx<0) return;
+      const keyDate=key.slice(idx+2);
+      if(keyDate===dateStr) count++;
+    });
+    return count;
+  }
+
+  function historyWeekBounds(){
+    const today=stripTime(new Date());
+    const start=addDays(today,-today.getDay());
+    return {start,end:today};
+  }
+
+  function renderHistoryWeekSummary(){
+    const box=$('historyStats');
+    if(!box) return;
+
+    const {start,end}=historyWeekBounds();
+    $('historyWeekRange').textContent=
+      `${start.toLocaleDateString(undefined,{month:'short',day:'numeric'})} – ${end.toLocaleDateString(undefined,{month:'short',day:'numeric'})}`;
+
+    let careComplete=0,careTotal=0,careDays=0;
+    let moodSum=0,energySum=0,checkins=0;
+    let mealPeriods=0;
+    let routineDone=0;
+
+    for(let d=stripTime(start); d<=end; d=addDays(d,1)){
+      const ds=iso(d);
+
+      const care=careSnapshotForDate(ds);
+      if(care){
+        careComplete+=care.complete;
+        careTotal+=care.total;
+        careDays++;
+      }
+
+      checkinsForDate(ds).forEach(c=>{
+        moodSum+=Number(c.mood)||0;
+        energySum+=Number(c.energy)||0;
+        checkins++;
+      });
+
+      mealPeriods+=actualMealPeriodsForDate(ds);
+      routineDone+=completedRoutineCountForDate(ds);
+    }
+
+    const stats=[
+      {
+        value:careDays ? `${(careComplete/careDays).toFixed(1)}/10` : '—',
+        label:careDays ? `care avg · ${careDays} logged day${careDays===1?'':'s'}` : 'care · nothing logged yet'
+      },
+      {
+        value:checkins ? `${(moodSum/checkins).toFixed(1)}` : '—',
+        label:checkins ? `mood avg · ${checkins} check-in${checkins===1?'':'s'}` : 'mood · nothing logged yet'
+      },
+      {
+        value:checkins ? `${(energySum/checkins).toFixed(1)}` : '—',
+        label:checkins ? `energy avg · ${checkins} check-in${checkins===1?'':'s'}` : 'energy · nothing logged yet'
+      },
+      {
+        value:`${mealPeriods}`,
+        label:`meal period${mealPeriods===1?'':'s'} actually logged`
+      },
+      {
+        value:`${routineDone}`,
+        label:`household routine${routineDone===1?'':'s'} completed`
+      }
+    ];
+
+    box.innerHTML='';
+    stats.forEach(stat=>{
+      const card=document.createElement('div');
+      card.className='historyStat';
+      card.innerHTML=`<div class="historyStatValue">${stat.value}</div><div class="historyStatLabel">${stat.label}</div>`;
+      box.appendChild(card);
+    });
+  }
+
+  function openDayFromMonth(date){
+    selectedDate=stripTime(date);
+    pendingMood=null;
+    pendingEnergy=null;
+    showScreen('todayScreen');
+    renderAll();
+  }
+
+  function renderMonth(){
+    const grid=$('monthGrid');
+    if(!grid) return;
+
+    const year=monthAnchorDate.getFullYear();
+    const month=monthAnchorDate.getMonth();
+    const first=new Date(year,month,1);
+    const last=new Date(year,month+1,0);
+    const todayStr=iso(stripTime(new Date()));
+
+    $('monthTitle').textContent=first.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+    grid.innerHTML='';
+
+    for(let i=0;i<first.getDay();i++){
+      const blank=document.createElement('div');
+      blank.className='monthBlank';
+      grid.appendChild(blank);
+    }
+
+    for(let day=1;day<=last.getDate();day++){
+      const d=new Date(year,month,day);
+      const ds=iso(d);
+      const care=careSnapshotForDate(ds);
+      const latest=latestCheckinForDate(ds);
+      const food=dateHasFood(ds);
+      const house=completedRoutineCountForDate(ds)>0;
+      const block=timeBlocksForDate(ds).length>0;
+
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='monthDay'
+        +(ds===todayStr?' todayMonthDay':'')
+        +(ds===iso(selectedDate)?' selectedMonthDay':'')
+        +(isFutureDate(d)?' futureMonthDay':'');
+
+      const parts=[`<div class="monthDayNum">${day}</div>`];
+      if(care) parts.push(`<div class="monthDayCare">care ${care.complete}/${care.total}</div>`);
+      if(latest) parts.push(`<div class="monthDayState">M ${latest.mood} · E ${latest.energy}</div>`);
+
+      const signals=[];
+      if(food) signals.push('<span class="monthSignal food">food</span>');
+      if(house) signals.push('<span class="monthSignal house">house</span>');
+      if(block) signals.push('<span class="monthSignal block">block</span>');
+      if(signals.length) parts.push(`<div class="monthSignals">${signals.join('')}</div>`);
+
+      btn.innerHTML=parts.join('');
+      btn.setAttribute('aria-label',d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'}));
+      btn.addEventListener('click',()=>openDayFromMonth(d));
+      grid.appendChild(btn);
+    }
+
+    renderHistoryWeekSummary();
+  }
+
+  function loochoriBackupPayload(){
+    const keys=[
+      STORAGE_KEY,
+      CARE_STORAGE_KEY,
+      CHECKIN_STORAGE_KEY,
+      MEAL_LIBRARY_KEY,
+      MEAL_HISTORY_KEY,
+      OPEN_LOOP_KEY,
+      RHYTHM_KEY,
+      RHYTHM_STATE_KEY,
+      TIME_BLOCK_KEY
+    ];
+
+    const data={};
+    keys.forEach(key=>{
+      const raw=localStorage.getItem(key);
+      if(raw===null){
+        data[key]=null;
+        return;
+      }
+      try{ data[key]=JSON.parse(raw); }
+      catch(e){ data[key]=raw; }
+    });
+
+    return {
+      format:'loochori-backup',
+      schemaVersion:1,
+      appVersion:'0.14',
+      exportedAt:new Date().toISOString(),
+      data
+    };
+  }
+
+  function exportLoochoriBackup(){
+    const payload=loochoriBackupPayload();
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`loochori-backup-${iso(new Date())}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    if($('backupStatus')) $('backupStatus').textContent='Backup exported.';
+  }
+
+  async function importLoochoriBackupFile(file){
+    if(!file) return;
+
+    let payload;
+    try{
+      payload=JSON.parse(await file.text());
+    }catch(e){
+      alert('That file does not look like a valid Loochori backup.');
+      return;
+    }
+
+    if(!payload || payload.format!=='loochori-backup' || !payload.data || typeof payload.data!=='object'){
+      alert('That file is not a recognized Loochori backup.');
+      return;
+    }
+
+    const allowed=new Set([
+      STORAGE_KEY,
+      CARE_STORAGE_KEY,
+      CHECKIN_STORAGE_KEY,
+      MEAL_LIBRARY_KEY,
+      MEAL_HISTORY_KEY,
+      OPEN_LOOP_KEY,
+      RHYTHM_KEY,
+      RHYTHM_STATE_KEY,
+      TIME_BLOCK_KEY
+    ]);
+
+    const recognized=Object.entries(payload.data).filter(([key])=>allowed.has(key));
+    if(!recognized.length){
+      alert('This backup does not contain any recognized Loochori data.');
+      return;
+    }
+
+    const when=payload.exportedAt
+      ? new Date(payload.exportedAt).toLocaleString()
+      : 'an unknown date';
+
+    if(!confirm(`Import the Loochori backup from ${when}? This will replace the matching data currently stored in this browser.`)){
+      return;
+    }
+
+    recognized.forEach(([key,value])=>{
+      if(value===null) localStorage.removeItem(key);
+      else localStorage.setItem(key,JSON.stringify(value));
+    });
+
+    alert('Backup imported. Loochori will reload with the restored data.');
+    location.reload();
+  }
+
   function updateCalmSummaries(){
     const latest=latestSelectedDayCheckin();
     const checkText=latest ? `Mood ${latest.mood}/5 · Energy ${latest.energy}/5` : 'No check-in yet';
@@ -3479,7 +3930,7 @@
     requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'start'}));
   }
 
-    function renderAll(){ renderToday(); renderNow(); renderMeals(); renderRhythm(); renderTimeBlocks(); renderCheckin(); renderCare(); renderWeek(); renderExceptionList(); renderOpenLoopList(); renderHouseOpenLoops(); updateCalmSummaries(); }
+    function renderAll(){ renderToday(); renderNow(); renderMeals(); renderRhythm(); renderTimeBlocks(); renderCheckin(); renderCare(); renderWeek(); renderMonth(); renderExceptionList(); renderOpenLoopList(); renderHouseOpenLoops(); updateCalmSummaries(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));
@@ -3490,6 +3941,7 @@
   document.querySelectorAll('.navBtn').forEach(btn=>btn.addEventListener('click',()=>{
     showScreen(btn.dataset.screen);
     if(btn.dataset.screen==='weekScreen') renderWeek();
+    if(btn.dataset.screen==='monthScreen') renderMonth();
   }));
   $('prevDay').addEventListener('click',()=>{selectedDate=addDays(selectedDate,-1);pendingMood=null;pendingEnergy=null;renderAll();});
   $('nextDay').addEventListener('click',()=>{selectedDate=addDays(selectedDate,1);pendingMood=null;pendingEnergy=null;renderAll();});
@@ -3501,6 +3953,28 @@
     renderExceptionList();
   }
   function closeModal(){ $('exceptionModal').classList.remove('open'); }
+  $('prevMonth').addEventListener('click',()=>{
+    monthAnchorDate=new Date(monthAnchorDate.getFullYear(),monthAnchorDate.getMonth()-1,1);
+    renderMonth();
+  });
+  $('nextMonth').addEventListener('click',()=>{
+    monthAnchorDate=new Date(monthAnchorDate.getFullYear(),monthAnchorDate.getMonth()+1,1);
+    renderMonth();
+  });
+  $('thisMonth').addEventListener('click',()=>{
+    const now=new Date();
+    monthAnchorDate=new Date(now.getFullYear(),now.getMonth(),1);
+    renderMonth();
+  });
+
+  $('exportBackupBtn').addEventListener('click',exportLoochoriBackup);
+  $('importBackupBtn').addEventListener('click',()=>$('importBackupFile').click());
+  $('importBackupFile').addEventListener('change',async e=>{
+    const file=e.target.files && e.target.files[0];
+    await importLoochoriBackupFile(file);
+    e.target.value='';
+  });
+
   $('prevWeek').addEventListener('click',()=>{weekAnchorDate=addDays(weekAnchorDate,-7);renderWeek();});
   $('nextWeek').addEventListener('click',()=>{weekAnchorDate=addDays(weekAnchorDate,7);renderWeek();});
   $('thisWeek').addEventListener('click',()=>{weekAnchorDate=stripTime(new Date());renderWeek();});

@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Routines & Block Library v0.15</title>
+<title>Loochori — Live Day v0.16</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -988,6 +988,30 @@
   }
   .blockLibraryEmpty{font-size:11px;color:var(--muted);padding:3px 1px}
 
+
+  /* v0.16 — planned vs actual time blocks */
+  .timeBlockBadge.planned{background:rgba(203,219,248,.10);color:#cbdaf3}
+  .timeBlockBadge.active{background:rgba(217,240,223,.12);color:#d5efd9}
+  .timeBlockBadge.completed{background:rgba(159,207,196,.12);color:#bfe7de}
+  .timeBlockBadge.canceled{background:rgba(255,255,255,.05);color:#8f989f}
+  .timeBlockItem.canceled{opacity:.62}
+  .timeBlockItem.canceled .timeBlockTitle{text-decoration:line-through}
+  .timeBlockMetaLine{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .timeBlockMetaLine.actual{color:#bfe7de}
+  .timeBlockMetaLine.canceled{color:#8f989f}
+  .timeBlockBtn.live{
+    background:var(--accent);color:var(--accentText);border-color:var(--accent)
+  }
+  .timeBlockBtn.cancelish{color:#d7c3c3}
+  .timeBlockBtn.restore{color:#cfe7d5}
+  .actualTimingBox{
+    margin:10px 0 12px;background:rgba(159,207,196,.06);
+    border:1px solid rgba(159,207,196,.14);border-radius:15px;padding:11px
+  }
+  .actualTimingTitle{font-size:12px;font-weight:820}
+  .actualTimingNote{font-size:10px;color:var(--muted);line-height:1.4;margin-top:3px}
+  .eventActual{box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
+
   @media (min-width:680px){
     .historyStats{grid-template-columns:repeat(4,minmax(0,1fr))}
     .monthDay{min-height:92px;padding:8px}
@@ -1020,7 +1044,7 @@
   <div class="topbar">
     <div class="brand">Loochori</div>
     <div class="topbarRight">
-      <div class="version">Routines + Blocks v0.15</div>
+      <div class="version">Live Day v0.16</div>
       <button class="settingsBtn" id="openSettingsBtn">Settings</button>
     </div>
   </div>
@@ -1327,7 +1351,7 @@
         <div class="modelFact" id="travelSubline"></div>
         <div class="modelFact" id="sleepModelFact"></div>
         <div class="modelFact">“Awake at home” means structurally home and awake — not automatically productive, social, or high-energy.</div>
-        <div class="modelFact">Work, sleep, commute and time blocks affect the day map. Mood and energy are recorded but do not alter the schedule automatically yet.</div>
+        <div class="modelFact">Work, sleep, commute and time blocks affect the day map. Time blocks use planned times until you record what actually happened; observed times then take over the visual day.</div>
 
         <div class="dataTools">
           <div class="dataToolsTitle">Household setup</div>
@@ -1687,11 +1711,11 @@
 
     <div class="row2">
       <div class="field">
-        <label>Start</label>
+        <label>Planned start</label>
         <input type="time" id="timeBlockStart" value="12:00">
       </div>
       <div class="field">
-        <label>End</label>
+        <label>Planned end</label>
         <input type="time" id="timeBlockEnd" value="15:00">
       </div>
     </div>
@@ -1703,6 +1727,21 @@
         <option value="cori" id="timeBlockPartnerOption">Partner</option>
         <option value="both">Both of us</option>
       </select>
+    </div>
+
+    <div class="actualTimingBox" id="actualTimingBox">
+      <div class="actualTimingTitle">What actually happened?</div>
+      <div class="actualTimingNote">Optional. Start/End now fills this automatically, or correct the times by hand.</div>
+      <div class="row2">
+        <div class="field">
+          <label>Actual start</label>
+          <input type="time" id="timeBlockActualStart">
+        </div>
+        <div class="field">
+          <label>Actual end</label>
+          <input type="time" id="timeBlockActualEnd">
+        </div>
+      </div>
     </div>
 
     <label class="saveTemplateRow">
@@ -2220,11 +2259,58 @@
     saveTimeBlockLibrary();
   }
 
+  function timeBlockStatus(item){
+    if(item.status==='canceled') return 'canceled';
+    if(item.actualStart && item.actualEnd) return 'completed';
+    if(item.actualStart) return 'active';
+    return 'planned';
+  }
+
+  function currentClockMinutes(){
+    const now=new Date();
+    return now.getHours()*60+now.getMinutes();
+  }
+
+  function currentClockValue(){
+    const now=new Date();
+    return `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  }
+
+  function timeBlockBounds(item,date){
+    if(!item || timeBlockStatus(item)==='canceled') return null;
+
+    const dateStr=typeof date==='string' ? date : iso(date);
+    const plannedStart=timeToMin(item.start);
+    const plannedEnd=timeToMin(item.end);
+
+    let start=item.actualStart ? timeToMin(item.actualStart) : plannedStart;
+    let end;
+
+    if(item.actualEnd){
+      end=timeToMin(item.actualEnd);
+    }else if(item.actualStart){
+      end=plannedEnd;
+      if(dateStr===iso(new Date())){
+        end=Math.max(end,currentClockMinutes()+1);
+      }
+    }else{
+      end=plannedEnd;
+    }
+
+    start=Math.max(DAY_START,Math.min(DAY_END,start));
+    end=Math.max(start+1,Math.min(DAY_END,end));
+    return {start,end};
+  }
+
   function timeBlocksForDate(date){
     const dateStr=typeof date==='string' ? date : iso(date);
     return timeBlocks
       .filter(item=>item.date===dateStr)
-      .sort((a,b)=>a.start.localeCompare(b.start));
+      .sort((a,b)=>{
+        const aStart=timeBlockBounds(a,date)?.start ?? timeToMin(a.start);
+        const bStart=timeBlockBounds(b,date)?.start ?? timeToMin(b.start);
+        return aStart-bStart;
+      });
   }
 
   function timeBlockAppliesTo(item,person){
@@ -2232,17 +2318,47 @@
   }
 
   function timeBlockAt(person,date,minute){
-    return timeBlocksForDate(date).find(item=>
-      timeBlockAppliesTo(item,person) &&
-      minute>=timeToMin(item.start) &&
-      minute<timeToMin(item.end)
-    ) || null;
+    return timeBlocksForDate(date).find(item=>{
+      if(!timeBlockAppliesTo(item,person)) return false;
+      const bounds=timeBlockBounds(item,date);
+      return bounds && minute>=bounds.start && minute<bounds.end;
+    }) || null;
   }
 
   function nextTimeBlockForPerson(person,date,minute){
     return timeBlocksForDate(date)
-      .filter(item=>timeBlockAppliesTo(item,person) && timeToMin(item.start)>minute)
+      .filter(item=>
+        timeBlockAppliesTo(item,person) &&
+        timeBlockStatus(item)==='planned' &&
+        timeToMin(item.start)>minute
+      )
       .sort((a,b)=>a.start.localeCompare(b.start))[0] || null;
+  }
+
+  function timeBlockStatusLabel(item){
+    const status=timeBlockStatus(item);
+    if(status==='active') return 'Happening now';
+    if(status==='completed') return 'Actual';
+    if(status==='canceled') return 'Didn’t happen';
+    return 'Planned';
+  }
+
+  function timeBlockActualText(item){
+    if(item.actualStart && item.actualEnd){
+      return `Actual ${formatShort(item.actualStart)}–${formatShort(item.actualEnd)}`;
+    }
+    if(item.actualStart){
+      return `Actual ${formatShort(item.actualStart)}–now`;
+    }
+    return '';
+  }
+
+  function timeBlockPlannedText(item){
+    return `Planned ${formatShort(item.start)}–${formatShort(item.end)}`;
+  }
+
+  function timeBlockHasObservedReality(item){
+    return Boolean(item.actualStart || item.actualEnd);
   }
 
   function personLabelForBlock(person){
@@ -2562,7 +2678,10 @@
     commuteBlocks(person,date).forEach(b=>{points.add(b.start);points.add(b.end);});
     timeBlocksForDate(date)
       .filter(item=>timeBlockAppliesTo(item,person))
-      .forEach(item=>{points.add(timeToMin(item.start));points.add(timeToMin(item.end));});
+      .forEach(item=>{
+        const bounds=timeBlockBounds(item,date);
+        if(bounds){points.add(bounds.start);points.add(bounds.end);}
+      });
     const sorted=[...points].sort((a,b)=>a-b);
     const out=[];
     for(let i=0;i<sorted.length-1;i++){
@@ -2847,6 +2966,56 @@
 
 
 
+  function startTimeBlockNow(id){
+    const item=timeBlocks.find(x=>x.id===id);
+    if(!item) return;
+    if(item.date!==iso(new Date())){
+      openTimeBlockModal(id);
+      return;
+    }
+    item.actualStart=currentClockValue();
+    item.actualEnd=null;
+    item.status='active';
+    item.startedAt=new Date().toISOString();
+    item.updatedAt=new Date().toISOString();
+    saveTimeBlocks();
+    refreshViews('timeBlocks');
+  }
+
+  function endTimeBlockNow(id){
+    const item=timeBlocks.find(x=>x.id===id);
+    if(!item) return;
+    if(!item.actualStart) item.actualStart=currentClockValue();
+    item.actualEnd=currentClockValue();
+    item.status='completed';
+    item.completedAt=new Date().toISOString();
+    item.updatedAt=new Date().toISOString();
+    saveTimeBlocks();
+    refreshViews('timeBlocks');
+  }
+
+  function cancelTimeBlockOccurrence(id){
+    const item=timeBlocks.find(x=>x.id===id);
+    if(!item) return;
+    item.status='canceled';
+    item.actualStart=null;
+    item.actualEnd=null;
+    item.canceledAt=new Date().toISOString();
+    item.updatedAt=new Date().toISOString();
+    saveTimeBlocks();
+    refreshViews('timeBlocks');
+  }
+
+  function restoreTimeBlockOccurrence(id){
+    const item=timeBlocks.find(x=>x.id===id);
+    if(!item) return;
+    item.status='planned';
+    item.canceledAt=null;
+    item.updatedAt=new Date().toISOString();
+    saveTimeBlocks();
+    refreshViews('timeBlocks');
+  }
+
   function renderTimeBlocks(){
     const box=$('timeBlockList');
     if(!box) return;
@@ -2862,32 +3031,83 @@
     }
 
     items.forEach(item=>{
+      const status=timeBlockStatus(item);
       const row=document.createElement('div');
-      row.className='timeBlockItem';
+      row.className='timeBlockItem'+(status==='canceled'?' canceled':'');
 
       const top=document.createElement('div');
       top.className='timeBlockTop';
 
       const copy=document.createElement('div');
-      copy.innerHTML=`
-        <div class="timeBlockTitle">${item.title}</div>
-        <div class="timeBlockMeta">${formatShort(item.start)}–${formatShort(item.end)} · ${personLabelForBlock(item.person)}</div>
-      `;
+
+      const title=document.createElement('div');
+      title.className='timeBlockTitle';
+      title.textContent=item.title;
+
+      const planned=document.createElement('div');
+      planned.className='timeBlockMetaLine';
+      planned.textContent=`${timeBlockPlannedText(item)} · ${personLabelForBlock(item.person)}`;
+      copy.append(title,planned);
+
+      const actualText=timeBlockActualText(item);
+      if(actualText){
+        const actual=document.createElement('div');
+        actual.className='timeBlockMetaLine actual';
+        actual.textContent=actualText;
+        copy.appendChild(actual);
+      }else if(status==='canceled'){
+        const canceled=document.createElement('div');
+        canceled.className='timeBlockMetaLine canceled';
+        canceled.textContent='Didn’t happen';
+        copy.appendChild(canceled);
+      }
 
       const badge=document.createElement('div');
-      badge.className='timeBlockBadge';
-      badge.textContent='Busy';
+      badge.className=`timeBlockBadge ${status}`;
+      badge.textContent=timeBlockStatusLabel(item);
 
       top.append(copy,badge);
       row.appendChild(top);
 
       const actions=document.createElement('div');
       actions.className='timeBlockActions';
+      const isToday=item.date===iso(new Date());
+
+      if(status==='planned' && isToday){
+        const start=document.createElement('button');
+        start.className='timeBlockBtn live';
+        start.textContent='Start now';
+        start.addEventListener('click',()=>startTimeBlockNow(item.id));
+        actions.appendChild(start);
+      }
+
+      if(status==='active' && isToday){
+        const end=document.createElement('button');
+        end.className='timeBlockBtn live';
+        end.textContent='End now';
+        end.addEventListener('click',()=>endTimeBlockNow(item.id));
+        actions.appendChild(end);
+      }
 
       const edit=document.createElement('button');
       edit.className='timeBlockBtn';
-      edit.textContent='Edit';
+      edit.textContent=(status==='completed' || status==='active') ? 'Edit actual' : 'Edit';
       edit.addEventListener('click',()=>openTimeBlockModal(item.id));
+      actions.appendChild(edit);
+
+      if(status==='planned'){
+        const cancel=document.createElement('button');
+        cancel.className='timeBlockBtn cancelish';
+        cancel.textContent=isFutureDate(parseISO(item.date)) ? 'Cancel' : 'Didn’t happen';
+        cancel.addEventListener('click',()=>cancelTimeBlockOccurrence(item.id));
+        actions.appendChild(cancel);
+      }else if(status==='canceled'){
+        const restore=document.createElement('button');
+        restore.className='timeBlockBtn restore';
+        restore.textContent='Restore';
+        restore.addEventListener('click',()=>restoreTimeBlockOccurrence(item.id));
+        actions.appendChild(restore);
+      }
 
       const del=document.createElement('button');
       del.className='timeBlockBtn';
@@ -2897,8 +3117,8 @@
         saveTimeBlocks();
         refreshViews('timeBlocks');
       });
+      actions.appendChild(del);
 
-      actions.append(edit,del);
       row.appendChild(actions);
       box.appendChild(row);
     });
@@ -2917,6 +3137,9 @@
     $('timeBlockStart').value=existing ? existing.start : '12:00';
     $('timeBlockEnd').value=existing ? existing.end : '13:00';
     $('timeBlockPerson').value=existing ? existing.person : 'you';
+    $('timeBlockActualStart').value=existing?.actualStart || '';
+    $('timeBlockActualEnd').value=existing?.actualEnd || '';
+    $('actualTimingBox').style.display=existing ? 'block' : 'none';
     $('saveTimeBlockTemplate').checked=false;
     $('deleteTimeBlockBtn').style.display=existing ? 'block' : 'none';
     renderTimeBlockLibrary();
@@ -2936,30 +3159,52 @@
     const start=$('timeBlockStart').value;
     const end=$('timeBlockEnd').value;
     const person=$('timeBlockPerson').value;
+    const actualStart=$('timeBlockActualStart').value || null;
+    const actualEnd=$('timeBlockActualEnd').value || null;
 
     if(!title || !date || !start || !end){
-      alert('Add a title, date, start time, and end time.');
+      alert('Add a title, date, planned start, and planned end.');
       return;
     }
     if(timeToMin(end)<=timeToMin(start)){
-      alert('End time needs to be after start time.');
+      alert('Planned end time needs to be after planned start time.');
+      return;
+    }
+    if(actualEnd && !actualStart){
+      alert('Add an actual start time before an actual end time.');
+      return;
+    }
+    if(actualStart && actualEnd && timeToMin(actualEnd)<=timeToMin(actualStart)){
+      alert('Actual end time needs to be after actual start time.');
       return;
     }
 
     if(editingTimeBlockId){
       const item=timeBlocks.find(x=>x.id===editingTimeBlockId);
       if(item){
+        const wasCanceled=timeBlockStatus(item)==='canceled';
         item.title=title;
         item.date=date;
         item.start=start;
         item.end=end;
         item.person=person;
+        item.actualStart=actualStart;
+        item.actualEnd=actualEnd;
+
+        if(actualStart && actualEnd) item.status='completed';
+        else if(actualStart) item.status='active';
+        else if(wasCanceled) item.status='canceled';
+        else item.status='planned';
+
         item.updatedAt=new Date().toISOString();
       }
     }else{
       timeBlocks.push({
         id:'block_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),
         title,date,start,end,person,
+        actualStart:null,
+        actualEnd:null,
+        status:'planned',
         createdAt:new Date().toISOString()
       });
     }
@@ -3594,7 +3839,10 @@
       commuteBlocks(person,date).forEach(b=>{points.add(b.start);points.add(b.end);});
       timeBlocksForDate(date)
         .filter(item=>timeBlockAppliesTo(item,person))
-        .forEach(item=>{points.add(timeToMin(item.start));points.add(timeToMin(item.end));});
+        .forEach(item=>{
+          const bounds=timeBlockBounds(item,date);
+          if(bounds){points.add(bounds.start);points.add(bounds.end);}
+        });
     });
 
     const sorted=[...points].sort((a,b)=>a-b);
@@ -3931,15 +4179,30 @@
       timeBlocksForDate(selectedDate)
         .filter(item=>timeBlockAppliesTo(item,person))
         .forEach(item=>{
-          const st=timeToMin(item.start), en=timeToMin(item.end);
-          const top=(Math.max(st,DAY_START)-DAY_START)*PX_PER_MIN;
-          const height=(Math.min(en,DAY_END)-Math.max(st,DAY_START))*PX_PER_MIN;
+          const bounds=timeBlockBounds(item,selectedDate);
+          if(!bounds) return;
+
+          const top=(Math.max(bounds.start,DAY_START)-DAY_START)*PX_PER_MIN;
+          const height=(Math.min(bounds.end,DAY_END)-Math.max(bounds.start,DAY_START))*PX_PER_MIN;
           if(height<=0) return;
+
           const block=document.createElement('div');
-          block.className='block event';
+          block.className='block event'+(timeBlockHasObservedReality(item)?' eventActual':'');
           block.style.top=`${top}px`;
           block.style.height=`${Math.max(8,height)}px`;
-          block.innerHTML=`${item.title}<small>${formatShort(item.start)}–${formatShort(item.end)}</small>`;
+
+          const title=document.createElement('div');
+          title.textContent=item.title;
+          block.appendChild(title);
+
+          const small=document.createElement('small');
+          if(item.actualStart){
+            const endText=item.actualEnd ? formatShort(item.actualEnd) : 'now';
+            small.textContent=`actual ${formatShort(item.actualStart)}–${endText}`;
+          }else{
+            small.textContent=`planned ${formatShort(item.start)}–${formatShort(item.end)}`;
+          }
+          block.appendChild(small);
           lane.appendChild(block);
         });
     }
@@ -3992,7 +4255,10 @@
   function blockMinutesFor(person,date){
     return timeBlocksForDate(date)
       .filter(item=>timeBlockAppliesTo(item,person))
-      .reduce((sum,item)=>sum+Math.max(0,timeToMin(item.end)-timeToMin(item.start)),0);
+      .reduce((sum,item)=>{
+        const bounds=timeBlockBounds(item,date);
+        return sum+(bounds ? Math.max(0,bounds.end-bounds.start) : 0);
+      },0);
   }
 
   function dayShape(date){
@@ -4232,7 +4498,23 @@
           row.className='weekEventRow';
 
           const copy=document.createElement('div');
-          copy.innerHTML=`<div class="weekEventName">${item.title}</div><div class="weekEventMeta">${formatShort(item.start)}–${formatShort(item.end)} · ${personLabelForBlock(item.person)}</div>`;
+
+          const name=document.createElement('div');
+          name.className='weekEventName';
+          name.textContent=item.title;
+
+          const meta=document.createElement('div');
+          meta.className='weekEventMeta';
+          const status=timeBlockStatus(item);
+          if(status==='canceled'){
+            meta.textContent=`Didn’t happen · planned ${formatShort(item.start)}–${formatShort(item.end)} · ${personLabelForBlock(item.person)}`;
+          }else if(item.actualStart){
+            const actualEnd=item.actualEnd ? formatShort(item.actualEnd) : 'now';
+            meta.textContent=`Actual ${formatShort(item.actualStart)}–${actualEnd} · planned ${formatShort(item.start)}–${formatShort(item.end)} · ${personLabelForBlock(item.person)}`;
+          }else{
+            meta.textContent=`Planned ${formatShort(item.start)}–${formatShort(item.end)} · ${personLabelForBlock(item.person)}`;
+          }
+          copy.append(name,meta);
 
           const edit=document.createElement('button');
           edit.className='weekEventEdit';
@@ -4492,7 +4774,7 @@
       const latest=latestCheckinForDate(ds);
       const food=dateHasFood(ds);
       const house=completedRoutineCountForDate(ds)>0;
-      const block=timeBlocksForDate(ds).length>0;
+      const block=timeBlocksForDate(ds).some(item=>timeBlockHasObservedReality(item) && timeBlockStatus(item)!=='canceled');
 
       const btn=document.createElement('button');
       btn.type='button';

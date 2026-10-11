@@ -35,16 +35,11 @@ jobs:
           from pathlib import Path
           p=Path('tests/boot-smoke.mjs')
           text=p.read_text()
-          old="""  await page.locator('#mealsArea > summary').click();
-  assert.equal(await page.locator('#careArea').evaluate(el => el.open), false, 'opening meals should close care');
-  assert.equal(await page.locator('#mealsArea').evaluate(el => el.open), true, 'meals summary did not expand');"""
-          new="""  await page.locator('#mealsArea > summary').click();
-  await page.waitForFunction(() => !document.getElementById('careArea')?.open && document.getElementById('mealsArea')?.open);
-  assert.equal(await page.locator('#careArea').evaluate(el => el.open), false, 'opening meals should close care');
-  assert.equal(await page.locator('#mealsArea').evaluate(el => el.open), true, 'meals summary did not expand');"""
-          if text.count(old)!=1:
+          needle="  assert.equal(await page.locator('#careArea').evaluate(el => el.open), false, 'opening meals should close care');"
+          wait="  await page.waitForFunction(() => !document.getElementById('careArea')?.open && document.getElementById('mealsArea')?.open);"
+          if text.count(needle)!=1:
             raise SystemExit('accordion smoke anchor not found exactly once')
-          p.write_text(text.replace(old,new,1))
+          p.write_text(text.replace(needle, wait+'\n'+needle, 1))
           PY
 
       - name: Validate JavaScript
@@ -92,7 +87,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          rm -f tools/apply_v019.py .github/workflows/apply-v019.yml
+          rm -f tools/apply_v019.py tools/rerun_v019.txt .github/workflows/apply-v019.yml
           git add -A
           git commit -m "v0.19.0 Cozy Home"
           git push origin HEAD:feature/cozy-home-v0.19.0

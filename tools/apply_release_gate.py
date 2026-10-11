@@ -17,7 +17,7 @@ if text.count(old_app_version) != 2:
     raise SystemExit(f'Expected two {old_app_version!r} markers; found {text.count(old_app_version)}')
 text = text.replace(old_app_version, "appVersion:'0.17.5'")
 
-script_marker = '<script>\n(()=>{'
+script_marker = '<script>\n(() => {'
 if text.count(script_marker) != 1:
     raise SystemExit(f'Expected exactly one main script marker; found {text.count(script_marker)}')
 
@@ -70,7 +70,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
 })();
 </script>
 <script>
-(()=>{'''
+(() => {'''
 
 text = text.replace(script_marker, watchdog, 1)
 

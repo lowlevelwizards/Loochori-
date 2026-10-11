@@ -170,6 +170,35 @@ try {
   assert(orderedIntent.some(item => item.title === 'Smoke Creative Block' && item.intentOrder === 0), 'planner order did not reach adaptive ranking');
   assert(orderedIntent.some(item => item.title === 'Smoke checklist one' && item.intentOrder === 1), 'second planner order did not reach adaptive ranking');
 
+  await page.waitForFunction(() => document.getElementById('planPlaceModal')?.classList.contains('open'));
+  let placeSnapshot = await page.evaluate(() => window.__LOOCHORI_PLAN_PLACE__);
+  assert.equal(placeSnapshot?.items?.length, 2, 'Plan → Place did not receive the two focus choices');
+  assert.equal(placeSnapshot.items[0]?.title, 'Smoke Creative Block', 'Plan → Place lost focus ordering');
+  const creativePlacement = page.locator('#planPlaceList .planPlaceItem').filter({ hasText: 'Smoke Creative Block' });
+  const firstSuggestion = placeSnapshot.items[0]?.suggestion;
+  if (firstSuggestion) {
+    if ((placeSnapshot.items[0]?.alternatives || 0) > 1) {
+      await creativePlacement.getByRole('button', { name: 'Try another' }).click();
+      const alternateSnapshot = await page.evaluate(() => window.__LOOCHORI_PLAN_PLACE__);
+      assert.notEqual(alternateSnapshot.items[0]?.suggestion?.start, firstSuggestion.start, 'Try another did not reflow the proposed window');
+    }
+    await creativePlacement.getByRole('button', { name: 'Place here' }).click();
+    await page.waitForFunction(() => {
+      const intent = JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}');
+      const blocks = JSON.parse(localStorage.getItem('loochori_time_blocks_v1') || '[]');
+      const records = Object.values(intent).flat();
+      const placed = records.find(item => item.refId === 'blocktpl_smoke' && item.placedBlockId);
+      return Boolean(placed && blocks.some(block => block.id === placed.placedBlockId && block.title === 'Smoke Creative Block'));
+    });
+    placeSnapshot = await page.evaluate(() => window.__LOOCHORI_PLAN_PLACE__);
+    assert(placeSnapshot.items[0]?.placed === true, 'placed focus did not become a real time block');
+    const placedAdaptive = await page.evaluate(() => window.__LOOCHORI_ADAPTIVE__);
+    assert(placedAdaptive.ranked.some(item => item.title === 'Smoke Creative Block' && item.placed === true), 'Adaptive Today did not recognize the placed intention tier');
+  } else {
+    assert((await creativePlacement.innerText()).includes('Best left floating'), 'no-window state did not explicitly keep the focus floating');
+  }
+  await page.locator('#closePlanPlaceBtn').click();
+
   assert.equal(await page.locator('#carryoverPanel.show').count(), 1, 'yesterday carryover prompt did not render');
   assert((await text('#carryoverTitle')).includes('carried over from yesterday'), 'carryover prompt copy is missing');
 

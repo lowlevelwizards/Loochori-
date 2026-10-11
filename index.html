@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Startup Resilience v0.17.3</title>
+<title>Loochori — Core Boot Repair v0.17.4</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -1181,7 +1181,7 @@
   <div class="topbar">
     <div class="brand">Loochori</div>
     <div class="topbarRight">
-      <div class="version">Startup Resilience v0.17.3</div>
+      <div class="version">Core Boot Repair v0.17.4</div>
       <button class="settingsBtn" id="openSettingsBtn">Settings</button>
     </div>
   </div>
@@ -5813,7 +5813,7 @@
       format:'loochori-backup',
       schemaVersion:CURRENT_BACKUP_SCHEMA,
       storageSchemaVersion:CURRENT_STORAGE_SCHEMA,
-      appVersion:'0.17.3',
+      appVersion:'0.17.4',
       exportedAt:new Date().toISOString(),
       data
     };
@@ -5949,7 +5949,7 @@
     }
     triggerJsonDownload({
       format:'loochori-recovery',
-      appVersion:'0.17.3',
+      appVersion:'0.17.4',
       exportedAt:new Date().toISOString(),
       entries:recovery
     },`loochori-recovery-${iso(new Date())}.json`);
@@ -6416,6 +6416,466 @@
   }
 
 
+
+  /*
+   * v0.14.1 refresh pipeline
+   *
+   * Mutations say WHAT changed; this table decides WHICH derived views
+   * must be recomputed. This replaces the growing pattern of individual
+   * handlers remembering to manually refresh 2–5 different UI surfaces.
+   */
+  const VIEW_DEPENDENCIES = {
+    care:        ['care','now','month','summaries'],
+    checkin:     ['checkin','now','month','summaries'],
+    meals:       ['meals','now','week','month','summaries'],
+    mealLibrary: ['meals','week','month','summaries','mealLibrary'],
+    loops:       ['openLoopList','houseLoops','summaries'],
+    rhythm:      ['rhythm','now','week','month','summaries'],
+    timeBlocks:  ['timeBlocks','today','now','week','month'],
+    schedule:    ['today','now','week','month','exceptionList'],
+    all:         ['today','now','meals','rhythm','timeBlocks','checkin','care','week','month','exceptionList','openLoopList','houseLoops','summaries']
+  };
+
+  const VIEW_RENDERERS = {
+    today:()=>renderToday(),
+    now:()=>renderNow(),
+    meals:()=>renderMeals(),
+    rhythm:()=>renderRhythm(),
+    timeBlocks:()=>renderTimeBlocks(),
+    checkin:()=>renderCheckin(),
+    care:()=>renderCare(),
+    week:()=>renderWeek(),
+    month:()=>renderMonth(),
+    exceptionList:()=>renderExceptionList(),
+    openLoopList:()=>renderOpenLoopList(),
+    houseLoops:()=>renderHouseOpenLoops(),
+    summaries:()=>updateCalmSummaries(),
+    mealLibrary:()=>{
+      if($('mealModal') && $('mealModal').classList.contains('open')){
+        renderMealLibrary();
+      }
+    }
+  };
+
+  const VIEW_RENDER_ORDER = [
+    'today','now','meals','rhythm','timeBlocks','checkin','care',
+    'week','month','exceptionList','openLoopList','houseLoops',
+    'summaries','mealLibrary'
+  ];
+
+  function refreshViews(...domains){
+    const requested=new Set();
+
+    domains.flat().forEach(domain=>{
+      const deps=VIEW_DEPENDENCIES[domain];
+      if(!deps){
+        console.warn(`Unknown Loochori refresh domain: ${domain}`);
+        return;
+      }
+      deps.forEach(view=>requested.add(view));
+    });
+
+    VIEW_RENDER_ORDER.forEach(view=>{
+      if(requested.has(view)) VIEW_RENDERERS[view]();
+    });
+  }
+
+  function refreshAllViews(){
+    refreshViews('all');
+  }
+
+
+  const WEEKDAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  function renderHouseholdLabels(){
+    const youName=personName('you');
+    const partnerName=personName('cori');
+
+    if($('timelineYouHeader')) $('timelineYouHeader').textContent=youName;
+    if($('timelinePartnerHeader')) $('timelinePartnerHeader').textContent=partnerName;
+    if($('timelinePartnerKey')) $('timelinePartnerKey').textContent=`${partnerName} work`;
+    if($('partnerHomeLabel')) $('partnerHomeLabel').textContent=`${partnerName} awake at home`;
+    if($('yourSoloHint')) $('yourSoloHint').textContent=`when ${partnerName} isn’t awake at home`;
+    if($('timeBlockPartnerOption')) $('timeBlockPartnerOption').textContent=partnerName;
+    if($('exceptionPartnerOption')) $('exceptionPartnerOption').textContent=partnerName;
+    if($('tempRulePerson')){
+      const partnerOpt=$('tempRulePerson').querySelector('option[value="cori"]');
+      if(partnerOpt) partnerOpt.textContent=partnerName;
+      const youOpt=$('tempRulePerson').querySelector('option[value="you"]');
+      if(youOpt) youOpt.textContent=youName;
+    }
+    if($('realityYouTitle')) $('realityYouTitle').textContent=youName;
+    if($('realityPartnerTitle')) $('realityPartnerTitle').textContent=partnerName;
+  }
+
+  function createScheduleEditor(person){
+    const cfg=planningPerson(person);
+    const wrap=document.createElement('div');
+    wrap.className='personSettings';
+
+    const title=document.createElement('div');
+    title.className='personSettingsTitle';
+    title.textContent=personName(person);
+    wrap.appendChild(title);
+
+    const editor=document.createElement('div');
+    editor.className='scheduleEditor';
+
+    for(let day=0;day<7;day++){
+      const shift=cfg.baseline?.[day] || null;
+      const row=document.createElement('div');
+      row.className='scheduleRow';
+      row.dataset.person=person;
+      row.dataset.day=String(day);
+
+      const dayLabel=document.createElement('div');
+      dayLabel.className='scheduleDay';
+      dayLabel.textContent=WEEKDAY_NAMES[day];
+
+      const offLabel=document.createElement('label');
+      offLabel.className='scheduleOff';
+      const off=document.createElement('input');
+      off.type='checkbox';
+      off.className='scheduleOffInput';
+      off.checked=!shift;
+      offLabel.append(off,document.createTextNode('Off'));
+
+      const start=document.createElement('input');
+      start.type='time';
+      start.className='scheduleStartInput';
+      start.value=shift?.start || '09:00';
+
+      const end=document.createElement('input');
+      end.type='time';
+      end.className='scheduleEndInput';
+      end.value=shift?.end || '17:00';
+
+      const wake=document.createElement('input');
+      wake.type='time';
+      wake.className='scheduleWakeInput';
+      wake.value=cfg.wakeByWeekday?.[day] || cfg.offDayWake || '09:00';
+
+      const syncDisabled=()=>{
+        start.disabled=off.checked;
+        end.disabled=off.checked;
+        wake.disabled=off.checked;
+      };
+      off.addEventListener('change',syncDisabled);
+      syncDisabled();
+
+      row.append(dayLabel,offLabel,start,end,wake);
+      editor.appendChild(row);
+    }
+
+    const legend=document.createElement('div');
+    legend.className='scheduleWakeLabel';
+    legend.textContent='day · off · work start · work end · wake';
+    wrap.append(editor,legend);
+    return wrap;
+  }
+
+  function createPlanningEditor(person){
+    const cfg=planningPerson(person);
+    const wrap=document.createElement('div');
+    wrap.className='personSettings';
+    wrap.dataset.planningPerson=person;
+
+    const title=document.createElement('div');
+    title.className='personSettingsTitle';
+    title.textContent=personName(person);
+    wrap.appendChild(title);
+
+    const grid=document.createElement('div');
+    grid.className='settingsGrid';
+
+    const fields=[
+      ['Off-day wake','offDayWake','time',cfg.offDayWake || '09:00'],
+      ['Usual sleep start (optional)','usualSleepStart','time',cfg.usualSleepStart || ''],
+      ['Outbound minutes','outboundMinutes','number',String(cfg.commute.outbound.plan ?? 0)],
+      ['Outbound mode','outboundLabel','text',cfg.commute.outbound.label || 'Travel'],
+      ['Homebound minutes','inboundMinutes','number',String(cfg.commute.inbound.plan ?? 0)],
+      ['Homebound mode','inboundLabel','text',cfg.commute.inbound.label || 'Travel']
+    ];
+
+    fields.forEach(([labelText,name,type,value])=>{
+      const field=document.createElement('div');
+      field.className='field';
+      const label=document.createElement('label');
+      label.textContent=labelText;
+      const input=document.createElement('input');
+      input.type=type;
+      input.dataset.setting=name;
+      input.value=value;
+      if(type==='number'){input.min='0';input.step='1';}
+      field.append(label,input);
+      grid.appendChild(field);
+    });
+
+    wrap.appendChild(grid);
+    return wrap;
+  }
+
+  function renderSettingsForm(){
+    renderHouseholdLabels();
+    $('settingsNotice').classList.toggle('show',!householdConfig.configured);
+    $('settingsYouName').value=personName('you');
+    $('settingsPartnerName').value=personName('cori');
+    $('settingsSleepTarget').value=(householdConfig.sleepTargetMinutes/60).toFixed(2).replace(/\.00$/,'');
+
+    const schedules=$('scheduleSettingsEditors');
+    schedules.innerHTML='';
+    schedules.append(createScheduleEditor('you'),createScheduleEditor('cori'));
+
+    const planning=$('personPlanningSettings');
+    planning.innerHTML='';
+    planning.append(createPlanningEditor('you'),createPlanningEditor('cori'));
+
+    renderTempRuleList();
+  }
+
+  function openSettings(){
+    renderSettingsForm();
+    $('householdSettingsModal').classList.add('open');
+  }
+
+  function closeSettings(){
+    $('householdSettingsModal').classList.remove('open');
+  }
+
+  function readSettingsForm(){
+    const next=normalizeHouseholdConfig(householdConfig);
+    next.configured=true;
+    next.people.you.name=$('settingsYouName').value.trim() || 'You';
+    next.people.cori.name=$('settingsPartnerName').value.trim() || 'Partner';
+
+    const sleepHours=Number($('settingsSleepTarget').value);
+    next.sleepTargetMinutes=Number.isFinite(sleepHours) && sleepHours>0
+      ? Math.round(sleepHours*60)
+      : 450;
+
+    document.querySelectorAll('.scheduleRow').forEach(row=>{
+      const person=row.dataset.person;
+      const day=Number(row.dataset.day);
+      const off=row.querySelector('.scheduleOffInput').checked;
+      const start=row.querySelector('.scheduleStartInput').value;
+      const end=row.querySelector('.scheduleEndInput').value;
+      const wake=row.querySelector('.scheduleWakeInput').value;
+
+      next.people[person].baseline[day]=off ? null : {start,end};
+      if(wake) next.people[person].wakeByWeekday[day]=wake;
+    });
+
+    document.querySelectorAll('[data-planning-person]').forEach(wrap=>{
+      const person=wrap.dataset.planningPerson;
+      const get=name=>wrap.querySelector(`[data-setting="${name}"]`)?.value || '';
+      next.people[person].offDayWake=get('offDayWake') || '09:00';
+      next.people[person].usualSleepStart=get('usualSleepStart') || null;
+      next.people[person].commute.outbound.plan=Math.max(0,Math.round(Number(get('outboundMinutes'))||0));
+      next.people[person].commute.outbound.label=get('outboundLabel').trim() || 'Travel';
+      next.people[person].commute.inbound.plan=Math.max(0,Math.round(Number(get('inboundMinutes'))||0));
+      next.people[person].commute.inbound.label=get('inboundLabel').trim() || 'Travel';
+    });
+
+    return normalizeHouseholdConfig(next);
+  }
+
+  function saveHouseholdSettings(){
+    householdConfig=readSettingsForm();
+    saveHouseholdConfig();
+    closeSettings();
+    renderHouseholdLabels();
+    refreshViews('schedule','timeBlocks','rhythm');
+  }
+
+  function tempRuleSummary(rule){
+    const days=(rule.weekdays||[]).map(d=>WEEKDAY_NAMES[d]).join(', ') || 'no days';
+    const replacement=rule.replacement
+      ? `${formatShort(rule.replacement.start)}–${formatShort(rule.replacement.end)}`
+      : 'off';
+    return `${rule.startDate || '—'} → ${rule.endDate || '—'} · ${days} · ${replacement}`;
+  }
+
+  function renderTempRuleList(){
+    const box=$('tempRuleList');
+    if(!box) return;
+    box.innerHTML='';
+
+    (householdConfig.temporaryRules || []).forEach(rule=>{
+      const row=document.createElement('div');
+      row.className='tempRuleItem';
+
+      const copy=document.createElement('div');
+      const title=document.createElement('div');
+      title.className='tempRuleTitle';
+      title.textContent=`${rule.label || 'Temporary rule'} · ${personName(rule.person)}`;
+      const meta=document.createElement('div');
+      meta.className='tempRuleMeta';
+      meta.textContent=tempRuleSummary(rule);
+      copy.append(title,meta);
+
+      const del=document.createElement('button');
+      del.className='tempRuleDelete';
+      del.textContent='Delete';
+      del.addEventListener('click',()=>{
+        householdConfig.temporaryRules=householdConfig.temporaryRules.filter(r=>r.id!==rule.id);
+        saveHouseholdConfig();
+        renderTempRuleList();
+        refreshViews('schedule');
+      });
+
+      row.append(copy,del);
+      box.appendChild(row);
+    });
+
+    if(!(householdConfig.temporaryRules||[]).length){
+      const empty=document.createElement('div');
+      empty.className='empty';
+      empty.textContent='No temporary schedule rules.';
+      box.appendChild(empty);
+    }
+  }
+
+  function addTemporaryRule(){
+    const person=$('tempRulePerson').value;
+    const label=$('tempRuleLabel').value.trim() || 'Temporary rule';
+    const startDate=$('tempRuleStart').value;
+    const endDate=$('tempRuleEnd').value;
+    const type=$('tempRuleType').value;
+    const weekdays=[...document.querySelectorAll('#tempRuleWeekdays input:checked')].map(x=>Number(x.value));
+
+    if(!startDate || !endDate) return alert('Choose a start and end date.');
+    if(endDate<startDate) return alert('End date needs to be after start date.');
+    if(!weekdays.length) return alert('Choose at least one weekday.');
+
+    let replacement=null;
+    if(type==='work'){
+      const start=$('tempRuleShiftStart').value;
+      const end=$('tempRuleShiftEnd').value;
+      if(!start || !end) return alert('Enter the temporary work shift.');
+      replacement={start,end};
+    }
+
+    householdConfig.temporaryRules.push({
+      id:`rule_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`,
+      person,label,startDate,endDate,weekdays,replacement
+    });
+    householdConfig.configured=true;
+    saveHouseholdConfig();
+    $('tempRuleLabel').value='';
+    renderTempRuleList();
+    refreshViews('schedule');
+  }
+
+  function renderTempRuleWeekdayChecks(){
+    const box=$('tempRuleWeekdays');
+    box.innerHTML='';
+    WEEKDAY_NAMES.forEach((name,day)=>{
+      const label=document.createElement('label');
+      label.className='weekdayCheck';
+      const input=document.createElement('input');
+      input.type='checkbox';
+      input.value=String(day);
+      label.append(input,document.createTextNode(name));
+      box.appendChild(label);
+    });
+  }
+
+  function openRealityModal(){
+    const dateStr=iso(selectedDate);
+    $('realityModalTitle').textContent=`Reality · ${selectedDate.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}`;
+    renderHouseholdLabels();
+
+    const your=realityFor('you',dateStr);
+    const partner=realityFor('cori',dateStr);
+    $('realityYouWake').value=your.wake || '';
+    $('realityYouSleep').value=your.sleepStart || '';
+    $('realityPartnerWake').value=partner.wake || '';
+    $('realityPartnerSleep').value=partner.sleepStart || '';
+    $('realityModal').classList.add('open');
+  }
+
+  function closeRealityModal(){
+    $('realityModal').classList.remove('open');
+  }
+
+  function saveReality(){
+    const dateStr=iso(selectedDate);
+    const your={
+      wake:$('realityYouWake').value || null,
+      sleepStart:$('realityYouSleep').value || null
+    };
+    const partner={
+      wake:$('realityPartnerWake').value || null,
+      sleepStart:$('realityPartnerSleep').value || null
+    };
+
+    const hasYou=your.wake || your.sleepStart;
+    const hasPartner=partner.wake || partner.sleepStart;
+
+    if(!hasYou && !hasPartner){
+      delete dayReality[dateStr];
+    }else{
+      dayReality[dateStr]={};
+      if(hasYou) dayReality[dateStr].you=your;
+      if(hasPartner) dayReality[dateStr].cori=partner;
+    }
+
+    saveDayReality();
+    closeRealityModal();
+    refreshViews('schedule');
+  }
+
+  function clearReality(){
+    delete dayReality[iso(selectedDate)];
+    saveDayReality();
+    closeRealityModal();
+    refreshViews('schedule');
+  }
+
+  function localSetupPayload(){
+    return {
+      format:'loochori-local-setup',
+      schemaVersion:1,
+      exportedAt:new Date().toISOString(),
+      householdConfig,
+      dayReality
+    };
+  }
+
+  function exportLocalSetup(){
+    const blob=new Blob([JSON.stringify(localSetupPayload(),null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='loochori-local-setup.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    $('setupStatus').textContent='Local setup exported.';
+  }
+
+  async function importLocalSetupFile(file){
+    if(!file) return;
+    let payload;
+    try{ payload=JSON.parse(await file.text()); }
+    catch(e){ return alert('That setup file is not valid JSON.'); }
+
+    if(!payload || payload.format!=='loochori-local-setup' || !payload.householdConfig){
+      return alert('That file is not a recognized Loochori local setup.');
+    }
+
+    householdConfig=normalizeHouseholdConfig(payload.householdConfig);
+    householdConfig.configured=true;
+    dayReality=payload.dayReality && typeof payload.dayReality==='object' ? payload.dayReality : dayReality;
+
+    saveHouseholdConfig();
+    saveDayReality();
+    renderSettingsForm();
+    renderHouseholdLabels();
+    refreshViews('schedule','timeBlocks','rhythm');
+    $('setupStatus').textContent='Local setup imported.';
+  }
 
   function updateCalmSummaries(){
     const latest=latestSelectedDayCheckin();

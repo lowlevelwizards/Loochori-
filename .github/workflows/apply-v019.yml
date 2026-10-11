@@ -28,6 +28,25 @@ jobs:
       - name: Apply Cozy Home patch
         run: python tools/apply_v019.py
 
+      - name: Stabilize accordion interaction check
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tests/boot-smoke.mjs')
+          text=p.read_text()
+          old="""  await page.locator('#mealsArea > summary').click();
+  assert.equal(await page.locator('#careArea').evaluate(el => el.open), false, 'opening meals should close care');
+  assert.equal(await page.locator('#mealsArea').evaluate(el => el.open), true, 'meals summary did not expand');"""
+          new="""  await page.locator('#mealsArea > summary').click();
+  await page.waitForFunction(() => !document.getElementById('careArea')?.open && document.getElementById('mealsArea')?.open);
+  assert.equal(await page.locator('#careArea').evaluate(el => el.open), false, 'opening meals should close care');
+  assert.equal(await page.locator('#mealsArea').evaluate(el => el.open), true, 'meals summary did not expand');"""
+          if text.count(old)!=1:
+            raise SystemExit('accordion smoke anchor not found exactly once')
+          p.write_text(text.replace(old,new,1))
+          PY
+
       - name: Validate JavaScript
         shell: bash
         run: |

@@ -86,7 +86,7 @@ await page.addInitScript(() => {
       end: '10:30',
       person: 'you'
     }],
-    loochori_time_block_library_v1: [],
+    loochori_time_block_library_v1: [{ id: 'blocktpl_smoke', title: 'Smoke Creative Block', person: 'you', durationMinutes: 45 }],
     loochori_household_config_v1: {
       version: 1,
       configured: true,
@@ -141,6 +141,35 @@ try {
     'seeded routine checklist did not enter adaptive Today candidates'
   );
 
+  await page.locator('#openPlanTodayBtn').click();
+  await page.waitForFunction(() => document.getElementById('planTodayModal')?.classList.contains('open'));
+  assert.equal(await page.locator('#planTodaySummary .planSummaryCard').count(), 3, 'Plan Today day-shape summary did not render');
+  const plannerSnapshot = await page.evaluate(() => window.__LOOCHORI_PLAN_TODAY__);
+  assert(plannerSnapshot?.candidates?.some(item => item.title === 'Smoke checklist one'), 'routine item was missing from Plan Today candidates');
+  assert(plannerSnapshot?.candidates?.some(item => item.title === 'Smoke intentional loop'), 'open loop was missing from Plan Today candidates');
+  assert(plannerSnapshot?.candidates?.some(item => item.title === 'Smoke Creative Block'), 'saved time block was missing from Plan Today candidates');
+
+  const pickPlanChoice = async title => {
+    const row = page.locator('.planTodayCandidate').filter({ hasText: title }).first();
+    await row.getByRole('button').click();
+  };
+  await pickPlanChoice('Smoke Creative Block');
+  await pickPlanChoice('Smoke checklist one');
+  assert((await text('#planTodaySelectionText')).includes('1. Smoke Creative Block'), 'first Plan Today choice was not ordered first');
+  assert((await text('#planTodaySelectionText')).includes('2. Smoke checklist one'), 'second Plan Today choice was not ordered second');
+  await page.locator('#savePlanTodayBtn').click();
+  await page.waitForFunction(() => !document.getElementById('planTodayModal')?.classList.contains('open'));
+
+  let plannedIntent = await page.evaluate(() => JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}'));
+  const plannedToday = Object.entries(plannedIntent).sort(([a],[b]) => b.localeCompare(a))[0]?.[1] || [];
+  assert.equal(plannedToday[0]?.kind, 'library_block', 'first planner choice did not persist at the front of Today intent');
+  assert.equal(plannedToday[0]?.refId, 'blocktpl_smoke', 'saved block choice did not persist');
+  assert.equal(plannedToday[1]?.kind, 'bundle_item', 'second planner choice did not persist as the routine item');
+  const orderedAdaptive = await page.evaluate(() => window.__LOOCHORI_ADAPTIVE__);
+  const orderedIntent = orderedAdaptive.ranked.filter(item => item.intent);
+  assert(orderedIntent.some(item => item.title === 'Smoke Creative Block' && item.intentOrder === 0), 'planner order did not reach adaptive ranking');
+  assert(orderedIntent.some(item => item.title === 'Smoke checklist one' && item.intentOrder === 1), 'second planner order did not reach adaptive ranking');
+
   assert.equal(await page.locator('#carryoverPanel.show').count(), 1, 'yesterday carryover prompt did not render');
   assert((await text('#carryoverTitle')).includes('carried over from yesterday'), 'carryover prompt copy is missing');
 
@@ -167,9 +196,11 @@ try {
 
   const keepCarry = page.locator('#carryoverPanel .carryoverItem').filter({ hasText: 'Smoke carryover loop' }).getByRole('button', { name: 'Keep today' });
   await keepCarry.click();
-  await page.waitForFunction(() =>
-    Array.from(document.querySelectorAll('#todayShortlist .todayShortlistTitle')).some(node => node.textContent?.includes('Smoke carryover loop'))
-  );
+  await page.waitForFunction(() => {
+    const state = JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}');
+    return Object.values(state).flat().some(item => item.refId === 'loop_carry' && item.carriedFrom);
+  });
+  assert((await text('#todayShortlistMore')).includes('more chosen for today'), 'overflow shortlist count did not reflect kept carryover');
   intentState = await page.evaluate(() => JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}'));
   const allIntent = Object.values(intentState).flat();
   assert(allIntent.some(item => item.refId === 'loop_carry' && item.carriedFrom), 'Keep today did not preserve carryover provenance');
@@ -178,13 +209,15 @@ try {
     meal: JSON.parse(localStorage.getItem('loochori_meal_library_v1') || '[]').some(item => item.id === 'meal_smoke'),
     routine: JSON.parse(localStorage.getItem('loochori_weekly_rhythm_v1') || '[]').some(item => item.id === 'routine_smoke'),
     block: JSON.parse(localStorage.getItem('loochori_time_blocks_v1') || '[]').some(item => item.id === 'block_smoke'),
+    blockTemplate: JSON.parse(localStorage.getItem('loochori_time_block_library_v1') || '[]').some(item => item.id === 'blocktpl_smoke'),
     intent: JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}'),
     care: JSON.parse(localStorage.getItem('loochori_daily_care_v1') || '{}')
   }));
   assert.equal(storesSurvived.meal, true, 'meal fixture disappeared from storage');
   assert.equal(storesSurvived.routine, true, 'routine fixture disappeared from storage');
   assert.equal(storesSurvived.block, true, 'time-block fixture disappeared from storage');
-  assert(Object.values(storesSurvived.intent).flat().length >= 2, 'Today intent fixture/actions disappeared from storage');
+  assert.equal(storesSurvived.blockTemplate, true, 'saved time-block fixture disappeared from storage');
+  assert(Object.values(storesSurvived.intent).flat().length >= 4, 'Today intent fixture/actions disappeared from storage');
   assert(Object.values(storesSurvived.care).some(day => day?.brush_am?.[0] === true), 'care fixture disappeared from storage');
 
   await page.locator('#openSettingsBtn').click();

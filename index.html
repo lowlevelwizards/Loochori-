@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Today Shortlist v0.18.1</title>
+<title>Loochori — Plan Today v0.18.2</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -1223,7 +1223,32 @@
   .todayShortlistMore{font-size:9px;color:var(--muted);padding:3px 2px}
   .bundleItemActions{display:flex;gap:5px;align-items:center}
 
+  /* v0.18.2 — Plan Today */
+  .planTodayLaunchRow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:11px}
+  .planTodayLaunch{border:1px solid rgba(217,240,223,.22);background:rgba(217,240,223,.07);color:#d9f0df;border-radius:11px;padding:8px 10px;font-size:11px;font-weight:820;cursor:pointer}
+  .planTodayLaunchNote{font-size:9px;color:var(--muted);line-height:1.35}
+  .planTodaySummary{display:grid;grid-template-columns:1fr;gap:7px;margin:2px 0 14px}
+  .planSummaryCard{background:#121518;border:1px solid var(--line);border-radius:13px;padding:10px 11px}
+  .planSummaryLabel{font-size:9px;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);font-weight:800}
+  .planSummaryValue{font-size:12px;font-weight:760;line-height:1.35;margin-top:3px}
+  .planTodayIntro{font-size:12px;line-height:1.5;color:var(--muted);margin:0 0 12px}
+  .planTodaySelection{background:rgba(217,240,223,.045);border:1px solid rgba(217,240,223,.10);border-radius:14px;padding:10px 11px;margin-bottom:14px}
+  .planTodaySelectionTitle{font-size:10px;font-weight:830;color:#d5e8da}
+  .planTodaySelectionText{font-size:10px;color:var(--muted);line-height:1.4;margin-top:3px}
+  .planTodayList{display:grid;gap:7px;margin-top:8px}
+  .planTodayCandidate{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:#121518;border:1px solid var(--line);border-radius:14px;padding:10px 11px}
+  .planTodayCandidate.selected{border-color:rgba(217,240,223,.24);background:rgba(217,240,223,.055)}
+  .planCandidateTitle{font-size:12px;font-weight:780;line-height:1.3}
+  .planCandidateMeta{font-size:9px;color:var(--muted);line-height:1.4;margin-top:3px}
+  .planCandidatePick{min-width:66px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:10px;padding:7px 8px;font-size:9px;font-weight:820;cursor:pointer}
+  .planTodayCandidate.selected .planCandidatePick{background:var(--accent);color:var(--accentText);border-color:var(--accent)}
+  .planTodayMoreToggle{width:100%;margin-top:10px;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:12px;padding:9px;font-size:10px;font-weight:760;cursor:pointer}
+  .planTodayMore{display:none;margin-top:8px}
+  .planTodayMore.show{display:block}
+  .planTodayNotice{min-height:16px;font-size:10px;color:#ead19c;line-height:1.4;margin-top:8px}
+
   @media (min-width:680px){
+    .planTodaySummary{grid-template-columns:repeat(3,minmax(0,1fr))}
     .historyStats{grid-template-columns:repeat(4,minmax(0,1fr))}
     .monthDay{min-height:92px;padding:8px}
     .monthDayNum{font-size:13px}
@@ -1255,7 +1280,7 @@
   <div class="topbar">
     <div class="brand">Loochori</div>
     <div class="topbarRight">
-      <div class="version">Today Shortlist v0.18.1</div>
+      <div class="version">Plan Today v0.18.2</div>
       <button class="settingsBtn" id="openSettingsBtn">Settings</button>
     </div>
   </div>
@@ -1302,6 +1327,10 @@
           <div class="adaptiveKind" id="adaptivePrimaryKind">Open</div>
         </div>
         <div class="adaptiveActions" id="adaptivePrimaryActions"></div>
+        <div class="planTodayLaunchRow">
+          <button class="planTodayLaunch" id="openPlanTodayBtn" type="button">Plan today</button>
+          <div class="planTodayLaunchNote">Choose up to 3 things you want this day to be about.</div>
+        </div>
         <div class="todayShortlistWrap" id="todayShortlistWrap" style="display:none">
           <div class="todayShortlistHead">
             <div class="todayShortlistLabel">Today’s shortlist</div>
@@ -2044,6 +2073,37 @@
   </div>
 </div>
 
+<div class="modalBackdrop" id="planTodayModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle">Plan today</div>
+        <div class="sectionNote">See the shape of the day, then choose up to three things that matter to you.</div>
+      </div>
+      <button class="closeBtn" id="closePlanTodayBtn">×</button>
+    </div>
+
+    <div class="planTodaySummary" id="planTodaySummary"></div>
+    <div class="planTodayIntro">Loochori suggests from routines, reset items, open loops and saved time blocks. Fixed commitments still outrank this list when the day is actually happening.</div>
+
+    <div class="planTodaySelection">
+      <div class="planTodaySelectionTitle">Your focus</div>
+      <div class="planTodaySelectionText" id="planTodaySelectionText">Nothing chosen yet. A clear day is allowed.</div>
+    </div>
+
+    <div class="sectionTitle">Suggested for today</div>
+    <div class="sectionNote">The first choice gets the strongest human-intent signal, then the second, then the third.</div>
+    <div class="planTodayList" id="planTodaySuggested"></div>
+
+    <button class="planTodayMoreToggle" id="planTodayMoreToggle" type="button">+ Choose something else</button>
+    <div class="planTodayMore" id="planTodayMore">
+      <div class="planTodayList" id="planTodayMoreList"></div>
+    </div>
+    <div class="planTodayNotice" id="planTodayNotice"></div>
+    <button class="primary" id="savePlanTodayBtn">Save today</button>
+  </div>
+</div>
+
 <div class="modalBackdrop" id="captureModal">
   <div class="modal">
     <div class="modalHead">
@@ -2440,7 +2500,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     }
 
     if(key===TODAY_INTENT_KEY){
-      const allowedKinds=new Set(['loop','time_block','routine','bundle_item','deferred_bundle_item']);
+      const allowedKinds=new Set(['loop','time_block','library_block','routine','bundle_item','deferred_bundle_item']);
       return isRecord(value) && Object.entries(value).every(([date,items])=>
         looksLikeDate(date) && Array.isArray(items) && items.every(item=>
           isRecord(item) && typeof item.id==='string' && allowedKinds.has(item.kind)
@@ -2745,6 +2805,10 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   let editingRoutineDefinitionId = null;
   let routineEditorItems = [];
   let movingBundleItemContext = null;
+  let planTodayDraftKeys = [];
+  let planTodayDraftSpecs = {};
+  let planTodayInitialManagedKeys = [];
+  let planTodayShowAll = false;
 
   const $ = id => document.getElementById(id);
 
@@ -2790,7 +2854,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
 
   function intentSpecKey(spec){
     if(!spec) return '';
-    if(spec.kind==='loop' || spec.kind==='time_block') return `${spec.kind}:${spec.refId || ''}`;
+    if(spec.kind==='loop' || spec.kind==='time_block' || spec.kind==='library_block') return `${spec.kind}:${spec.refId || ''}`;
     if(spec.kind==='routine') return `routine:${spec.defId || ''}:${spec.originDate || ''}`;
     if(spec.kind==='bundle_item') return `bundle_item:${spec.defId || ''}:${spec.itemId || ''}:${spec.originDate || ''}`;
     if(spec.kind==='deferred_bundle_item') return `deferred_bundle_item:${spec.defId || ''}:${spec.itemId || ''}:${spec.originDate || ''}`;
@@ -2891,6 +2955,16 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
         title:loop.text,kind:'loop',effort:'medium',
         actionLabel:'Done',
         action:()=>completeLoop(loop.id)
+      };
+    }
+
+    if(record.kind==='library_block'){
+      const template=timeBlockLibrary.find(x=>x.id===record.refId);
+      if(!template) return null;
+      return {
+        title:template.title,kind:'focus',effort:'medium',
+        actionLabel:'Done',
+        action:()=>removeIntent(dateStr,record.id)
       };
     }
 
@@ -5045,10 +5119,308 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     return valid.map(entry=>entry.record);
   }
 
+  function plannerIntentSpec(record){
+    if(!record || !record.kind) return null;
+    const spec={kind:record.kind};
+    ['refId','defId','itemId','originDate','source','titleSnapshot'].forEach(key=>{
+      if(record[key]!==undefined && record[key]!==null) spec[key]=record[key];
+    });
+    return spec;
+  }
+
+  function planTodaySummaryCards(dateStr){
+    const date=parseISO(dateStr);
+    const schedule=getSchedule('you',date).shift;
+    const arrival=schedule ? homeArrivalMinute('you',date) : null;
+    let shape='No work shift planned';
+    if(schedule){
+      shape=`Work ${minToShort(timeToMin(schedule.start))}–${minToShort(timeToMin(schedule.end))}`;
+      if(Number.isFinite(arrival)) shape+=` · home ~${minToShort(arrival)}`;
+    }
+
+    const dinner=mealHistory[dateStr]?.dinner;
+    let dinnerText='Open';
+    if(dinner?.plannedMealId) dinnerText=mealName(dinner.plannedMealId) || 'Planned meal';
+    else if(Array.isArray(dinner?.actualItems) && dinner.actualItems.length) dinnerText=actualItemLabel(dinner.actualItems[0]);
+    else if(dinner?.eatenMealId) dinnerText=mealName(dinner.eatenMealId) || 'Logged';
+
+    const checkin=latestCheckinForDate(dateStr);
+    const energy=Number(checkin?.energy);
+    const energyText=Number.isFinite(energy) && energy>0 ? `${energy}/5` : 'Not checked in';
+
+    return [
+      {label:'Day shape',value:shape},
+      {label:'Dinner',value:dinnerText},
+      {label:'Energy',value:energyText}
+    ];
+  }
+
+  function planTodayCandidatePool(dateStr){
+    const date=parseISO(dateStr);
+    const candidates=[];
+    const seen=new Set();
+    const latest=latestCheckinForDate(dateStr);
+    const lowEnergy=Number(latest?.energy)>0 && Number(latest.energy)<=2;
+
+    const pushCandidate=(spec,meta={})=>{
+      const key=intentSpecKey(spec);
+      if(!key || seen.has(key)) return;
+      seen.add(key);
+      let score=Number(meta.score)||0;
+      if(meta.started) score+=18;
+      if(lowEnergy && !meta.started && (meta.effort||'medium')!=='light') score-=10;
+      candidates.push({
+        key,spec,
+        title:meta.title || spec.titleSnapshot || 'Untitled',
+        reason:meta.reason || '',
+        category:meta.category || 'Option',
+        score,
+        started:Boolean(meta.started),
+        effort:meta.effort || 'medium'
+      });
+    };
+
+    // Anything already chosen stays visible, even if its normal source would
+    // otherwise fall outside the suggestion window.
+    intentRecordsForDate(dateStr).forEach((record,index)=>{
+      const resolved=resolveIntentRecord(record,dateStr);
+      const spec=plannerIntentSpec(record);
+      if(!resolved || !spec) return;
+      pushCandidate(spec,{
+        title:resolved.title,
+        reason:index<3 ? `Already in your focus · choice ${index+1}.` : 'Already chosen for today.',
+        category:'Chosen',score:220-index,started:resolved.started,effort:resolved.effort
+      });
+    });
+
+    routineOccurrencesForDate(date).forEach(occurrence=>{
+      const def=occurrence.def;
+      if(!def) return;
+      if(['done','skipped'].includes(occurrence.state?.status)) return;
+      if(occurrence.source==='scheduled' && occurrence.state?.status==='deferred') return;
+
+      if(isRoutineBundle(def)){
+        routineItems(def).forEach(item=>{
+          const state=bundleItemState(def.id,dateStr,item.id);
+          if(bundleItemResolved(state) || state.status==='skipped' || state.status==='deferred') return;
+          const started=state.status==='in_progress';
+          pushCandidate({
+            kind:'bundle_item',defId:def.id,itemId:item.id,originDate:dateStr,titleSnapshot:item.text
+          },{
+            title:item.text,
+            reason:started ? `Already started · part of ${def.name}.` : `${def.name} · still open.`,
+            category:def.name,score:started?90:72,started,effort:'medium'
+          });
+        });
+      }else{
+        pushCandidate({
+          kind:'routine',defId:def.id,originDate:dateStr,source:occurrence.source,titleSnapshot:def.name
+        },{
+          title:def.name,
+          reason:occurrence.source==='deferred' ? 'Moved here from an earlier day.' : `${def.daypart==='anytime'?'Anytime':def.daypart} routine.`,
+          category:'Routine',score:occurrence.source==='deferred'?80:66,effort:'medium'
+        });
+      }
+    });
+
+    deferredBundleItemsIntoDate(dateStr).forEach(entry=>{
+      const started=entry.itemState?.deferredProgress==='in_progress';
+      pushCandidate({
+        kind:'deferred_bundle_item',defId:entry.def.id,itemId:entry.item.id,
+        originDate:entry.originDate,titleSnapshot:entry.item.text
+      },{
+        title:entry.item.text,
+        reason:started ? `Already started · moved here from ${entry.def.name}.` : `Moved here from ${entry.def.name}.`,
+        category:entry.def.name,score:started?92:78,started,effort:'medium'
+      });
+    });
+
+    activeOpenLoops().forEach((loop,index)=>{
+      pushCandidate({kind:'loop',refId:loop.id,titleSnapshot:loop.text},{
+        title:loop.text,
+        reason:index===0 ? 'Oldest open loop still asking to be held.' : 'Open loop you can deliberately bring into today.',
+        category:'Open loop',score:56-Math.min(index,12),effort:'light'
+      });
+    });
+
+    timeBlockLibrary.forEach((template,index)=>{
+      pushCandidate({kind:'library_block',refId:template.id,titleSnapshot:template.title},{
+        title:template.title,
+        reason:`Saved time block · ${Number(template.durationMinutes)||60} min.`,
+        category:'Saved block',score:48-Math.min(index,8),effort:'medium'
+      });
+    });
+
+    const currentKeys=new Set(intentRecordsForDate(dateStr).map(intentSpecKey));
+    candidates.forEach(candidate=>{ candidate.alreadyChosen=currentKeys.has(candidate.key); });
+    return candidates.sort((a,b)=>
+      Number(b.alreadyChosen)-Number(a.alreadyChosen) ||
+      b.score-a.score ||
+      a.title.localeCompare(b.title)
+    );
+  }
+
+  function renderPlanTodayCandidateList(container,candidates){
+    container.innerHTML='';
+    candidates.forEach(candidate=>{
+      planTodayDraftSpecs[candidate.key]=candidate.spec;
+      const order=planTodayDraftKeys.indexOf(candidate.key);
+      const selected=order>=0;
+      const row=document.createElement('div');
+      row.className='planTodayCandidate'+(selected?' selected':'');
+      row.dataset.planKey=candidate.key;
+
+      const copy=document.createElement('div');
+      const title=document.createElement('div');
+      title.className='planCandidateTitle';
+      title.textContent=candidate.title;
+      const meta=document.createElement('div');
+      meta.className='planCandidateMeta';
+      meta.textContent=`${candidate.category} · ${candidate.reason}`;
+      copy.append(title,meta);
+
+      const pick=document.createElement('button');
+      pick.type='button';
+      pick.className='planCandidatePick';
+      pick.textContent=selected ? `Choice ${order+1}` : 'Choose';
+      pick.addEventListener('click',()=>togglePlanTodayDraft(candidate.key));
+
+      row.append(copy,pick);
+      container.appendChild(row);
+    });
+
+    if(!candidates.length){
+      const empty=document.createElement('div');
+      empty.className='empty';
+      empty.textContent='Nothing else is asking to be planned.';
+      container.appendChild(empty);
+    }
+  }
+
+  function renderPlanToday(){
+    const dateStr=iso(new Date());
+    const pool=planTodayCandidatePool(dateStr);
+    pool.forEach(candidate=>{planTodayDraftSpecs[candidate.key]=candidate.spec;});
+
+    const summary=$('planTodaySummary');
+    summary.innerHTML='';
+    planTodaySummaryCards(dateStr).forEach(card=>{
+      const el=document.createElement('div');
+      el.className='planSummaryCard';
+      const label=document.createElement('div');
+      label.className='planSummaryLabel';
+      label.textContent=card.label;
+      const value=document.createElement('div');
+      value.className='planSummaryValue';
+      value.textContent=card.value;
+      el.append(label,value);
+      summary.appendChild(el);
+    });
+
+    const selectedTitles=planTodayDraftKeys.map(key=>pool.find(item=>item.key===key)?.title || planTodayDraftSpecs[key]?.titleSnapshot).filter(Boolean);
+    $('planTodaySelectionText').textContent=selectedTitles.length
+      ? selectedTitles.map((title,index)=>`${index+1}. ${title}`).join(' · ')
+      : 'Nothing chosen yet. A clear day is allowed.';
+
+    const suggested=[];
+    const more=[];
+    pool.forEach(candidate=>{
+      if(suggested.length<6 || planTodayDraftKeys.includes(candidate.key)) suggested.push(candidate);
+      else more.push(candidate);
+    });
+    const suggestedKeys=new Set(suggested.map(item=>item.key));
+    planTodayDraftKeys.forEach(key=>{
+      const candidate=pool.find(item=>item.key===key);
+      if(candidate && !suggestedKeys.has(key)) suggested.unshift(candidate);
+    });
+
+    renderPlanTodayCandidateList($('planTodaySuggested'),suggested);
+    renderPlanTodayCandidateList($('planTodayMoreList'),more);
+    $('planTodayMore').classList.toggle('show',planTodayShowAll);
+    $('planTodayMoreToggle').textContent=planTodayShowAll ? '− Show fewer choices' : '+ Choose something else';
+    $('savePlanTodayBtn').textContent=planTodayDraftKeys.length ? `Save ${planTodayDraftKeys.length} choice${planTodayDraftKeys.length===1?'':'s'}` : 'Save a clear day';
+
+    window.__LOOCHORI_PLAN_TODAY__={
+      open:$('planTodayModal').classList.contains('open'),
+      selected:[...planTodayDraftKeys],
+      candidates:pool.map(item=>({key:item.key,title:item.title,category:item.category,score:item.score}))
+    };
+  }
+
+  function openPlanToday(){
+    const dateStr=iso(new Date());
+    const current=intentRecordsForDate(dateStr);
+    planTodayInitialManagedKeys=current.slice(0,3).map(intentSpecKey);
+    planTodayDraftKeys=[...planTodayInitialManagedKeys];
+    planTodayDraftSpecs={};
+    current.forEach(record=>{
+      const spec=plannerIntentSpec(record);
+      if(spec) planTodayDraftSpecs[intentSpecKey(spec)]=spec;
+    });
+    planTodayShowAll=false;
+    $('planTodayNotice').textContent='';
+    $('planTodayModal').classList.add('open');
+    renderPlanToday();
+  }
+
+  function closePlanToday(){
+    $('planTodayModal').classList.remove('open');
+    window.__LOOCHORI_PLAN_TODAY__={...(window.__LOOCHORI_PLAN_TODAY__||{}),open:false};
+  }
+
+  function togglePlanTodayDraft(key){
+    const existing=planTodayDraftKeys.indexOf(key);
+    if(existing>=0){
+      planTodayDraftKeys.splice(existing,1);
+      $('planTodayNotice').textContent='';
+    }else if(planTodayDraftKeys.length>=3){
+      $('planTodayNotice').textContent='Keep the focus small: remove one choice before adding another.';
+      return;
+    }else{
+      planTodayDraftKeys.push(key);
+      $('planTodayNotice').textContent='';
+    }
+    renderPlanToday();
+  }
+
+  function savePlanToday(){
+    const dateStr=iso(new Date());
+    const selectedKeys=new Set(planTodayDraftKeys);
+
+    // The planner owns the three focus slots it opened with. Deselecting one
+    // removes it from Today, while any extra Today choices made elsewhere stay intact.
+    planTodayInitialManagedKeys.forEach(key=>{
+      if(selectedKeys.has(key)) return;
+      const record=intentRecordsForDate(dateStr).find(item=>intentSpecKey(item)===key);
+      if(record) removeIntent(dateStr,record.id,{refresh:false});
+    });
+
+    const selectedRecords=[];
+    planTodayDraftKeys.forEach(key=>{
+      let record=intentRecordsForDate(dateStr).find(item=>intentSpecKey(item)===key);
+      if(!record){
+        const spec=planTodayDraftSpecs[key];
+        if(spec) record=addIntent(dateStr,spec);
+      }
+      if(record){
+        record.laterUntil=null;
+        selectedRecords.push(record);
+      }
+    });
+
+    const selectedIds=new Set(selectedRecords.map(record=>record.id));
+    const rest=intentRecordsForDate(dateStr).filter(record=>!selectedIds.has(record.id));
+    if(selectedRecords.length || rest.length) todayIntent[dateStr]=[...selectedRecords,...rest];
+    else delete todayIntent[dateStr];
+    saveTodayIntent();
+    closePlanToday();
+    refreshViews('intent');
+  }
+
   function buildIntentCandidates(dateStr){
     return intentRecordsForDate(dateStr)
       .filter(record=>!intentIsSnoozed(record))
-      .map(record=>{
+      .map((record,intentOrder)=>{
         const resolved=resolveIntentRecord(record,dateStr);
         if(!resolved) return null;
         return {
@@ -5061,6 +5433,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
             : 'You chose this for today.',
           baseScore:64,
           intent:true,
+          intentOrder,
           started:Boolean(resolved.started),
           effort:resolved.effort || 'medium',
           actionLabel:resolved.actionLabel || 'Done',
@@ -5084,7 +5457,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     let score=Number(candidate.baseScore)||0;
     if(candidate.started) score+=18;
     if(candidate.hard) score+=20;
-    if(candidate.intent) score+=30;
+    if(candidate.intent) score+=30+Math.max(0,6-(Number(candidate.intentOrder)||0)*2);
 
     if(context.lowEnergy && !candidate.started){
       if(candidate.effort==='high') score-=24;
@@ -5558,7 +5931,8 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
         title:candidate.title,
         reason:candidate.reason,
         score:candidate.adaptiveScore,
-        intent:Boolean(candidate.intent)
+        intent:Boolean(candidate.intent),
+        intentOrder:candidate.intent ? Number(candidate.intentOrder)||0 : null
       }))
     };
   }
@@ -6812,7 +7186,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       format:'loochori-backup',
       schemaVersion:CURRENT_BACKUP_SCHEMA,
       storageSchemaVersion:CURRENT_STORAGE_SCHEMA,
-      appVersion:'0.18.1',
+      appVersion:'0.18.2',
       exportedAt:new Date().toISOString(),
       data
     };
@@ -6948,7 +7322,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     }
     triggerJsonDownload({
       format:'loochori-recovery',
-      appVersion:'0.18.1',
+      appVersion:'0.18.2',
       exportedAt:new Date().toISOString(),
       entries:recovery
     },`loochori-recovery-${iso(new Date())}.json`);
@@ -7335,9 +7709,14 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
         nope:[{id:'intent_x',kind:'mystery'}]
       }));
       check('explicit Today intent outranks the same optional work',()=>
-        adaptiveScoreCandidate({baseScore:64,intent:true,effort:'medium'},{lowEnergy:false}) >
+        adaptiveScoreCandidate({baseScore:64,intent:true,intentOrder:0,effort:'medium'},{lowEnergy:false}) >
         adaptiveScoreCandidate({baseScore:64,effort:'medium'},{lowEnergy:false})
       );
+      check('Plan Today preserves human ordering inside the intent tier',()=>
+        adaptiveScoreCandidate({baseScore:64,intent:true,intentOrder:0,effort:'medium'},{lowEnergy:false}) >
+        adaptiveScoreCandidate({baseScore:64,intent:true,intentOrder:2,effort:'medium'},{lowEnergy:false})
+      );
+      check('saved block can be a Today intent',()=>intentSpecKey({kind:'library_block',refId:'demo'})==='library_block:demo');
     });
 
     latestLogicReport={
@@ -8118,6 +8497,12 @@ document.querySelectorAll('[data-jump]').forEach(btn=>{
   $('timeBlockModal').addEventListener('click',e=>{ if(e.target===$('timeBlockModal')) closeTimeBlockModal(); });
   $('saveTimeBlockBtn').addEventListener('click',saveTimeBlockFromModal);
   $('deleteTimeBlockBtn').addEventListener('click',deleteEditingTimeBlock);
+
+  $('openPlanTodayBtn').addEventListener('click',openPlanToday);
+  $('closePlanTodayBtn').addEventListener('click',closePlanToday);
+  $('planTodayModal').addEventListener('click',e=>{ if(e.target===$('planTodayModal')) closePlanToday(); });
+  $('planTodayMoreToggle').addEventListener('click',()=>{ planTodayShowAll=!planTodayShowAll; renderPlanToday(); });
+  $('savePlanTodayBtn').addEventListener('click',savePlanToday);
 
   $('captureNowBtn').addEventListener('click',()=>openCaptureModal(true));
   $('reviewLoopsBtn').addEventListener('click',()=>openCaptureModal(false));

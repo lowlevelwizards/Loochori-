@@ -1,0 +1,85 @@
+name: Apply v0.20 Pocket Loochori
+
+on:
+  push:
+    branches: [feature/pocket-loochori-v0.20.0]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/pocket-loochori-v0.20.0
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Apply Pocket Loochori patch
+        run: python tools/apply_v020.py
+
+      - name: Validate app assets
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html=Path('index.html').read_text()
+          scripts=re.findall(r'<script>(.*?)</script>',html,flags=re.S)
+          if not scripts:
+            raise SystemExit('No inline JavaScript found')
+          Path('/tmp/loochori-inline.js').write_text('\n'.join(scripts))
+          PY
+          node --check /tmp/loochori-inline.js
+          node --check sw.js
+          node --check tests/boot-smoke.mjs
+          python -m json.tool manifest.webmanifest >/dev/null
+          test -s icons/icon-192.png
+          test -s icons/icon-512.png
+          test -s icons/apple-touch-icon.png
+          git diff --check
+
+      - name: Install Chromium test runtime
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Start local server
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/loochori-http.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/index.html >/dev/null; then
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat /tmp/loochori-http.log
+          exit 1
+
+      - name: Run browser contract
+        env:
+          LOOCHORI_TEST_URL: http://127.0.0.1:4173/index.html
+        run: node tests/boot-smoke.mjs
+
+      - name: Commit implementation
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -rf node_modules package-lock.json package.json
+          rm -f tools/apply_v020.py .github/workflows/apply-v020.yml
+          git add -A
+          git commit -m "v0.20.0 Pocket Loochori"
+          git push origin HEAD:feature/pocket-loochori-v0.20.0

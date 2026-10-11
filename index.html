@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Core Boot Repair v0.17.4</title>
+<title>Loochori — Release Gate v0.17.5</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -1181,7 +1181,7 @@
   <div class="topbar">
     <div class="brand">Loochori</div>
     <div class="topbarRight">
-      <div class="version">Core Boot Repair v0.17.4</div>
+      <div class="version">Release Gate v0.17.5</div>
       <button class="settingsBtn" id="openSettingsBtn">Settings</button>
     </div>
   </div>
@@ -2053,6 +2053,54 @@
   </div>
 </div>
 
+<script>
+/* v0.17.5 — boot contract watchdog. Kept outside the main app script so it can
+   report even when the application bundle itself fails to parse or initialize. */
+window.__LOOCHORI_READY__ = false;
+window.__LOOCHORI_BOOT_ERROR__ = null;
+window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
+
+(()=>{
+  const bootMessage='Loochori couldn’t finish starting. Don’t clear site data — your local records may still be recoverable.';
+
+  function showBootFailure(reason){
+    if(window.__LOOCHORI_READY__) return;
+    window.__LOOCHORI_BOOT_ERROR__=String(reason?.message || reason || 'startup timeout');
+
+    let box=document.getElementById('loochoriBootFailure');
+    if(!box){
+      box=document.createElement('div');
+      box.id='loochoriBootFailure';
+      box.setAttribute('role','alert');
+      box.style.cssText=[
+        'position:fixed','left:14px','right:14px','top:14px','z-index:9999',
+        'background:#2a2020','color:#fff1f1','border:1px solid #6f4141',
+        'border-radius:16px','padding:14px 16px',
+        'font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif',
+        'font-size:14px','line-height:1.4','box-shadow:0 14px 36px rgba(0,0,0,.35)'
+      ].join(';');
+      document.body.appendChild(box);
+    }
+    box.textContent=bootMessage;
+  }
+
+  window.__LOOCHORI_SHOW_BOOT_FAILURE__=showBootFailure;
+  window.addEventListener('error',event=>{
+    if(!window.__LOOCHORI_READY__){
+      showBootFailure(event.error || event.message || 'startup error');
+    }
+  });
+  window.addEventListener('unhandledrejection',event=>{
+    if(!window.__LOOCHORI_READY__){
+      showBootFailure(event.reason || 'unhandled rejection');
+    }
+  });
+
+  window.__LOOCHORI_BOOT_WATCHDOG__=setTimeout(()=>{
+    if(!window.__LOOCHORI_READY__) showBootFailure('startup timeout');
+  },3500);
+})();
+</script>
 <script>
 (() => {
   const DAY_START = 5 * 60;
@@ -5813,7 +5861,7 @@
       format:'loochori-backup',
       schemaVersion:CURRENT_BACKUP_SCHEMA,
       storageSchemaVersion:CURRENT_STORAGE_SCHEMA,
-      appVersion:'0.17.4',
+      appVersion:'0.17.5',
       exportedAt:new Date().toISOString(),
       data
     };
@@ -5949,7 +5997,7 @@
     }
     triggerJsonDownload({
       format:'loochori-recovery',
-      appVersion:'0.17.4',
+      appVersion:'0.17.5',
       exportedAt:new Date().toISOString(),
       entries:recovery
     },`loochori-recovery-${iso(new Date())}.json`);
@@ -7095,6 +7143,13 @@ document.querySelectorAll('[data-jump]').forEach(btn=>{
 
   renderHouseholdLabels();
   renderAll();
+
+  // The boot contract is fulfilled only after every first-render view succeeds.
+  window.__LOOCHORI_READY__=true;
+  window.__LOOCHORI_BOOT_ERROR__=null;
+  if(window.__LOOCHORI_BOOT_WATCHDOG__) clearTimeout(window.__LOOCHORI_BOOT_WATCHDOG__);
+  document.getElementById('loochoriBootFailure')?.remove();
+  window.dispatchEvent(new CustomEvent('loochori:ready'));
 
   // Diagnostics are observers, never part of the boot path.
   setTimeout(runLogicDiagnosticsSafely,0);

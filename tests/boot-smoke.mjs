@@ -122,7 +122,7 @@ try {
   assert((await page.locator('#careGroups .careRow').count()) >= 7, 'daily care rows did not render');
   assert.match(await text('#careProgress'), /^1\s*\/\s*10$/, 'seeded care state did not survive boot');
 
-  const bodyText = await page.locator('body').innerText();
+  const bodyText = await page.locator('body').textContent();
   assert(bodyText.includes('Smoke Pasta'), 'seeded meal did not render');
   assert(bodyText.includes('Smoke Reset'), 'seeded routine bundle did not render');
   assert(bodyText.includes('Smoke checklist one'), 'seeded routine checklist did not render');
@@ -140,6 +140,27 @@ try {
     adaptiveSnapshot.ranked.some(item => item.title === 'Smoke checklist one'),
     'seeded routine checklist did not enter adaptive Today candidates'
   );
+
+  assert.equal(await page.locator('.topbar .version:visible').count(), 0, 'release badge should be tucked into Settings');
+  assert.equal(await page.locator('.jumpBarWrap:visible').count(), 0, 'sticky jump bar should be retired on Cozy Home');
+  assert.equal(await page.locator('#nowCare:visible').count(), 0, 'duplicated care-around-now panel should be hidden');
+  assert.equal(await page.locator('#nowRhythmGroup:visible').count(), 0, 'duplicated rhythm panel should be hidden from Now');
+  assert((await text('#nextFixedTitle')).length > 0, 'Cozy Home did not render the next fixed thing');
+  for (const id of ['careArea','mealsArea','houseArea','scheduleArea','checkinArea']) {
+    assert.equal(await page.locator(`#${id}`).evaluate(el => el.open), false, `${id} should start collapsed`);
+  }
+  await page.locator('#careArea > summary').click();
+  assert.equal(await page.locator('#careArea').evaluate(el => el.open), true, 'care summary did not expand');
+  await page.locator('#mealsArea > summary').click();
+  await page.waitForFunction(() => !document.getElementById('careArea')?.open && document.getElementById('mealsArea')?.open);
+  assert.equal(await page.locator('#careArea').evaluate(el => el.open), false, 'opening meals should close care');
+  assert.equal(await page.locator('#mealsArea').evaluate(el => el.open), true, 'meals summary did not expand');
+
+  await page.locator('#openSettingsBtn').click();
+  await page.waitForFunction(() => document.getElementById('householdSettingsModal')?.classList.contains('open'));
+  assert.equal(await page.locator('#householdSettingsModal #modelDetails').count(), 1, 'Advanced & data was not moved into Settings');
+  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Cozy Home v0.19.0'), 'Settings does not expose the current release label');
+  await page.locator('#closeSettingsBtn').click();
 
   await page.locator('#openPlanTodayBtn').click();
   await page.waitForFunction(() => document.getElementById('planTodayModal')?.classList.contains('open'));
@@ -202,6 +223,8 @@ try {
   assert.equal(await page.locator('#carryoverPanel.show').count(), 1, 'yesterday carryover prompt did not render');
   assert((await text('#carryoverTitle')).includes('carried over from yesterday'), 'carryover prompt copy is missing');
 
+  await page.locator('#houseArea > summary').click();
+  await page.waitForFunction(() => document.getElementById('houseArea')?.open);
   const loopToday = page.locator('button[data-intent-kind="loop"][data-intent-ref="loop_smoke"]:visible');
   assert((await loopToday.count()) >= 1, 'open-loop Today control did not render');
   await loopToday.first().click();

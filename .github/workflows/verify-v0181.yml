@@ -25,6 +25,20 @@ jobs:
         with:
           node-version: 20
 
+      - name: Fix smoke visibility selector
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tests/boot-smoke.mjs')
+          text = path.read_text()
+          old = 'button[data-intent-kind="loop"][data-intent-ref="loop_smoke"]'
+          new = 'button[data-intent-kind="loop"][data-intent-ref="loop_smoke"]:visible'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one loop Today selector, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Parse inline JavaScript
         shell: bash
         run: |

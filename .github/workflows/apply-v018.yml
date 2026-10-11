@@ -1,0 +1,52 @@
+name: Apply v0.18 Adaptive Today
+
+on:
+  push:
+    branches: [feature/adaptive-today-v0.18.0]
+    paths:
+      - tools/apply-v018.py
+      - .github/workflows/apply-v018.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/adaptive-today-v0.18.0
+
+      - name: Apply patch
+        run: python tools/apply-v018.py
+
+      - name: Validate inline JavaScript
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path('index.html').read_text()
+          scripts = re.findall(r'<script>(.*?)</script>', html, flags=re.S)
+          if not scripts:
+              raise SystemExit('No inline scripts found')
+          Path('/tmp/loochori-inline.js').write_text('\n'.join(scripts))
+          PY
+          node --check /tmp/loochori-inline.js
+
+      - name: Remove one-shot patcher
+        run: |
+          rm -f tools/apply-v018.py
+          rm -f .github/workflows/apply-v018.yml
+          rmdir tools 2>/dev/null || true
+
+      - name: Commit implementation
+        run: |
+          git config user.name "lowlevelwizards"
+          git config user.email "157194489+lowlevelwizards@users.noreply.github.com"
+          git add -A
+          git commit -m "v0.18.0 Adaptive Today"
+          git push origin HEAD:feature/adaptive-today-v0.18.0

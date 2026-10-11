@@ -1,0 +1,74 @@
+name: Loochori release gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  boot-smoke:
+    name: Boot contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Parse inline JavaScript
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          html = Path('index.html').read_text()
+          scripts = re.findall(r'<script>(.*?)</script>', html, flags=re.S)
+          if not scripts:
+              raise SystemExit('No inline JavaScript found in index.html')
+          Path('/tmp/loochori-inline.js').write_text('\n'.join(scripts))
+          PY
+          node --check /tmp/loochori-inline.js
+
+      - name: Install Chromium test runtime
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Start local Loochori server
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/loochori-http.log 2>&1 &
+          echo $! > /tmp/loochori-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/index.html >/dev/null; then
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat /tmp/loochori-http.log
+          exit 1
+
+      - name: Run browser boot contract
+        env:
+          LOOCHORI_TEST_URL: http://127.0.0.1:4173/index.html
+        run: node tests/boot-smoke.mjs
+
+      - name: Upload failure screenshot
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: loochori-boot-failure
+          path: test-artifacts/
+          if-no-files-found: ignore

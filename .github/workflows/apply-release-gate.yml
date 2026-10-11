@@ -1,0 +1,65 @@
+name: Apply release gate patch
+
+on:
+  push:
+    branches:
+      - feature/release-gate-v0.17.5
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch boot contract
+        run: python tools/apply_release_gate.py
+
+      - name: Verify release gate structure and syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          html = Path('index.html').read_text()
+          required = [
+              'Release Gate v0.17.5',
+              "appVersion:'0.17.5'",
+              'window.__LOOCHORI_READY__ = false;',
+              "window.__LOOCHORI_READY__=true;",
+              'id=\'loochoriBootFailure\'',
+              'window.__LOOCHORI_BOOT_WATCHDOG__=setTimeout',
+              'renderHouseholdLabels();\n  renderAll();',
+              'setTimeout(runLogicDiagnosticsSafely,0);'
+          ]
+          missing = [marker for marker in required if marker not in html]
+          if missing:
+              raise SystemExit('Missing release-gate markers: ' + ', '.join(missing))
+
+          if html.find('renderAll();') > html.find('window.__LOOCHORI_READY__=true;'):
+              raise SystemExit('Ready flag must be set only after renderAll()')
+
+          scripts = re.findall(r'<script>(.*?)</script>', html, flags=re.S)
+          if len(scripts) < 2:
+              raise SystemExit('Expected isolated watchdog and main application script')
+          Path('/tmp/loochori-inline.js').write_text('\n'.join(scripts))
+          PY
+          node --check /tmp/loochori-inline.js
+          node --check tests/boot-smoke.mjs
+          git diff --check
+
+      - name: Commit runtime boot contract
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'v0.17.5 add runtime boot contract'
+          git push

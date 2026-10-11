@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Logic Safety Net v0.17.2</title>
+<title>Loochori — Startup Resilience v0.17.3</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -1181,7 +1181,7 @@
   <div class="topbar">
     <div class="brand">Loochori</div>
     <div class="topbarRight">
-      <div class="version">Logic Safety Net v0.17.2</div>
+      <div class="version">Startup Resilience v0.17.3</div>
       <button class="settingsBtn" id="openSettingsBtn">Settings</button>
     </div>
   </div>
@@ -5813,7 +5813,7 @@
       format:'loochori-backup',
       schemaVersion:CURRENT_BACKUP_SCHEMA,
       storageSchemaVersion:CURRENT_STORAGE_SCHEMA,
-      appVersion:'0.17.2',
+      appVersion:'0.17.3',
       exportedAt:new Date().toISOString(),
       data
     };
@@ -5949,7 +5949,7 @@
     }
     triggerJsonDownload({
       format:'loochori-recovery',
-      appVersion:'0.17.2',
+      appVersion:'0.17.3',
       exportedAt:new Date().toISOString(),
       entries:recovery
     },`loochori-recovery-${iso(new Date())}.json`);
@@ -6303,6 +6303,30 @@
     return latestLogicReport;
   }
 
+
+  function runLogicDiagnosticsSafely(){
+    try{
+      return runLogicDiagnostics();
+    }catch(error){
+      console.error('Logic diagnostics unavailable:',error);
+      latestLogicReport={
+        unavailable:true,
+        total:0,
+        passed:0,
+        failures:[],
+        error:String(error?.message || error),
+        ranAt:new Date().toISOString()
+      };
+
+      try{
+        renderLogicDiagnostics();
+      }catch(renderError){
+        console.error('Could not render logic diagnostic status:',renderError);
+      }
+      return latestLogicReport;
+    }
+  }
+
   function renderLogicDiagnostics(){
     if(!$('logicCheckScore')) return;
 
@@ -6312,6 +6336,21 @@
       $('logicCheckNote').textContent='Deterministic checks for schedules, wake overrides, commute math, time blocks, routines, migrations and backups.';
       $('logicFailures').classList.remove('show');
       $('logicFailures').innerHTML='';
+      return;
+    }
+
+    if(latestLogicReport.unavailable){
+      $('logicCheckScore').textContent='Unavailable';
+      $('logicCheckScore').className='logicCheckScore warn';
+      $('logicCheckNote').textContent='Diagnostics could not run. Loochori is still available; the diagnostic layer is isolated from startup.';
+
+      const failures=$('logicFailures');
+      failures.innerHTML='';
+      failures.classList.add('show');
+      const row=document.createElement('div');
+      row.className='logicFailure';
+      row.textContent=`Diagnostics unavailable: ${latestLogicReport.error || 'Unknown diagnostic error'}`;
+      failures.appendChild(row);
       return;
     }
 
@@ -6506,7 +6545,7 @@
     renderMonth();
   });
 
-  $('runLogicChecksBtn').addEventListener('click',runLogicDiagnostics);
+  $('runLogicChecksBtn').addEventListener('click',runLogicDiagnosticsSafely);
   $('restorePreImportBtn').addEventListener('click',restorePreImportSnapshot);
   $('exportRecoveryBtn').addEventListener('click',exportRecoveryCopy);
 
@@ -6595,8 +6634,10 @@ document.querySelectorAll('[data-jump]').forEach(btn=>{
   }, 60000);
 
   renderHouseholdLabels();
-  runLogicDiagnostics();
   renderAll();
+
+  // Diagnostics are observers, never part of the boot path.
+  setTimeout(runLogicDiagnosticsSafely,0);
 })();
 </script>
 </body>

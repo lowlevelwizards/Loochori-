@@ -19,6 +19,8 @@ await page.addInitScript(() => {
   const pad = value => String(value).padStart(2, '0');
   const now = new Date();
   const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const yesterdayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const yesterday = `${yesterdayDate.getFullYear()}-${pad(yesterdayDate.getMonth() + 1)}-${pad(yesterdayDate.getDate())}`;
   const weekday = now.getDay();
   const workWeek = {
     0: null,
@@ -54,7 +56,16 @@ await page.addInitScript(() => {
         dinner: { plannedMealId: 'meal_smoke', eatenMealId: null, actualItems: [] }
       }
     },
-    loochori_open_loops_v1: [],
+    loochori_open_loops_v1: [
+      { id: 'loop_smoke', text: 'Smoke intentional loop', createdAt: now.toISOString(), status: 'open', completedAt: null },
+      { id: 'loop_carry', text: 'Smoke carryover loop', createdAt: yesterdayDate.toISOString(), status: 'open', completedAt: null }
+    ],
+    loochori_today_intent_v1: {
+      [yesterday]: [{
+        id: 'intent_carry', kind: 'loop', refId: 'loop_carry', titleSnapshot: 'Smoke carryover loop',
+        addedAt: yesterdayDate.toISOString(), laterUntil: null, carriedFrom: null
+      }]
+    },
     loochori_weekly_rhythm_v1: [{
       id: 'routine_smoke',
       name: 'Smoke Reset',
@@ -130,15 +141,50 @@ try {
     'seeded routine checklist did not enter adaptive Today candidates'
   );
 
+  assert.equal(await page.locator('#carryoverPanel.show').count(), 1, 'yesterday carryover prompt did not render');
+  assert((await text('#carryoverTitle')).includes('carried over from yesterday'), 'carryover prompt copy is missing');
+
+  const loopToday = page.locator('button[data-intent-kind="loop"][data-intent-ref="loop_smoke"]:visible');
+  assert((await loopToday.count()) >= 1, 'open-loop Today control did not render');
+  await loopToday.first().click();
+  await page.waitForFunction(() =>
+    Array.from(document.querySelectorAll('#todayShortlist .todayShortlistTitle')).some(node => node.textContent?.includes('Smoke intentional loop'))
+  );
+  let intentState = await page.evaluate(() => ({
+    raw: JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}'),
+    adaptive: window.__LOOCHORI_ADAPTIVE__
+  }));
+  assert(Object.values(intentState.raw).flat().some(item => item.refId === 'loop_smoke'), 'Today choice was not persisted');
+  assert(intentState.adaptive?.ranked?.some(item => item.title === 'Smoke intentional loop' && item.intent === true), 'chosen Today item did not enter adaptive ranking as explicit intent');
+
+  const shortlistRow = page.locator('#todayShortlist .todayShortlistItem').filter({ hasText: 'Smoke intentional loop' });
+  await shortlistRow.getByRole('button', { name: 'Later' }).click();
+  await page.waitForFunction(() =>
+    Array.from(document.querySelectorAll('#todayShortlist .todayShortlistMeta')).some(node => node.textContent?.includes('Later until'))
+  );
+  intentState = await page.evaluate(() => JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}'));
+  assert(Object.values(intentState).flat().some(item => item.refId === 'loop_smoke' && item.laterUntil), 'Later did not persist a snooze');
+
+  const keepCarry = page.locator('#carryoverPanel .carryoverItem').filter({ hasText: 'Smoke carryover loop' }).getByRole('button', { name: 'Keep today' });
+  await keepCarry.click();
+  await page.waitForFunction(() =>
+    Array.from(document.querySelectorAll('#todayShortlist .todayShortlistTitle')).some(node => node.textContent?.includes('Smoke carryover loop'))
+  );
+  intentState = await page.evaluate(() => JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}'));
+  const allIntent = Object.values(intentState).flat();
+  assert(allIntent.some(item => item.refId === 'loop_carry' && item.carriedFrom), 'Keep today did not preserve carryover provenance');
+
   const storesSurvived = await page.evaluate(() => ({
     meal: JSON.parse(localStorage.getItem('loochori_meal_library_v1') || '[]').some(item => item.id === 'meal_smoke'),
     routine: JSON.parse(localStorage.getItem('loochori_weekly_rhythm_v1') || '[]').some(item => item.id === 'routine_smoke'),
     block: JSON.parse(localStorage.getItem('loochori_time_blocks_v1') || '[]').some(item => item.id === 'block_smoke'),
+    intent: JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}'),
     care: JSON.parse(localStorage.getItem('loochori_daily_care_v1') || '{}')
   }));
   assert.equal(storesSurvived.meal, true, 'meal fixture disappeared from storage');
   assert.equal(storesSurvived.routine, true, 'routine fixture disappeared from storage');
   assert.equal(storesSurvived.block, true, 'time-block fixture disappeared from storage');
+  assert(Object.values(storesSurvived.intent).flat().length >= 2, 'Today intent fixture/actions disappeared from storage');
   assert(Object.values(storesSurvived.care).some(day => day?.brush_am?.[0] === true), 'care fixture disappeared from storage');
 
   await page.locator('#openSettingsBtn').click();

@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Adaptive Today v0.18.0</title>
+<title>Loochori — Today Shortlist v0.18.1</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -1192,6 +1192,37 @@
     border-radius:9px;padding:6px 7px;font-size:9px;font-weight:780;cursor:pointer;white-space:nowrap
   }
 
+
+  /* v0.18.1 — explicit Today intent / shortlist */
+  .todayShortlistWrap{margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.06)}
+  .todayShortlistHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+  .todayShortlistLabel{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:#c8ddd0;font-weight:840}
+  .todayShortlistCount{font-size:9px;color:var(--muted)}
+  .todayShortlist{display:grid;gap:6px}
+  .todayShortlistItem,.carryoverItem{
+    display:grid;grid-template-columns:1fr auto;gap:9px;align-items:center;
+    background:rgba(255,255,255,.025);border-radius:11px;padding:8px 9px
+  }
+  .todayShortlistTitle{font-size:11px;font-weight:780;line-height:1.3}
+  .todayShortlistMeta{font-size:9px;color:var(--muted);line-height:1.35;margin-top:2px}
+  .todayShortlistActions,.carryoverActions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+  .todayIntentBtn,.shortlistAction{
+    border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:9px;padding:6px 7px;font-size:9px;font-weight:780;cursor:pointer;white-space:nowrap
+  }
+  .todayIntentBtn.selected{color:#cfe7d5;border-color:rgba(217,240,223,.24);background:rgba(217,240,223,.06)}
+  .shortlistAction.done{color:#cfe7d5}
+  .shortlistAction.later{color:#e4c998}
+  .carryoverPanel{
+    display:none;margin-bottom:8px;padding:9px;background:rgba(203,219,248,.045);
+    border:1px solid rgba(203,219,248,.10);border-radius:12px
+  }
+  .carryoverPanel.show{display:block}
+  .carryoverTitle{font-size:10px;font-weight:800;color:#d6e0f5;margin-bottom:6px}
+  .carryoverList{display:grid;gap:6px}
+  .todayShortlistMore{font-size:9px;color:var(--muted);padding:3px 2px}
+  .bundleItemActions{display:flex;gap:5px;align-items:center}
+
   @media (min-width:680px){
     .historyStats{grid-template-columns:repeat(4,minmax(0,1fr))}
     .monthDay{min-height:92px;padding:8px}
@@ -1224,7 +1255,7 @@
   <div class="topbar">
     <div class="brand">Loochori</div>
     <div class="topbarRight">
-      <div class="version">Adaptive Today v0.18.0</div>
+      <div class="version">Today Shortlist v0.18.1</div>
       <button class="settingsBtn" id="openSettingsBtn">Settings</button>
     </div>
   </div>
@@ -1271,6 +1302,18 @@
           <div class="adaptiveKind" id="adaptivePrimaryKind">Open</div>
         </div>
         <div class="adaptiveActions" id="adaptivePrimaryActions"></div>
+        <div class="todayShortlistWrap" id="todayShortlistWrap" style="display:none">
+          <div class="todayShortlistHead">
+            <div class="todayShortlistLabel">Today’s shortlist</div>
+            <div class="todayShortlistCount" id="todayShortlistCount"></div>
+          </div>
+          <div class="carryoverPanel" id="carryoverPanel">
+            <div class="carryoverTitle" id="carryoverTitle"></div>
+            <div class="carryoverList" id="carryoverList"></div>
+          </div>
+          <div class="todayShortlist" id="todayShortlist"></div>
+          <div class="todayShortlistMore" id="todayShortlistMore"></div>
+        </div>
         <div class="adaptiveUpNextWrap" id="adaptiveUpNextWrap">
           <div class="adaptiveUpNextLabel">Up next</div>
           <div class="adaptiveUpNext" id="adaptiveUpNext"></div>
@@ -2172,6 +2215,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   const MEAL_LIBRARY_KEY = 'loochori_meal_library_v1';
   const MEAL_HISTORY_KEY = 'loochori_meal_history_v1';
   const OPEN_LOOP_KEY = 'loochori_open_loops_v1';
+  const TODAY_INTENT_KEY = 'loochori_today_intent_v1';
   const RHYTHM_KEY = 'loochori_weekly_rhythm_v1';
   const RHYTHM_STATE_KEY = 'loochori_weekly_rhythm_state_v1';
   const TIME_BLOCK_KEY = 'loochori_time_blocks_v1';
@@ -2328,6 +2372,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     MEAL_LIBRARY_KEY,
     MEAL_HISTORY_KEY,
     OPEN_LOOP_KEY,
+    TODAY_INTENT_KEY,
     RHYTHM_KEY,
     RHYTHM_STATE_KEY,
     TIME_BLOCK_KEY,
@@ -2391,6 +2436,15 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     if(key===OPEN_LOOP_KEY){
       return Array.isArray(value) && value.every(x=>
         isRecord(x) && typeof x.id==='string' && typeof x.text==='string'
+      );
+    }
+
+    if(key===TODAY_INTENT_KEY){
+      const allowedKinds=new Set(['loop','time_block','routine','bundle_item','deferred_bundle_item']);
+      return isRecord(value) && Object.entries(value).every(([date,items])=>
+        looksLikeDate(date) && Array.isArray(items) && items.every(item=>
+          isRecord(item) && typeof item.id==='string' && allowedKinds.has(item.kind)
+        )
       );
     }
 
@@ -2681,6 +2735,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   let mealHistory = loadMealHistory();
   let mealPickerContext = {mode:'library', slot:null, field:null};
   let openLoops = loadOpenLoops();
+  let todayIntent = loadTodayIntent();
   let rhythmDefs = loadRhythmDefs();
   let rhythmState = loadRhythmState();
   let timeBlocks = loadTimeBlocks();
@@ -2727,10 +2782,179 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   }
   function saveOpenLoops(){ localStorage.setItem(OPEN_LOOP_KEY, JSON.stringify(openLoops)); }
 
+  function loadTodayIntent(){
+    const value=readStore(TODAY_INTENT_KEY,{});
+    return isRecord(value) ? value : {};
+  }
+  function saveTodayIntent(){ localStorage.setItem(TODAY_INTENT_KEY,JSON.stringify(todayIntent)); }
+
+  function intentSpecKey(spec){
+    if(!spec) return '';
+    if(spec.kind==='loop' || spec.kind==='time_block') return `${spec.kind}:${spec.refId || ''}`;
+    if(spec.kind==='routine') return `routine:${spec.defId || ''}:${spec.originDate || ''}`;
+    if(spec.kind==='bundle_item') return `bundle_item:${spec.defId || ''}:${spec.itemId || ''}:${spec.originDate || ''}`;
+    if(spec.kind==='deferred_bundle_item') return `deferred_bundle_item:${spec.defId || ''}:${spec.itemId || ''}:${spec.originDate || ''}`;
+    return `${spec.kind || 'intent'}:${spec.refId || spec.id || ''}`;
+  }
+
+  function intentRecordsForDate(dateStr){
+    const items=todayIntent[dateStr];
+    return Array.isArray(items) ? items : [];
+  }
+
+  function intentSelected(dateStr,spec){
+    const key=intentSpecKey(spec);
+    return intentRecordsForDate(dateStr).some(item=>intentSpecKey(item)===key);
+  }
+
+  function addIntent(dateStr,spec,{carriedFrom=null}={}){
+    if(!looksLikeDate(dateStr) || !spec || !spec.kind) return null;
+    const current=intentRecordsForDate(dateStr).slice();
+    const key=intentSpecKey(spec);
+    const existing=current.find(item=>intentSpecKey(item)===key);
+    if(existing){
+      existing.laterUntil=null;
+      existing.carriedFrom=carriedFrom || existing.carriedFrom || null;
+      todayIntent[dateStr]=current;
+      saveTodayIntent();
+      return existing;
+    }
+    const item={
+      id:'intent_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),
+      ...spec,
+      titleSnapshot:spec.titleSnapshot || spec.title || '',
+      addedAt:new Date().toISOString(),
+      laterUntil:null,
+      carriedFrom
+    };
+    todayIntent[dateStr]=[...current,item];
+    saveTodayIntent();
+    return item;
+  }
+
+  function removeIntent(dateStr,id,{refresh=true}={}){
+    const current=intentRecordsForDate(dateStr);
+    const next=current.filter(item=>item.id!==id);
+    if(next.length) todayIntent[dateStr]=next;
+    else delete todayIntent[dateStr];
+    saveTodayIntent();
+    if(refresh) refreshViews('intent');
+  }
+
+  function toggleIntent(dateStr,spec){
+    const current=intentRecordsForDate(dateStr);
+    const key=intentSpecKey(spec);
+    const existing=current.find(item=>intentSpecKey(item)===key);
+    if(existing) removeIntent(dateStr,existing.id,{refresh:false});
+    else addIntent(dateStr,spec);
+    refreshViews('intent');
+  }
+
+  function snoozeIntent(dateStr,id,minutes=90){
+    const item=intentRecordsForDate(dateStr).find(x=>x.id===id);
+    if(!item) return;
+    item.laterUntil=new Date(Date.now()+minutes*60000).toISOString();
+    saveTodayIntent();
+    refreshViews('intent');
+  }
+
+  function intentIsSnoozed(item){
+    if(!item?.laterUntil) return false;
+    return new Date(item.laterUntil).getTime()>Date.now();
+  }
+
+  function todayIntentButton(spec,{dateStr=iso(new Date()),className='todayIntentBtn'}={}){
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className=className+(intentSelected(dateStr,spec)?' selected':'');
+    btn.textContent=intentSelected(dateStr,spec)?'In Today':'Today';
+    btn.dataset.intentKind=spec.kind;
+    const ref=spec.refId || spec.itemId || spec.defId || '';
+    if(ref) btn.dataset.intentRef=ref;
+    btn.addEventListener('click',()=>toggleIntent(dateStr,spec));
+    return btn;
+  }
+
   function activeOpenLoops(){
     return openLoops
       .filter(item=>item.status!=='done')
       .sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+  }
+
+  function resolveIntentRecord(record,dateStr){
+    if(!record) return null;
+
+    if(record.kind==='loop'){
+      const loop=openLoops.find(x=>x.id===record.refId && x.status!=='done');
+      if(!loop) return null;
+      return {
+        title:loop.text,kind:'loop',effort:'medium',
+        actionLabel:'Done',
+        action:()=>completeLoop(loop.id)
+      };
+    }
+
+    if(record.kind==='time_block'){
+      const block=timeBlocks.find(x=>x.id===record.refId);
+      if(!block || block.date!==dateStr || ['completed','canceled'].includes(timeBlockStatus(block))) return null;
+      const status=timeBlockStatus(block);
+      return {
+        title:block.title,kind:'commitment',effort:'fixed',started:status==='active',
+        actionLabel:status==='active'?'End now':'View',
+        action:()=>status==='active'?endTimeBlockNow(block.id):openTimeBlockModal(block.id)
+      };
+    }
+
+    if(record.kind==='routine'){
+      const def=rhythmDefs.find(x=>x.id===record.defId);
+      if(!def) return null;
+      const stateDate=record.originDate || dateStr;
+      const state=rhythmOccurrenceState(def.id,stateDate);
+      if(state.status==='done' || state.status==='skipped') return null;
+      return {
+        title:def.name,kind:'routine',effort:'medium',
+        actionLabel:'Done',
+        action:()=>markRoutineDone(def,stateDate,record.source || 'scheduled')
+      };
+    }
+
+    if(record.kind==='bundle_item' || record.kind==='deferred_bundle_item'){
+      const def=rhythmDefs.find(x=>x.id===record.defId);
+      const child=def ? routineItems(def).find(x=>x.id===record.itemId) : null;
+      if(!def || !child) return null;
+      const stateDate=record.originDate || dateStr;
+      const state=bundleItemState(def.id,stateDate,child.id);
+      if(state.status==='done') return null;
+      return {
+        title:child.text,kind:'routine',effort:'medium',started:state.status==='in_progress' || state.deferredProgress==='in_progress',
+        actionLabel:'Done',
+        action:()=>{
+          setBundleItemState(def,stateDate,child.id,'done',{
+            completedAt:new Date().toISOString(),
+            completedOn:dateStr,
+            deferTo:null,
+            deferredProgress:null
+          });
+          refreshViews('rhythm');
+        }
+      };
+    }
+
+    return null;
+  }
+
+  function intentSpecFromRecord(record){
+    return {
+      kind:record.kind,refId:record.refId || null,defId:record.defId || null,itemId:record.itemId || null,
+      originDate:record.originDate || null,source:record.source || null,titleSnapshot:record.titleSnapshot || ''
+    };
+  }
+
+  function completeIntentRecord(dateStr,record){
+    const resolved=resolveIntentRecord(record,dateStr);
+    removeIntent(dateStr,record.id,{refresh:false});
+    if(resolved?.action) resolved.action();
+    else refreshViews('intent');
   }
 
   function loopCreatedLabel(item){
@@ -3891,6 +4115,12 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       edit.addEventListener('click',()=>openTimeBlockModal(item.id));
       actions.appendChild(edit);
 
+      if(isToday && (status==='planned' || status==='active')){
+        actions.appendChild(todayIntentButton({
+          kind:'time_block',refId:item.id,titleSnapshot:item.title
+        },{className:'timeBlockBtn todayIntentBtn'}));
+      }
+
       if(status==='planned'){
         const cancel=document.createElement('button');
         cancel.className='timeBlockBtn cancelish';
@@ -4387,7 +4617,16 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       move.textContent=state.status==='deferred' ? 'Move again' : 'Move';
       move.addEventListener('click',()=>openBundleItemMoveModal(def.id,dateStr,item.id));
 
-      row.append(stateBtn,copy,move);
+      const itemActions=document.createElement('div');
+      itemActions.className='bundleItemActions';
+      if(dateStr===iso(new Date()) && state.status!=='done'){
+        itemActions.appendChild(todayIntentButton({
+          kind:'bundle_item',defId:def.id,itemId:item.id,originDate:dateStr,titleSnapshot:item.text
+        }));
+      }
+      itemActions.appendChild(move);
+
+      row.append(stateBtn,copy,itemActions);
       list.appendChild(row);
     });
 
@@ -4434,6 +4673,12 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     move.textContent='Move again';
     move.addEventListener('click',()=>openBundleItemMoveModal(entry.def.id,entry.originDate,entry.item.id));
 
+    if(entry.targetDate===iso(new Date())){
+      actions.appendChild(todayIntentButton({
+        kind:'deferred_bundle_item',defId:entry.def.id,itemId:entry.item.id,
+        originDate:entry.originDate,titleSnapshot:entry.item.text
+      }));
+    }
     actions.append(progress,done,move);
     row.appendChild(actions);
     return row;
@@ -4528,6 +4773,11 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
         skip.textContent='Not this week';
         skip.addEventListener('click',()=>skipRoutine(item.def,dateStr,item.source));
 
+        if(dateStr===iso(new Date())){
+          actions.appendChild(todayIntentButton({
+            kind:'routine',defId:item.def.id,originDate:dateStr,source:item.source,titleSnapshot:item.def.name
+          },{className:'rhythmBtn todayIntentBtn'}));
+        }
         actions.append(done,defer,skip);
         row.appendChild(actions);
       }
@@ -4563,7 +4813,8 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       label.className='loopPreviewText';
       label.textContent=item.text;
 
-      row.append(done,label);
+      const today=todayIntentButton({kind:'loop',refId:item.id,titleSnapshot:item.text});
+      row.append(done,label,today);
       box.appendChild(row);
     });
 
@@ -4595,7 +4846,8 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       label.className='houseLoopText';
       label.textContent=item.text;
 
-      row.append(done,label);
+      const today=todayIntentButton({kind:'loop',refId:item.id,titleSnapshot:item.text});
+      row.append(done,label,today);
       box.appendChild(row);
     });
   }
@@ -4635,7 +4887,8 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       meta.textContent=loopCreatedLabel(item);
 
       content.append(label,meta);
-      row.append(done,content);
+      const today=todayIntentButton({kind:'loop',refId:item.id,titleSnapshot:item.text});
+      row.append(done,content,today);
       box.appendChild(row);
     });
   }
@@ -4674,6 +4927,151 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   }
 
 
+  function shortlistMeta(record,resolved){
+    if(intentIsSnoozed(record)){
+      return `Later until ${new Date(record.laterUntil).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}`;
+    }
+    if(record.carriedFrom) return `Kept from ${parseISO(record.carriedFrom).toLocaleDateString(undefined,{weekday:'short'})}`;
+    return resolved.kind==='commitment' ? 'Chosen for today · scheduled' : 'Chosen for today';
+  }
+
+  function renderShortlistAction(container,label,handler,className=''){
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className=`shortlistAction ${className}`.trim();
+    btn.textContent=label;
+    btn.addEventListener('click',handler);
+    container.appendChild(btn);
+  }
+
+  function carryoverRecordsFor(dateStr){
+    const previous=iso(addDays(parseISO(dateStr),-1));
+    return intentRecordsForDate(previous)
+      .filter(record=>record.kind!=='time_block')
+      .map(record=>({record,resolved:resolveIntentRecord(record,previous),previous}))
+      .filter(entry=>entry.resolved);
+  }
+
+  function renderTodayShortlist(){
+    const wrap=$('todayShortlistWrap');
+    if(!wrap) return [];
+    const dateStr=iso(new Date());
+    let current=intentRecordsForDate(dateStr).slice();
+    const valid=[];
+    let changed=false;
+
+    current.forEach(record=>{
+      const resolved=resolveIntentRecord(record,dateStr);
+      if(resolved) valid.push({record,resolved});
+      else changed=true;
+    });
+    if(changed){
+      if(valid.length) todayIntent[dateStr]=valid.map(entry=>entry.record);
+      else delete todayIntent[dateStr];
+      saveTodayIntent();
+      current=valid.map(entry=>entry.record);
+    }
+
+    const carry=carryoverRecordsFor(dateStr);
+    wrap.style.display=(valid.length || carry.length) ? 'block' : 'none';
+    $('todayShortlistCount').textContent=valid.length ? `${valid.length} chosen` : '';
+
+    const list=$('todayShortlist');
+    list.innerHTML='';
+    valid.slice(0,3).forEach(({record,resolved})=>{
+      const row=document.createElement('div');
+      row.className='todayShortlistItem';
+      row.dataset.intentId=record.id;
+
+      const copy=document.createElement('div');
+      const title=document.createElement('div');
+      title.className='todayShortlistTitle';
+      title.textContent=resolved.title;
+      const meta=document.createElement('div');
+      meta.className='todayShortlistMeta';
+      meta.textContent=shortlistMeta(record,resolved);
+      copy.append(title,meta);
+
+      const actions=document.createElement('div');
+      actions.className='todayShortlistActions';
+      if(resolved.actionLabel==='Done' || resolved.actionLabel==='End now'){
+        renderShortlistAction(actions,resolved.actionLabel,()=>completeIntentRecord(dateStr,record),'done');
+      }else if(resolved.action){
+        renderShortlistAction(actions,resolved.actionLabel || 'Open',resolved.action,'done');
+      }
+      renderShortlistAction(actions,'Later',()=>snoozeIntent(dateStr,record.id,90),'later');
+      renderShortlistAction(actions,'Remove',()=>removeIntent(dateStr,record.id));
+      row.append(copy,actions);
+      list.appendChild(row);
+    });
+    $('todayShortlistMore').textContent=valid.length>3 ? `+ ${valid.length-3} more chosen for today` : '';
+
+    const carryPanel=$('carryoverPanel');
+    const carryList=$('carryoverList');
+    carryList.innerHTML='';
+    carryPanel.classList.toggle('show',Boolean(carry.length));
+    $('carryoverTitle').textContent=carry.length
+      ? `${carry.length} thing${carry.length===1?'':'s'} carried over from yesterday`
+      : '';
+
+    carry.forEach(({record,resolved,previous})=>{
+      const row=document.createElement('div');
+      row.className='carryoverItem';
+      row.dataset.carryoverIntentId=record.id;
+      const copy=document.createElement('div');
+      const title=document.createElement('div');
+      title.className='todayShortlistTitle';
+      title.textContent=resolved.title;
+      const meta=document.createElement('div');
+      meta.className='todayShortlistMeta';
+      meta.textContent='Unfinished from yesterday · choose what happens next.';
+      copy.append(title,meta);
+
+      const actions=document.createElement('div');
+      actions.className='carryoverActions';
+      renderShortlistAction(actions,'Keep today',()=>{
+        removeIntent(previous,record.id,{refresh:false});
+        addIntent(dateStr,intentSpecFromRecord(record),{carriedFrom:previous});
+        refreshViews('intent');
+      },'done');
+      renderShortlistAction(actions,record.kind==='loop'?'Return to loops':'Leave yesterday',()=>removeIntent(previous,record.id));
+      if(resolved.actionLabel==='Done'){
+        renderShortlistAction(actions,'Done',()=>completeIntentRecord(previous,record),'done');
+      }
+      row.append(copy,actions);
+      carryList.appendChild(row);
+    });
+
+    return valid.map(entry=>entry.record);
+  }
+
+  function buildIntentCandidates(dateStr){
+    return intentRecordsForDate(dateStr)
+      .filter(record=>!intentIsSnoozed(record))
+      .map(record=>{
+        const resolved=resolveIntentRecord(record,dateStr);
+        if(!resolved) return null;
+        return {
+          id:`intent:${record.id}`,
+          entityKey:intentSpecKey(record),
+          kind:resolved.kind,
+          title:resolved.title,
+          reason:record.carriedFrom
+            ? 'Carried from yesterday · you kept this for today.'
+            : 'You chose this for today.',
+          baseScore:64,
+          intent:true,
+          started:Boolean(resolved.started),
+          effort:resolved.effort || 'medium',
+          actionLabel:resolved.actionLabel || 'Done',
+          action:resolved.action,
+          secondaryLabel:'Later',
+          secondaryAction:()=>snoozeIntent(dateStr,record.id,90)
+        };
+      })
+      .filter(Boolean);
+  }
+
   function adaptiveDaypartBonus(daypart,minute){
     if(!daypart || daypart==='anytime') return 4;
     if(daypart==='morning') return minute<12*60 ? 14 : -10;
@@ -4686,6 +5084,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     let score=Number(candidate.baseScore)||0;
     if(candidate.started) score+=18;
     if(candidate.hard) score+=20;
+    if(candidate.intent) score+=30;
 
     if(context.lowEnergy && !candidate.started){
       if(candidate.effort==='high') score-=24;
@@ -4707,7 +5106,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   }
 
   function rankAdaptiveCandidates(candidates,context={}){
-    return candidates
+    const ranked=candidates
       .map((candidate,index)=>({
         ...candidate,
         adaptiveScore:adaptiveScoreCandidate(candidate,context),
@@ -4715,6 +5114,14 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       }))
       .filter(candidate=>candidate.adaptiveScore>=0)
       .sort((a,b)=>b.adaptiveScore-a.adaptiveScore || a.adaptiveOrder-b.adaptiveOrder);
+
+    const seen=new Set();
+    return ranked.filter(candidate=>{
+      const key=candidate.entityKey || candidate.id;
+      if(seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   function adaptiveContext(minute,you,cori){
@@ -4817,6 +5224,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   function buildAdaptiveCandidates(minute,you,cori,context){
     const candidates=[];
     const dateStr=iso(selectedDate);
+    candidates.push(...buildIntentCandidates(dateStr));
 
     // Current hard commitments always outrank optional work.
     if(you.type==='event' && you.event){
@@ -4824,6 +5232,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       const status=timeBlockStatus(block);
       candidates.push({
         id:`event:${block.id}`,
+        entityKey:`time_block:${block.id}`,
         kind:'commitment',
         title:block.title,
         reason:status==='active'
@@ -4880,6 +5289,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       if(gap>0 && gap<=90){
         candidates.push({
           id:`upcoming:${nextBlock.id}`,
+          entityKey:`time_block:${nextBlock.id}`,
           kind:'commitment',
           title:nextBlock.title,
           reason:gap<=15
@@ -4948,6 +5358,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
         const started=child.state.status==='in_progress';
         candidates.push({
           id:`bundle:${def.id}:${child.item.id}`,
+          entityKey:`bundle_item:${def.id}:${child.item.id}:${dateStr}`,
           kind:'routine',
           title:child.item.text,
           reason:started
@@ -4974,6 +5385,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       }else{
         candidates.push({
           id:`routine:${def.id}`,
+          entityKey:`routine:${def.id}:${dateStr}`,
           kind:'routine',
           title:def.name,
           reason:occurrence.source==='deferred'
@@ -4993,6 +5405,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       const started=entry.itemState.deferredProgress==='in_progress';
       candidates.push({
         id:`deferred-item:${entry.def.id}:${entry.item.id}`,
+        entityKey:`deferred_bundle_item:${entry.def.id}:${entry.item.id}:${entry.originDate}`,
         kind:'routine',
         title:entry.item.text,
         reason:started
@@ -5013,6 +5426,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       if(loop){
         candidates.push({
           id:`loop:${loop.id}`,
+          entityKey:`loop:${loop.id}`,
           kind:'loop',
           title:loop.text,
           reason:Number.isFinite(context.minutesToNextHard)
@@ -5062,6 +5476,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     }
     panel.style.display='block';
 
+    const shortlist=renderTodayShortlist();
     const you=personState('you',selectedDate,minute);
     const cori=personState('cori',selectedDate,minute);
     const context=adaptiveContext(minute,you,cori);
@@ -5135,13 +5550,15 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
         protectTogether:context.protectTogether,
         minutesToNextHard:Number.isFinite(context.minutesToNextHard)?context.minutesToNextHard:null
       },
-      primary:primary ? {id:primary.id,kind:primary.kind,title:primary.title,reason:primary.reason,score:primary.adaptiveScore} : null,
+      shortlist:shortlist.map(item=>({id:item.id,kind:item.kind,key:intentSpecKey(item),laterUntil:item.laterUntil || null})),
+      primary:primary ? {id:primary.id,kind:primary.kind,title:primary.title,reason:primary.reason,score:primary.adaptiveScore,intent:Boolean(primary.intent)} : null,
       ranked:ranked.map(candidate=>({
         id:candidate.id,
         kind:candidate.kind,
         title:candidate.title,
         reason:candidate.reason,
-        score:candidate.adaptiveScore
+        score:candidate.adaptiveScore,
+        intent:Boolean(candidate.intent)
       }))
     };
   }
@@ -6395,7 +6812,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       format:'loochori-backup',
       schemaVersion:CURRENT_BACKUP_SCHEMA,
       storageSchemaVersion:CURRENT_STORAGE_SCHEMA,
-      appVersion:'0.18.0',
+      appVersion:'0.18.1',
       exportedAt:new Date().toISOString(),
       data
     };
@@ -6531,7 +6948,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     }
     triggerJsonDownload({
       format:'loochori-recovery',
-      appVersion:'0.18.0',
+      appVersion:'0.18.1',
       exportedAt:new Date().toISOString(),
       entries:recovery
     },`loochori-recovery-${iso(new Date())}.json`);
@@ -6911,6 +7328,16 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       check('invalid check-in range fails',()=>!validateStoreValue(CHECKIN_STORAGE_KEY,[
         {date:'2026-10-10',mood:9,energy:3,timestamp:'2026-10-10T12:00:00Z'}
       ]));
+      check('valid Today intent store shape passes',()=>validateStoreValue(TODAY_INTENT_KEY,{
+        '2026-10-10':[{id:'intent_x',kind:'loop',refId:'loop_x'}]
+      }));
+      check('malformed Today intent store shape fails',()=>!validateStoreValue(TODAY_INTENT_KEY,{
+        nope:[{id:'intent_x',kind:'mystery'}]
+      }));
+      check('explicit Today intent outranks the same optional work',()=>
+        adaptiveScoreCandidate({baseScore:64,intent:true,effort:'medium'},{lowEnergy:false}) >
+        adaptiveScoreCandidate({baseScore:64,effort:'medium'},{lowEnergy:false})
+      );
     });
 
     latestLogicReport={
@@ -7050,6 +7477,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     meals:       ['meals','now','week','month','summaries'],
     mealLibrary: ['meals','week','month','summaries','mealLibrary'],
     loops:       ['openLoopList','houseLoops','now','summaries'],
+    intent:      ['now','rhythm','timeBlocks','openLoopList','houseLoops'],
     rhythm:      ['rhythm','now','week','month','summaries'],
     timeBlocks:  ['timeBlocks','today','now','week','month'],
     schedule:    ['today','now','week','month','exceptionList'],

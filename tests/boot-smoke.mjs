@@ -118,6 +118,18 @@ try {
   assert(bodyText.includes('Smoke Focus'), 'seeded time block did not render');
   assert(bodyText.includes('Smoke You'), 'seeded household setup did not render');
 
+  const adaptiveTitle = await text('#adaptivePrimaryTitle');
+  const adaptiveReason = await text('#adaptivePrimaryReason');
+  assert(adaptiveTitle.length > 0, 'adaptive Today did not render a primary suggestion');
+  assert(adaptiveReason.length > 0, 'adaptive Today did not explain its primary suggestion');
+  const adaptiveSnapshot = await page.evaluate(() => window.__LOOCHORI_ADAPTIVE__);
+  assert(adaptiveSnapshot?.active === true, 'adaptive Today snapshot was not active on Today');
+  assert(Array.isArray(adaptiveSnapshot?.ranked), 'adaptive Today did not expose a ranked candidate snapshot');
+  assert(
+    adaptiveSnapshot.ranked.some(item => item.title === 'Smoke checklist one'),
+    'seeded routine checklist did not enter adaptive Today candidates'
+  );
+
   const storesSurvived = await page.evaluate(() => ({
     meal: JSON.parse(localStorage.getItem('loochori_meal_library_v1') || '[]').some(item => item.id === 'meal_smoke'),
     routine: JSON.parse(localStorage.getItem('loochori_weekly_rhythm_v1') || '[]').some(item => item.id === 'routine_smoke'),

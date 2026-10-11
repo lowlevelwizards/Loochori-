@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Routine Bundles v0.17</title>
+<title>Loochori — Data Reliability v0.17.1</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -1108,6 +1108,23 @@
     font-size:13px;font-weight:800;margin-bottom:10px;line-height:1.4
   }
 
+
+  /* v0.17.1 — data reliability */
+  .dataHealthCard{
+    margin-top:10px;background:var(--panel2);border-radius:14px;padding:11px 12px
+  }
+  .dataHealthTop{display:flex;align-items:center;gap:7px}
+  .dataHealthDot{width:8px;height:8px;border-radius:50%;background:#8fa39a;flex:0 0 auto}
+  .dataHealthDot.warn{background:#c5a86f}
+  .dataHealthDot.bad{background:#b98585}
+  .dataHealthTitle{font-size:12px;font-weight:820}
+  .dataHealthMeta{font-size:10px;color:var(--muted);line-height:1.45;margin-top:5px}
+  .dataHealthActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+  .dataHealthAction{
+    border:1px solid var(--line);background:transparent;color:var(--text);
+    border-radius:9px;padding:7px 8px;font-size:10px;font-weight:760;cursor:pointer
+  }
+
   @media (min-width:680px){
     .historyStats{grid-template-columns:repeat(4,minmax(0,1fr))}
     .monthDay{min-height:92px;padding:8px}
@@ -1140,7 +1157,7 @@
   <div class="topbar">
     <div class="brand">Loochori</div>
     <div class="topbarRight">
-      <div class="version">Routine Bundles v0.17</div>
+      <div class="version">Data Reliability v0.17.1</div>
       <button class="settingsBtn" id="openSettingsBtn">Settings</button>
     </div>
   </div>
@@ -1467,6 +1484,18 @@
           </div>
           <input type="file" id="importBackupFile" accept="application/json,.json" style="display:none">
           <div class="dataToolStatus" id="backupStatus"></div>
+
+          <div class="dataHealthCard">
+            <div class="dataHealthTop">
+              <span class="dataHealthDot" id="dataHealthDot"></span>
+              <span class="dataHealthTitle" id="dataHealthTitle">Checking storage…</span>
+            </div>
+            <div class="dataHealthMeta" id="dataHealthMeta"></div>
+            <div class="dataHealthActions">
+              <button class="dataHealthAction" id="restorePreImportBtn" style="display:none">Restore pre-import snapshot</button>
+              <button class="dataHealthAction" id="exportRecoveryBtn" style="display:none">Export recovery copy</button>
+            </div>
+          </div>
         </div>
       </div>
     </details>
@@ -2007,6 +2036,11 @@
   const TIME_BLOCK_LIBRARY_KEY = 'loochori_time_block_library_v1';
   const HOUSEHOLD_CONFIG_KEY = 'loochori_household_config_v1';
   const DAY_REALITY_KEY = 'loochori_day_reality_v1';
+  const APP_META_KEY = 'loochori_app_meta_v1';
+  const PREIMPORT_SNAPSHOT_KEY = 'loochori_preimport_snapshot_v1';
+  const RECOVERY_KEY = 'loochori_recovery_v1';
+  const CURRENT_STORAGE_SCHEMA = 4;
+  const CURRENT_BACKUP_SCHEMA = 2;
   const CARE_GROUPS = [
     {id:'morning', label:'Morning'},
     {id:'day', label:'Through the day'},
@@ -2114,11 +2148,8 @@
   }
 
   function loadHouseholdConfig(){
-    try{
-      const raw=localStorage.getItem(HOUSEHOLD_CONFIG_KEY);
-      if(raw!==null) return normalizeHouseholdConfig(JSON.parse(raw));
-    }catch(e){}
-    return defaultHouseholdConfig();
+    const raw=readStore(HOUSEHOLD_CONFIG_KEY,null);
+    return isRecord(raw) ? normalizeHouseholdConfig(raw) : defaultHouseholdConfig();
   }
 
   function saveHouseholdConfig(){
@@ -2126,10 +2157,8 @@
   }
 
   function loadDayReality(){
-    try{
-      const parsed=JSON.parse(localStorage.getItem(DAY_REALITY_KEY) || '{}');
-      return parsed && typeof parsed==='object' ? parsed : {};
-    }catch(e){ return {}; }
+    const parsed=readStore(DAY_REALITY_KEY,{});
+    return isRecord(parsed) ? parsed : {};
   }
 
   function saveDayReality(){
@@ -2148,6 +2177,336 @@
   function planningPerson(person){
     return householdConfig.people[person] || defaultHouseholdConfig().people[person];
   }
+
+
+  const MANAGED_DATA_KEYS = [
+    STORAGE_KEY,
+    CARE_STORAGE_KEY,
+    CHECKIN_STORAGE_KEY,
+    MEAL_LIBRARY_KEY,
+    MEAL_HISTORY_KEY,
+    OPEN_LOOP_KEY,
+    RHYTHM_KEY,
+    RHYTHM_STATE_KEY,
+    TIME_BLOCK_KEY,
+    TIME_BLOCK_LIBRARY_KEY,
+    HOUSEHOLD_CONFIG_KEY,
+    DAY_REALITY_KEY
+  ];
+
+  function isRecord(value){
+    return Boolean(value) && typeof value==='object' && !Array.isArray(value);
+  }
+
+  function looksLikeDate(value){
+    return typeof value==='string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  }
+
+  function looksLikeTime(value){
+    if(typeof value!=='string' || !/^\d{2}:\d{2}$/.test(value)) return false;
+    const [h,m]=value.split(':').map(Number);
+    return h>=0 && h<=23 && m>=0 && m<=59;
+  }
+
+  function safeStoreDefault(key){
+    if([
+      STORAGE_KEY,CHECKIN_STORAGE_KEY,MEAL_LIBRARY_KEY,OPEN_LOOP_KEY,
+      RHYTHM_KEY,TIME_BLOCK_KEY,TIME_BLOCK_LIBRARY_KEY
+    ].includes(key)) return [];
+    if(key===HOUSEHOLD_CONFIG_KEY) return defaultHouseholdConfig();
+    return {};
+  }
+
+  function validateStoreValue(key,value){
+    if(key===STORAGE_KEY){
+      return Array.isArray(value) && value.every(x=>
+        isRecord(x) &&
+        ['you','cori'].includes(x.person) &&
+        looksLikeDate(x.date) &&
+        ['off','work'].includes(x.type) &&
+        (x.type==='off' || (looksLikeTime(x.start) && looksLikeTime(x.end)))
+      );
+    }
+
+    if(key===CARE_STORAGE_KEY || key===MEAL_HISTORY_KEY || key===RHYTHM_STATE_KEY || key===DAY_REALITY_KEY){
+      return isRecord(value);
+    }
+
+    if(key===CHECKIN_STORAGE_KEY){
+      return Array.isArray(value) && value.every(x=>
+        isRecord(x) && looksLikeDate(x.date) &&
+        Number(x.mood)>=1 && Number(x.mood)<=5 &&
+        Number(x.energy)>=1 && Number(x.energy)<=5
+      );
+    }
+
+    if(key===MEAL_LIBRARY_KEY){
+      return Array.isArray(value) && value.every(x=>
+        isRecord(x) && typeof x.id==='string' && typeof x.name==='string'
+      );
+    }
+
+    if(key===OPEN_LOOP_KEY){
+      return Array.isArray(value) && value.every(x=>
+        isRecord(x) && typeof x.id==='string' && typeof x.text==='string'
+      );
+    }
+
+    if(key===RHYTHM_KEY){
+      return Array.isArray(value) && value.every(def=>
+        isRecord(def) &&
+        typeof def.id==='string' &&
+        typeof def.name==='string' &&
+        Array.isArray(def.weekdays) &&
+        def.weekdays.every(day=>Number.isInteger(Number(day)) && Number(day)>=0 && Number(day)<=6) &&
+        (!def.items || (Array.isArray(def.items) && def.items.every(item=>
+          isRecord(item) && typeof item.id==='string' && typeof item.text==='string'
+        )))
+      );
+    }
+
+    if(key===TIME_BLOCK_KEY){
+      return Array.isArray(value) && value.every(x=>
+        isRecord(x) &&
+        typeof x.id==='string' &&
+        typeof x.title==='string' &&
+        looksLikeDate(x.date) &&
+        looksLikeTime(x.start) &&
+        looksLikeTime(x.end) &&
+        ['you','cori','both'].includes(x.person)
+      );
+    }
+
+    if(key===TIME_BLOCK_LIBRARY_KEY){
+      return Array.isArray(value) && value.every(x=>
+        isRecord(x) &&
+        typeof x.id==='string' &&
+        typeof x.title==='string' &&
+        ['you','cori','both'].includes(x.person || 'you') &&
+        Number(x.durationMinutes)>0
+      );
+    }
+
+    if(key===HOUSEHOLD_CONFIG_KEY){
+      return isRecord(value) && isRecord(value.people);
+    }
+
+    return true;
+  }
+
+  function readStoreRaw(key){
+    const raw=localStorage.getItem(key);
+    if(raw===null) return {exists:false,ok:true,value:null,raw:null};
+    try{
+      return {exists:true,ok:true,value:JSON.parse(raw),raw};
+    }catch(error){
+      return {exists:true,ok:false,value:null,raw,error};
+    }
+  }
+
+  function readStore(key,fallback){
+    const result=readStoreRaw(key);
+    if(!result.exists || !result.ok) return fallback;
+    return result.value;
+  }
+
+  function loadAppMeta(){
+    const parsed=readStore(APP_META_KEY,{});
+    return isRecord(parsed) ? parsed : {};
+  }
+
+  function saveAppMeta(patch={}){
+    const current=loadAppMeta();
+    const next={...current,...patch};
+    localStorage.setItem(APP_META_KEY,JSON.stringify(next));
+    return next;
+  }
+
+  function preserveRecoveryCopy(key,raw,reason){
+    let recovery=readStore(RECOVERY_KEY,[]);
+    if(!Array.isArray(recovery)) recovery=[];
+    recovery.push({
+      id:'recovery_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),
+      key,
+      raw,
+      reason,
+      preservedAt:new Date().toISOString()
+    });
+    recovery=recovery.slice(-12);
+    localStorage.setItem(RECOVERY_KEY,JSON.stringify(recovery));
+  }
+
+  function parseLoose(key,fallback){
+    const result=readStoreRaw(key);
+    return result.exists && result.ok ? result.value : fallback;
+  }
+
+  function migration0to1(){
+    if(localStorage.getItem(STORAGE_KEY)===null){
+      const legacy=localStorage.getItem('loochori_v0_2_exceptions') || localStorage.getItem('homeOS_v0_1_exceptions');
+      if(legacy){
+        try{
+          const parsed=JSON.parse(legacy);
+          if(Array.isArray(parsed)) localStorage.setItem(STORAGE_KEY,JSON.stringify(parsed));
+        }catch(e){}
+      }
+    }
+  }
+
+  function migration1to2(){
+    const history=parseLoose(MEAL_HISTORY_KEY,{});
+    if(!isRecord(history)) return;
+
+    let changed=false;
+    Object.values(history).forEach(day=>{
+      if(!isRecord(day)) return;
+      ['breakfast','lunch','dinner'].forEach(slot=>{
+        const rec=day[slot];
+        if(!isRecord(rec)) return;
+        if(!Array.isArray(rec.actualItems)){
+          rec.actualItems=[];
+          changed=true;
+        }
+        if(rec.eatenMealId){
+          if(!rec.actualItems.some(x=>x && x.kind==='meal' && x.mealId===rec.eatenMealId)){
+            rec.actualItems.push({
+              id:'legacy_'+rec.eatenMealId,
+              kind:'meal',
+              mealId:rec.eatenMealId,
+              addedAt:new Date().toISOString()
+            });
+          }
+          delete rec.eatenMealId;
+          changed=true;
+        }
+        if(rec.plannedMealId===undefined){
+          rec.plannedMealId=null;
+          changed=true;
+        }
+      });
+    });
+    if(changed) localStorage.setItem(MEAL_HISTORY_KEY,JSON.stringify(history));
+  }
+
+  function migration2to3(){
+    const blocks=parseLoose(TIME_BLOCK_KEY,[]);
+    if(Array.isArray(blocks)){
+      let changed=false;
+      blocks.forEach(item=>{
+        if(!isRecord(item)) return;
+        if(item.actualStart===undefined){item.actualStart=null;changed=true;}
+        if(item.actualEnd===undefined){item.actualEnd=null;changed=true;}
+        if(!item.status){
+          item.status=item.actualStart ? (item.actualEnd?'completed':'active') : 'planned';
+          changed=true;
+        }
+      });
+      if(changed) localStorage.setItem(TIME_BLOCK_KEY,JSON.stringify(blocks));
+    }
+
+    const defs=parseLoose(RHYTHM_KEY,[]);
+    if(Array.isArray(defs)){
+      let changed=false;
+      defs.forEach(def=>{
+        if(!isRecord(def)) return;
+        if(def.active===undefined){def.active=true;changed=true;}
+        if(!Array.isArray(def.items)){def.items=[];changed=true;}
+      });
+      if(changed) localStorage.setItem(RHYTHM_KEY,JSON.stringify(defs));
+    }
+  }
+
+  function migration3to4(){
+    const cfg=parseLoose(HOUSEHOLD_CONFIG_KEY,null);
+    if(isRecord(cfg)){
+      localStorage.setItem(HOUSEHOLD_CONFIG_KEY,JSON.stringify(normalizeHouseholdConfig(cfg)));
+    }
+
+    const library=parseLoose(TIME_BLOCK_LIBRARY_KEY,[]);
+    if(Array.isArray(library)){
+      let changed=false;
+      library.forEach(item=>{
+        if(!isRecord(item)) return;
+        if(!item.person){item.person='you';changed=true;}
+        if(!item.id){
+          item.id='blocktpl_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
+          changed=true;
+        }
+      });
+      if(changed) localStorage.setItem(TIME_BLOCK_LIBRARY_KEY,JSON.stringify(library));
+    }
+  }
+
+  function runStorageMigrations(){
+    let meta=loadAppMeta();
+    let version=Number(meta.storageSchemaVersion)||0;
+    const startedAt=new Date().toISOString();
+    let changed=false;
+
+    while(version<CURRENT_STORAGE_SCHEMA){
+      if(version===0) migration0to1();
+      else if(version===1) migration1to2();
+      else if(version===2) migration2to3();
+      else if(version===3) migration3to4();
+      version++;
+      changed=true;
+      meta=saveAppMeta({
+        storageSchemaVersion:version,
+        lastMigrationAt:startedAt
+      });
+    }
+    return {changed,version};
+  }
+
+  function repairMalformedStores(){
+    const repaired=[];
+    MANAGED_DATA_KEYS.forEach(key=>{
+      const result=readStoreRaw(key);
+      if(!result.exists) return;
+
+      const invalid=!result.ok || !validateStoreValue(key,result.value);
+      if(!invalid) return;
+
+      preserveRecoveryCopy(
+        key,
+        result.raw,
+        result.ok ? 'Unexpected data shape' : 'Invalid JSON'
+      );
+      localStorage.setItem(key,JSON.stringify(safeStoreDefault(key)));
+      repaired.push(key);
+    });
+    return repaired;
+  }
+
+  function initializeStorage(){
+    const report={healthy:true,repaired:[],migrationChanged:false,error:null};
+    try{
+      const migration=runStorageMigrations();
+      report.migrationChanged=migration.changed;
+      report.repaired=repairMalformedStores();
+      report.healthy=report.repaired.length===0;
+      saveAppMeta({
+        storageSchemaVersion:CURRENT_STORAGE_SCHEMA,
+        lastCheckedAt:new Date().toISOString(),
+        lastRepairAt:report.repaired.length ? new Date().toISOString() : loadAppMeta().lastRepairAt || null
+      });
+    }catch(error){
+      report.healthy=false;
+      report.error=String(error?.message || error);
+    }
+    return report;
+  }
+
+  function escapeHtml(value){
+    return String(value ?? '')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'",'&#039;');
+  }
+
+  const startupStorageReport=initializeStorage();
 
   let selectedDate = stripTime(new Date());
   let weekAnchorDate = stripTime(new Date());
@@ -2176,47 +2535,36 @@
   const $ = id => document.getElementById(id);
 
   function loadExceptions(){
-    try {
-      const current = localStorage.getItem(STORAGE_KEY);
-      if(current) return JSON.parse(current);
-      const older = localStorage.getItem('loochori_v0_2_exceptions') || localStorage.getItem('homeOS_v0_1_exceptions');
-      if(older){
-        const parsed = JSON.parse(older);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-        return parsed;
-      }
-      return [];
-    } catch(e){ return []; }
+    const current=readStore(STORAGE_KEY,[]);
+    return Array.isArray(current) ? current : [];
   }
   function saveExceptions(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(exceptions)); }
   function loadCareHistory(){
-    try { return JSON.parse(localStorage.getItem(CARE_STORAGE_KEY) || '{}'); }
-    catch(e){ return {}; }
+    const value=readStore(CARE_STORAGE_KEY,{});
+    return isRecord(value) ? value : {};
   }
   function saveCareHistory(){ localStorage.setItem(CARE_STORAGE_KEY, JSON.stringify(careHistory)); }
   function loadCheckinHistory(){
-    try { return JSON.parse(localStorage.getItem(CHECKIN_STORAGE_KEY) || '[]'); }
-    catch(e){ return []; }
+    const value=readStore(CHECKIN_STORAGE_KEY,[]);
+    return Array.isArray(value) ? value : [];
   }
   function saveCheckinHistory(){ localStorage.setItem(CHECKIN_STORAGE_KEY, JSON.stringify(checkinHistory)); }
 
   function loadMealLibrary(){
-    try{
-      const saved=JSON.parse(localStorage.getItem(MEAL_LIBRARY_KEY) || '[]');
-      return Array.isArray(saved) ? saved : [];
-    }catch(e){ return []; }
+    const saved=readStore(MEAL_LIBRARY_KEY,[]);
+    return Array.isArray(saved) ? saved : [];
   }
   function saveMealLibrary(){ localStorage.setItem(MEAL_LIBRARY_KEY,JSON.stringify(mealLibrary)); }
 
   function loadMealHistory(){
-    try { return JSON.parse(localStorage.getItem(MEAL_HISTORY_KEY) || '{}'); }
-    catch(e){ return {}; }
+    const value=readStore(MEAL_HISTORY_KEY,{});
+    return isRecord(value) ? value : {};
   }
   function saveMealHistory(){ localStorage.setItem(MEAL_HISTORY_KEY,JSON.stringify(mealHistory)); }
 
   function loadOpenLoops(){
-    try { return JSON.parse(localStorage.getItem(OPEN_LOOP_KEY) || '[]'); }
-    catch(e){ return []; }
+    const value=readStore(OPEN_LOOP_KEY,[]);
+    return Array.isArray(value) ? value : [];
   }
   function saveOpenLoops(){ localStorage.setItem(OPEN_LOOP_KEY, JSON.stringify(openLoops)); }
 
@@ -2248,28 +2596,20 @@
   }
 
   function loadRhythmDefs(){
-    try{
-      const saved=JSON.parse(localStorage.getItem(RHYTHM_KEY) || '[]');
-      return Array.isArray(saved) ? saved : [];
-    }catch(e){ return []; }
+    const saved=readStore(RHYTHM_KEY,[]);
+    return Array.isArray(saved) ? saved : [];
   }
   function saveRhythmDefs(){ localStorage.setItem(RHYTHM_KEY,JSON.stringify(rhythmDefs)); }
 
   function loadRhythmState(){
-    try { return JSON.parse(localStorage.getItem(RHYTHM_STATE_KEY) || '{}'); }
-    catch(e){ return {}; }
+    const value=readStore(RHYTHM_STATE_KEY,{});
+    return isRecord(value) ? value : {};
   }
   function saveRhythmState(){ localStorage.setItem(RHYTHM_STATE_KEY,JSON.stringify(rhythmState)); }
 
   function loadTimeBlocks(){
-    try{
-      const raw=localStorage.getItem(TIME_BLOCK_KEY);
-      if(raw!==null){
-        const parsed=JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-      }
-    }catch(e){}
-    return [];
+    const parsed=readStore(TIME_BLOCK_KEY,[]);
+    return Array.isArray(parsed) ? parsed : [];
   }
 
   function saveTimeBlocks(){
@@ -2278,10 +2618,8 @@
 
 
   function loadTimeBlockLibrary(){
-    try{
-      const parsed=JSON.parse(localStorage.getItem(TIME_BLOCK_LIBRARY_KEY) || '[]');
-      return Array.isArray(parsed) ? parsed : [];
-    }catch(e){ return []; }
+    const parsed=readStore(TIME_BLOCK_LIBRARY_KEY,[]);
+    return Array.isArray(parsed) ? parsed : [];
   }
 
   function saveTimeBlockLibrary(){
@@ -5046,7 +5384,7 @@
       const schedule=document.createElement('div');
       schedule.className='weekSchedule';
       schedule.innerHTML=
-        `<strong>${personName('you')}</strong> ${compactShiftText(y)} <span class="muted">·</span> <strong>${personName('cori')}</strong> ${compactShiftText(c)}`;
+        `<strong>${escapeHtml(personName('you'))}</strong> ${compactShiftText(y)} <span class="muted">·</span> <strong>${escapeHtml(personName('cori'))}</strong> ${compactShiftText(c)}`;
       card.appendChild(schedule);
 
       const winLabel=document.createElement('div');
@@ -5181,7 +5519,7 @@
 
         const mealRow=document.createElement('div');
         mealRow.className='weekMeal';
-        mealRow.innerHTML=`<div><div class="weekMealTitle">${meal.title}</div><div class="weekMealMeta">${meal.kind==='planned'?'planned':'actually had'}</div></div><div class="weekMealTitle" style="text-align:right">${meal.text}</div>`;
+        mealRow.innerHTML=`<div><div class="weekMealTitle">${meal.title}</div><div class="weekMealMeta">${meal.kind==='planned'?'planned':'actually had'}</div></div><div class="weekMealTitle" style="text-align:right">${escapeHtml(meal.text)}</div>`;
         card.appendChild(mealRow);
       }
 
@@ -5402,24 +5740,13 @@
     renderHistoryWeekSummary();
   }
 
-  function loochoriBackupPayload(){
-    const keys=[
-      STORAGE_KEY,
-      CARE_STORAGE_KEY,
-      CHECKIN_STORAGE_KEY,
-      MEAL_LIBRARY_KEY,
-      MEAL_HISTORY_KEY,
-      OPEN_LOOP_KEY,
-      RHYTHM_KEY,
-      RHYTHM_STATE_KEY,
-      TIME_BLOCK_KEY,
-      TIME_BLOCK_LIBRARY_KEY,
-      HOUSEHOLD_CONFIG_KEY,
-      DAY_REALITY_KEY
-    ];
+  function backupManagedKeys(){
+    return [...MANAGED_DATA_KEYS,APP_META_KEY];
+  }
 
+  function loochoriBackupPayload(){
     const data={};
-    keys.forEach(key=>{
+    backupManagedKeys().forEach(key=>{
       const raw=localStorage.getItem(key);
       if(raw===null){
         data[key]=null;
@@ -5431,25 +5758,85 @@
 
     return {
       format:'loochori-backup',
-      schemaVersion:1,
-      appVersion:'0.14',
+      schemaVersion:CURRENT_BACKUP_SCHEMA,
+      storageSchemaVersion:CURRENT_STORAGE_SCHEMA,
+      appVersion:'0.17.1',
       exportedAt:new Date().toISOString(),
       data
     };
   }
 
-  function exportLoochoriBackup(){
-    const payload=loochoriBackupPayload();
+  function triggerJsonDownload(payload,filename){
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
     a.href=url;
-    a.download=`loochori-backup-${iso(new Date())}.json`;
+    a.download=filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
+  function exportLoochoriBackup(){
+    const now=new Date().toISOString();
+    saveAppMeta({lastBackupAt:now});
+    const payload=loochoriBackupPayload();
+    triggerJsonDownload(payload,`loochori-backup-${iso(new Date())}.json`);
     if($('backupStatus')) $('backupStatus').textContent='Backup exported.';
+    renderDataHealth();
+  }
+
+  function validateBackupPayload(payload){
+    if(!payload || payload.format!=='loochori-backup' || !isRecord(payload.data)){
+      return {ok:false,error:'That file is not a recognized Loochori backup.'};
+    }
+
+    const futureSchema=Number(payload.storageSchemaVersion);
+    if(Number.isFinite(futureSchema) && futureSchema>CURRENT_STORAGE_SCHEMA){
+      return {ok:false,error:'This backup was created by a newer Loochori data schema. Update Loochori before importing it.'};
+    }
+
+    const allowed=new Set(backupManagedKeys());
+    const recognized=Object.entries(payload.data).filter(([key])=>allowed.has(key));
+    if(!recognized.length){
+      return {ok:false,error:'This backup does not contain any recognized Loochori data.'};
+    }
+
+    for(const [key,value] of recognized){
+      if(value===null || key===APP_META_KEY) continue;
+      if(!validateStoreValue(key,value)){
+        return {ok:false,error:`The backup contains malformed data in ${key}. Nothing was imported.`};
+      }
+    }
+
+    return {ok:true,recognized};
+  }
+
+  function savePreImportSnapshot(){
+    localStorage.setItem(PREIMPORT_SNAPSHOT_KEY,JSON.stringify(loochoriBackupPayload()));
+  }
+
+  function applyValidatedBackup(payload,recognized,{makeSnapshot=true}={}){
+    if(makeSnapshot) savePreImportSnapshot();
+
+    recognized.forEach(([key,value])=>{
+      if(key===APP_META_KEY) return;
+      if(value===null) localStorage.removeItem(key);
+      else localStorage.setItem(key,JSON.stringify(value));
+    });
+
+    // Old backups did not have a storage schema version. Start them at 0
+    // so every idempotent migration gets a chance to normalize the data.
+    const importedStorageVersion=
+      Number.isFinite(Number(payload.storageSchemaVersion))
+        ? Math.max(0,Math.min(CURRENT_STORAGE_SCHEMA,Number(payload.storageSchemaVersion)))
+        : 0;
+
+    saveAppMeta({
+      storageSchemaVersion:importedStorageVersion,
+      lastImportAt:new Date().toISOString()
+    });
   }
 
   async function importLoochoriBackupFile(file){
@@ -5459,33 +5846,13 @@
     try{
       payload=JSON.parse(await file.text());
     }catch(e){
-      alert('That file does not look like a valid Loochori backup.');
+      alert('That file does not look like valid JSON. Nothing was imported.');
       return;
     }
 
-    if(!payload || payload.format!=='loochori-backup' || !payload.data || typeof payload.data!=='object'){
-      alert('That file is not a recognized Loochori backup.');
-      return;
-    }
-
-    const allowed=new Set([
-      STORAGE_KEY,
-      CARE_STORAGE_KEY,
-      CHECKIN_STORAGE_KEY,
-      MEAL_LIBRARY_KEY,
-      MEAL_HISTORY_KEY,
-      OPEN_LOOP_KEY,
-      RHYTHM_KEY,
-      RHYTHM_STATE_KEY,
-      TIME_BLOCK_KEY,
-      TIME_BLOCK_LIBRARY_KEY,
-      HOUSEHOLD_CONFIG_KEY,
-      DAY_REALITY_KEY
-    ]);
-
-    const recognized=Object.entries(payload.data).filter(([key])=>allowed.has(key));
-    if(!recognized.length){
-      alert('This backup does not contain any recognized Loochori data.');
+    const validation=validateBackupPayload(payload);
+    if(!validation.ok){
+      alert(validation.error);
       return;
     }
 
@@ -5493,479 +5860,111 @@
       ? new Date(payload.exportedAt).toLocaleString()
       : 'an unknown date';
 
-    if(!confirm(`Import the Loochori backup from ${when}? This will replace the matching data currently stored in this browser.`)){
+    if(!confirm(`Import the Loochori backup from ${when}? A local pre-import snapshot will be saved first.`)){
       return;
     }
 
-    recognized.forEach(([key,value])=>{
-      if(value===null) localStorage.removeItem(key);
-      else localStorage.setItem(key,JSON.stringify(value));
-    });
-
-    alert('Backup imported. Loochori will reload with the restored data.');
+    applyValidatedBackup(payload,validation.recognized,{makeSnapshot:true});
+    alert('Backup imported safely. Loochori will reload and migrate the restored data if needed.');
     location.reload();
   }
 
+  function restorePreImportSnapshot(){
+    const raw=localStorage.getItem(PREIMPORT_SNAPSHOT_KEY);
+    if(!raw) return alert('No pre-import snapshot is available.');
 
-  /*
-   * v0.14.1 refresh pipeline
-   *
-   * Mutations say WHAT changed; this table decides WHICH derived views
-   * must be recomputed. This replaces the growing pattern of individual
-   * handlers remembering to manually refresh 2–5 different UI surfaces.
-   */
-  const VIEW_DEPENDENCIES = {
-    care:        ['care','now','month','summaries'],
-    checkin:     ['checkin','now','month','summaries'],
-    meals:       ['meals','now','week','month','summaries'],
-    mealLibrary: ['meals','week','month','summaries','mealLibrary'],
-    loops:       ['openLoopList','houseLoops','summaries'],
-    rhythm:      ['rhythm','now','week','month','summaries'],
-    timeBlocks:  ['timeBlocks','today','now','week','month'],
-    schedule:    ['today','now','week','month','exceptionList'],
-    all:         ['today','now','meals','rhythm','timeBlocks','checkin','care','week','month','exceptionList','openLoopList','houseLoops','summaries']
-  };
+    let payload;
+    try{ payload=JSON.parse(raw); }
+    catch(e){ return alert('The pre-import snapshot could not be read.'); }
 
-  const VIEW_RENDERERS = {
-    today:()=>renderToday(),
-    now:()=>renderNow(),
-    meals:()=>renderMeals(),
-    rhythm:()=>renderRhythm(),
-    timeBlocks:()=>renderTimeBlocks(),
-    checkin:()=>renderCheckin(),
-    care:()=>renderCare(),
-    week:()=>renderWeek(),
-    month:()=>renderMonth(),
-    exceptionList:()=>renderExceptionList(),
-    openLoopList:()=>renderOpenLoopList(),
-    houseLoops:()=>renderHouseOpenLoops(),
-    summaries:()=>updateCalmSummaries(),
-    mealLibrary:()=>{
-      if($('mealModal') && $('mealModal').classList.contains('open')){
-        renderMealLibrary();
-      }
+    const validation=validateBackupPayload(payload);
+    if(!validation.ok) return alert(validation.error);
+
+    if(!confirm('Restore the data from immediately before your last import?')){
+      return;
     }
-  };
 
-  const VIEW_RENDER_ORDER = [
-    'today','now','meals','rhythm','timeBlocks','checkin','care',
-    'week','month','exceptionList','openLoopList','houseLoops',
-    'summaries','mealLibrary'
-  ];
+    applyValidatedBackup(payload,validation.recognized,{makeSnapshot:false});
+    alert('Pre-import snapshot restored. Loochori will reload.');
+    location.reload();
+  }
 
-  function refreshViews(...domains){
-    const requested=new Set();
+  function exportRecoveryCopy(){
+    const recovery=readStore(RECOVERY_KEY,[]);
+    if(!Array.isArray(recovery) || !recovery.length){
+      return alert('There is no preserved recovery data.');
+    }
+    triggerJsonDownload({
+      format:'loochori-recovery',
+      appVersion:'0.17.1',
+      exportedAt:new Date().toISOString(),
+      entries:recovery
+    },`loochori-recovery-${iso(new Date())}.json`);
+  }
 
-    domains.flat().forEach(domain=>{
-      const deps=VIEW_DEPENDENCIES[domain];
-      if(!deps){
-        console.warn(`Unknown Loochori refresh domain: ${domain}`);
-        return;
+  function countHistoryDays(){
+    const days=new Set();
+
+    Object.keys(careHistory || {}).forEach(d=>{if(looksLikeDate(d))days.add(d);});
+    (checkinHistory || []).forEach(x=>{if(looksLikeDate(x.date))days.add(x.date);});
+    Object.keys(mealHistory || {}).forEach(d=>{if(looksLikeDate(d))days.add(d);});
+    (timeBlocks || []).forEach(x=>{if(looksLikeDate(x.date))days.add(x.date);});
+    Object.keys(dayReality || {}).forEach(d=>{if(looksLikeDate(d))days.add(d);});
+
+    Object.keys(rhythmState || {}).forEach(key=>{
+      const idx=key.lastIndexOf('__');
+      if(idx>=0){
+        const d=key.slice(idx+2);
+        if(looksLikeDate(d)) days.add(d);
       }
-      deps.forEach(view=>requested.add(view));
     });
 
-    VIEW_RENDER_ORDER.forEach(view=>{
-      if(requested.has(view)) VIEW_RENDERERS[view]();
-    });
+    return days.size;
   }
 
-  function refreshAllViews(){
-    refreshViews('all');
-  }
+  function renderDataHealth(){
+    if(!$('dataHealthTitle')) return;
 
+    const meta=loadAppMeta();
+    const recovery=readStore(RECOVERY_KEY,[]);
+    const recoveryCount=Array.isArray(recovery) ? recovery.length : 0;
+    const hasSnapshot=Boolean(localStorage.getItem(PREIMPORT_SNAPSHOT_KEY));
 
-  const WEEKDAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const dot=$('dataHealthDot');
+    dot.className='dataHealthDot';
 
-  function renderHouseholdLabels(){
-    const youName=personName('you');
-    const partnerName=personName('cori');
-
-    if($('timelineYouHeader')) $('timelineYouHeader').textContent=youName;
-    if($('timelinePartnerHeader')) $('timelinePartnerHeader').textContent=partnerName;
-    if($('timelinePartnerKey')) $('timelinePartnerKey').textContent=`${partnerName} work`;
-    if($('partnerHomeLabel')) $('partnerHomeLabel').textContent=`${partnerName} awake at home`;
-    if($('yourSoloHint')) $('yourSoloHint').textContent=`when ${partnerName} isn’t awake at home`;
-    if($('timeBlockPartnerOption')) $('timeBlockPartnerOption').textContent=partnerName;
-    if($('exceptionPartnerOption')) $('exceptionPartnerOption').textContent=partnerName;
-    if($('tempRulePerson')){
-      const partnerOpt=$('tempRulePerson').querySelector('option[value="cori"]');
-      if(partnerOpt) partnerOpt.textContent=partnerName;
-      const youOpt=$('tempRulePerson').querySelector('option[value="you"]');
-      if(youOpt) youOpt.textContent=youName;
-    }
-    if($('realityYouTitle')) $('realityYouTitle').textContent=youName;
-    if($('realityPartnerTitle')) $('realityPartnerTitle').textContent=partnerName;
-  }
-
-  function createScheduleEditor(person){
-    const cfg=planningPerson(person);
-    const wrap=document.createElement('div');
-    wrap.className='personSettings';
-
-    const title=document.createElement('div');
-    title.className='personSettingsTitle';
-    title.textContent=personName(person);
-    wrap.appendChild(title);
-
-    const editor=document.createElement('div');
-    editor.className='scheduleEditor';
-
-    for(let day=0;day<7;day++){
-      const shift=cfg.baseline?.[day] || null;
-      const row=document.createElement('div');
-      row.className='scheduleRow';
-      row.dataset.person=person;
-      row.dataset.day=String(day);
-
-      const dayLabel=document.createElement('div');
-      dayLabel.className='scheduleDay';
-      dayLabel.textContent=WEEKDAY_NAMES[day];
-
-      const offLabel=document.createElement('label');
-      offLabel.className='scheduleOff';
-      const off=document.createElement('input');
-      off.type='checkbox';
-      off.className='scheduleOffInput';
-      off.checked=!shift;
-      offLabel.append(off,document.createTextNode('Off'));
-
-      const start=document.createElement('input');
-      start.type='time';
-      start.className='scheduleStartInput';
-      start.value=shift?.start || '09:00';
-
-      const end=document.createElement('input');
-      end.type='time';
-      end.className='scheduleEndInput';
-      end.value=shift?.end || '17:00';
-
-      const wake=document.createElement('input');
-      wake.type='time';
-      wake.className='scheduleWakeInput';
-      wake.value=cfg.wakeByWeekday?.[day] || cfg.offDayWake || '09:00';
-
-      const syncDisabled=()=>{
-        start.disabled=off.checked;
-        end.disabled=off.checked;
-        wake.disabled=off.checked;
-      };
-      off.addEventListener('change',syncDisabled);
-      syncDisabled();
-
-      row.append(dayLabel,offLabel,start,end,wake);
-      editor.appendChild(row);
+    if(startupStorageReport.error){
+      $('dataHealthTitle').textContent='Storage check unavailable';
+      dot.classList.add('bad');
+    }else if(startupStorageReport.repaired.length || recoveryCount){
+      $('dataHealthTitle').textContent='Storage protected';
+      dot.classList.add('warn');
+    }else{
+      $('dataHealthTitle').textContent='Storage healthy';
     }
 
-    const legend=document.createElement('div');
-    legend.className='scheduleWakeLabel';
-    legend.textContent='day · off · work start · work end · wake';
-    wrap.append(editor,legend);
-    return wrap;
-  }
+    const backupText=meta.lastBackupAt
+      ? new Date(meta.lastBackupAt).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})
+      : 'not yet exported';
 
-  function createPlanningEditor(person){
-    const cfg=planningPerson(person);
-    const wrap=document.createElement('div');
-    wrap.className='personSettings';
-    wrap.dataset.planningPerson=person;
-
-    const title=document.createElement('div');
-    title.className='personSettingsTitle';
-    title.textContent=personName(person);
-    wrap.appendChild(title);
-
-    const grid=document.createElement('div');
-    grid.className='settingsGrid';
-
-    const fields=[
-      ['Off-day wake','offDayWake','time',cfg.offDayWake || '09:00'],
-      ['Usual sleep start (optional)','usualSleepStart','time',cfg.usualSleepStart || ''],
-      ['Outbound minutes','outboundMinutes','number',String(cfg.commute.outbound.plan ?? 0)],
-      ['Outbound mode','outboundLabel','text',cfg.commute.outbound.label || 'Travel'],
-      ['Homebound minutes','inboundMinutes','number',String(cfg.commute.inbound.plan ?? 0)],
-      ['Homebound mode','inboundLabel','text',cfg.commute.inbound.label || 'Travel']
+    const bits=[
+      `Schema ${CURRENT_STORAGE_SCHEMA}`,
+      `${countHistoryDays()} day${countHistoryDays()===1?'':'s'} with history`,
+      `Last backup: ${backupText}`
     ];
 
-    fields.forEach(([labelText,name,type,value])=>{
-      const field=document.createElement('div');
-      field.className='field';
-      const label=document.createElement('label');
-      label.textContent=labelText;
-      const input=document.createElement('input');
-      input.type=type;
-      input.dataset.setting=name;
-      input.value=value;
-      if(type==='number'){input.min='0';input.step='1';}
-      field.append(label,input);
-      grid.appendChild(field);
-    });
-
-    wrap.appendChild(grid);
-    return wrap;
-  }
-
-  function renderSettingsForm(){
-    renderHouseholdLabels();
-    $('settingsNotice').classList.toggle('show',!householdConfig.configured);
-    $('settingsYouName').value=personName('you');
-    $('settingsPartnerName').value=personName('cori');
-    $('settingsSleepTarget').value=(householdConfig.sleepTargetMinutes/60).toFixed(2).replace(/\.00$/,'');
-
-    const schedules=$('scheduleSettingsEditors');
-    schedules.innerHTML='';
-    schedules.append(createScheduleEditor('you'),createScheduleEditor('cori'));
-
-    const planning=$('personPlanningSettings');
-    planning.innerHTML='';
-    planning.append(createPlanningEditor('you'),createPlanningEditor('cori'));
-
-    renderTempRuleList();
-  }
-
-  function openSettings(){
-    renderSettingsForm();
-    $('householdSettingsModal').classList.add('open');
-  }
-
-  function closeSettings(){
-    $('householdSettingsModal').classList.remove('open');
-  }
-
-  function readSettingsForm(){
-    const next=normalizeHouseholdConfig(householdConfig);
-    next.configured=true;
-    next.people.you.name=$('settingsYouName').value.trim() || 'You';
-    next.people.cori.name=$('settingsPartnerName').value.trim() || 'Partner';
-
-    const sleepHours=Number($('settingsSleepTarget').value);
-    next.sleepTargetMinutes=Number.isFinite(sleepHours) && sleepHours>0
-      ? Math.round(sleepHours*60)
-      : 450;
-
-    document.querySelectorAll('.scheduleRow').forEach(row=>{
-      const person=row.dataset.person;
-      const day=Number(row.dataset.day);
-      const off=row.querySelector('.scheduleOffInput').checked;
-      const start=row.querySelector('.scheduleStartInput').value;
-      const end=row.querySelector('.scheduleEndInput').value;
-      const wake=row.querySelector('.scheduleWakeInput').value;
-
-      next.people[person].baseline[day]=off ? null : {start,end};
-      if(wake) next.people[person].wakeByWeekday[day]=wake;
-    });
-
-    document.querySelectorAll('[data-planning-person]').forEach(wrap=>{
-      const person=wrap.dataset.planningPerson;
-      const get=name=>wrap.querySelector(`[data-setting="${name}"]`)?.value || '';
-      next.people[person].offDayWake=get('offDayWake') || '09:00';
-      next.people[person].usualSleepStart=get('usualSleepStart') || null;
-      next.people[person].commute.outbound.plan=Math.max(0,Math.round(Number(get('outboundMinutes'))||0));
-      next.people[person].commute.outbound.label=get('outboundLabel').trim() || 'Travel';
-      next.people[person].commute.inbound.plan=Math.max(0,Math.round(Number(get('inboundMinutes'))||0));
-      next.people[person].commute.inbound.label=get('inboundLabel').trim() || 'Travel';
-    });
-
-    return normalizeHouseholdConfig(next);
-  }
-
-  function saveHouseholdSettings(){
-    householdConfig=readSettingsForm();
-    saveHouseholdConfig();
-    closeSettings();
-    renderHouseholdLabels();
-    refreshViews('schedule','timeBlocks','rhythm');
-  }
-
-  function tempRuleSummary(rule){
-    const days=(rule.weekdays||[]).map(d=>WEEKDAY_NAMES[d]).join(', ') || 'no days';
-    const replacement=rule.replacement
-      ? `${formatShort(rule.replacement.start)}–${formatShort(rule.replacement.end)}`
-      : 'off';
-    return `${rule.startDate || '—'} → ${rule.endDate || '—'} · ${days} · ${replacement}`;
-  }
-
-  function renderTempRuleList(){
-    const box=$('tempRuleList');
-    if(!box) return;
-    box.innerHTML='';
-
-    (householdConfig.temporaryRules || []).forEach(rule=>{
-      const row=document.createElement('div');
-      row.className='tempRuleItem';
-
-      const copy=document.createElement('div');
-      const title=document.createElement('div');
-      title.className='tempRuleTitle';
-      title.textContent=`${rule.label || 'Temporary rule'} · ${personName(rule.person)}`;
-      const meta=document.createElement('div');
-      meta.className='tempRuleMeta';
-      meta.textContent=tempRuleSummary(rule);
-      copy.append(title,meta);
-
-      const del=document.createElement('button');
-      del.className='tempRuleDelete';
-      del.textContent='Delete';
-      del.addEventListener('click',()=>{
-        householdConfig.temporaryRules=householdConfig.temporaryRules.filter(r=>r.id!==rule.id);
-        saveHouseholdConfig();
-        renderTempRuleList();
-        refreshViews('schedule');
-      });
-
-      row.append(copy,del);
-      box.appendChild(row);
-    });
-
-    if(!(householdConfig.temporaryRules||[]).length){
-      const empty=document.createElement('div');
-      empty.className='empty';
-      empty.textContent='No temporary schedule rules.';
-      box.appendChild(empty);
-    }
-  }
-
-  function addTemporaryRule(){
-    const person=$('tempRulePerson').value;
-    const label=$('tempRuleLabel').value.trim() || 'Temporary rule';
-    const startDate=$('tempRuleStart').value;
-    const endDate=$('tempRuleEnd').value;
-    const type=$('tempRuleType').value;
-    const weekdays=[...document.querySelectorAll('#tempRuleWeekdays input:checked')].map(x=>Number(x.value));
-
-    if(!startDate || !endDate) return alert('Choose a start and end date.');
-    if(endDate<startDate) return alert('End date needs to be after start date.');
-    if(!weekdays.length) return alert('Choose at least one weekday.');
-
-    let replacement=null;
-    if(type==='work'){
-      const start=$('tempRuleShiftStart').value;
-      const end=$('tempRuleShiftEnd').value;
-      if(!start || !end) return alert('Enter the temporary work shift.');
-      replacement={start,end};
+    if(startupStorageReport.repaired.length){
+      bits.push(`${startupStorageReport.repaired.length} damaged store${startupStorageReport.repaired.length===1?' was':'s were'} isolated; raw recovery data was preserved`);
+    }else if(recoveryCount){
+      bits.push(`${recoveryCount} recovery cop${recoveryCount===1?'y':'ies'} preserved`);
     }
 
-    householdConfig.temporaryRules.push({
-      id:`rule_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`,
-      person,label,startDate,endDate,weekdays,replacement
-    });
-    householdConfig.configured=true;
-    saveHouseholdConfig();
-    $('tempRuleLabel').value='';
-    renderTempRuleList();
-    refreshViews('schedule');
+    $('dataHealthMeta').textContent=bits.join(' · ');
+    $('restorePreImportBtn').style.display=hasSnapshot?'inline-block':'none';
+    $('exportRecoveryBtn').style.display=recoveryCount?'inline-block':'none';
   }
 
-  function renderTempRuleWeekdayChecks(){
-    const box=$('tempRuleWeekdays');
-    box.innerHTML='';
-    WEEKDAY_NAMES.forEach((name,day)=>{
-      const label=document.createElement('label');
-      label.className='weekdayCheck';
-      const input=document.createElement('input');
-      input.type='checkbox';
-      input.value=String(day);
-      label.append(input,document.createTextNode(name));
-      box.appendChild(label);
-    });
-  }
 
-  function openRealityModal(){
-    const dateStr=iso(selectedDate);
-    $('realityModalTitle').textContent=`Reality · ${selectedDate.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}`;
-    renderHouseholdLabels();
-
-    const your=realityFor('you',dateStr);
-    const partner=realityFor('cori',dateStr);
-    $('realityYouWake').value=your.wake || '';
-    $('realityYouSleep').value=your.sleepStart || '';
-    $('realityPartnerWake').value=partner.wake || '';
-    $('realityPartnerSleep').value=partner.sleepStart || '';
-    $('realityModal').classList.add('open');
-  }
-
-  function closeRealityModal(){
-    $('realityModal').classList.remove('open');
-  }
-
-  function saveReality(){
-    const dateStr=iso(selectedDate);
-    const your={
-      wake:$('realityYouWake').value || null,
-      sleepStart:$('realityYouSleep').value || null
-    };
-    const partner={
-      wake:$('realityPartnerWake').value || null,
-      sleepStart:$('realityPartnerSleep').value || null
-    };
-
-    const hasYou=your.wake || your.sleepStart;
-    const hasPartner=partner.wake || partner.sleepStart;
-
-    if(!hasYou && !hasPartner){
-      delete dayReality[dateStr];
-    }else{
-      dayReality[dateStr]={};
-      if(hasYou) dayReality[dateStr].you=your;
-      if(hasPartner) dayReality[dateStr].cori=partner;
-    }
-
-    saveDayReality();
-    closeRealityModal();
-    refreshViews('schedule');
-  }
-
-  function clearReality(){
-    delete dayReality[iso(selectedDate)];
-    saveDayReality();
-    closeRealityModal();
-    refreshViews('schedule');
-  }
-
-  function localSetupPayload(){
-    return {
-      format:'loochori-local-setup',
-      schemaVersion:1,
-      exportedAt:new Date().toISOString(),
-      householdConfig,
-      dayReality
-    };
-  }
-
-  function exportLocalSetup(){
-    const blob=new Blob([JSON.stringify(localSetupPayload(),null,2)],{type:'application/json'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;
-    a.download='loochori-local-setup.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),1000);
-    $('setupStatus').textContent='Local setup exported.';
-  }
-
-  async function importLocalSetupFile(file){
-    if(!file) return;
-    let payload;
-    try{ payload=JSON.parse(await file.text()); }
-    catch(e){ return alert('That setup file is not valid JSON.'); }
-
-    if(!payload || payload.format!=='loochori-local-setup' || !payload.householdConfig){
-      return alert('That file is not a recognized Loochori local setup.');
-    }
-
-    householdConfig=normalizeHouseholdConfig(payload.householdConfig);
-    householdConfig.configured=true;
-    dayReality=payload.dayReality && typeof payload.dayReality==='object' ? payload.dayReality : dayReality;
-
-    saveHouseholdConfig();
-    saveDayReality();
-    renderSettingsForm();
-    renderHouseholdLabels();
-    refreshViews('schedule','timeBlocks','rhythm');
-    $('setupStatus').textContent='Local setup imported.';
-  }
 
   function updateCalmSummaries(){
     const latest=latestSelectedDayCheckin();
@@ -6009,7 +6008,7 @@
     requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'start'}));
   }
 
-    function renderAll(){ refreshAllViews(); }
+    function renderAll(){ refreshAllViews(); renderDataHealth(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));
@@ -6095,6 +6094,9 @@
     renderMonth();
   });
 
+  $('restorePreImportBtn').addEventListener('click',restorePreImportSnapshot);
+  $('exportRecoveryBtn').addEventListener('click',exportRecoveryCopy);
+
   $('exportBackupBtn').addEventListener('click',exportLoochoriBackup);
   $('importBackupBtn').addEventListener('click',()=>$('importBackupFile').click());
   $('importBackupFile').addEventListener('change',async e=>{
@@ -6136,7 +6138,7 @@
       const div=document.createElement('div'); div.className='exceptionItem';
       const who=personName(x.person);
       const shift=x.type==='off'?'Off':`${formatShort(x.start)}–${formatShort(x.end)}`;
-      div.innerHTML=`<div><strong>${who}</strong> · ${parseISO(x.date).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}<br><span style="color:var(--muted)">${shift}${x.label?` · ${x.label}`:''}</span></div><button aria-label="Delete">Delete</button>`;
+      div.innerHTML=`<div><strong>${escapeHtml(who)}</strong> · ${parseISO(x.date).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}<br><span style="color:var(--muted)">${shift}${x.label?` · ${escapeHtml(x.label)}`:''}</span></div><button aria-label="Delete">Delete</button>`;
       div.querySelector('button').addEventListener('click',()=>{exceptions.splice(idx,1);saveExceptions();refreshViews('schedule');});
       box.appendChild(div);
     });

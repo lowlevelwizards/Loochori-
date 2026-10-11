@@ -28,18 +28,27 @@ jobs:
       - name: Apply Cozy Home patch
         run: python tools/apply_v019.py
 
-      - name: Stabilize accordion interaction check
+      - name: Adapt browser flow for collapsed sections
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('tests/boot-smoke.mjs')
           text=p.read_text()
+
           needle="  assert.equal(await page.locator('#careArea').evaluate(el => el.open), false, 'opening meals should close care');"
           wait="  await page.waitForFunction(() => !document.getElementById('careArea')?.open && document.getElementById('mealsArea')?.open);"
           if text.count(needle)!=1:
             raise SystemExit('accordion smoke anchor not found exactly once')
-          p.write_text(text.replace(needle, wait+'\n'+needle, 1))
+          text=text.replace(needle, wait+'\n'+needle, 1)
+
+          loop_anchor="  const loopToday = page.locator('button[data-intent-kind=\"loop\"][data-intent-ref=\"loop_smoke\"]:visible');"
+          open_house="  await page.locator('#houseArea > summary').click();\n  await page.waitForFunction(() => document.getElementById('houseArea')?.open);\n"
+          if text.count(loop_anchor)!=1:
+            raise SystemExit('open-loop smoke anchor not found exactly once')
+          text=text.replace(loop_anchor, open_house+loop_anchor, 1)
+
+          p.write_text(text)
           PY
 
       - name: Validate JavaScript

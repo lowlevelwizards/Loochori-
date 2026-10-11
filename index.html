@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#101214" />
-<title>Loochori — Data Reliability v0.17.1</title>
+<title>Loochori — Logic Safety Net v0.17.2</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -1125,6 +1125,30 @@
     border-radius:9px;padding:7px 8px;font-size:10px;font-weight:760;cursor:pointer
   }
 
+
+  /* v0.17.2 — deterministic logic diagnostics */
+  .logicCheckCard{
+    margin-top:10px;background:var(--panel2);border-radius:14px;padding:11px 12px
+  }
+  .logicCheckTop{display:flex;justify-content:space-between;gap:10px;align-items:center}
+  .logicCheckTitle{font-size:12px;font-weight:820}
+  .logicCheckScore{font-size:11px;color:#cfe5d5;font-weight:800;white-space:nowrap}
+  .logicCheckScore.warn{color:#e1c58e}
+  .logicCheckNote{font-size:10px;color:var(--muted);line-height:1.45;margin-top:4px}
+  .logicCheckActions{display:flex;gap:7px;margin-top:9px}
+  .logicCheckBtn{
+    border:1px solid var(--line);background:transparent;color:var(--text);
+    border-radius:9px;padding:7px 9px;font-size:10px;font-weight:760;cursor:pointer
+  }
+  .logicFailures{
+    display:none;margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.06)
+  }
+  .logicFailures.show{display:grid;gap:5px}
+  .logicFailure{
+    font-size:10px;line-height:1.4;color:#dfb5b5;background:rgba(185,133,133,.06);
+    border-radius:9px;padding:7px 8px
+  }
+
   @media (min-width:680px){
     .historyStats{grid-template-columns:repeat(4,minmax(0,1fr))}
     .monthDay{min-height:92px;padding:8px}
@@ -1157,7 +1181,7 @@
   <div class="topbar">
     <div class="brand">Loochori</div>
     <div class="topbarRight">
-      <div class="version">Data Reliability v0.17.1</div>
+      <div class="version">Logic Safety Net v0.17.2</div>
       <button class="settingsBtn" id="openSettingsBtn">Settings</button>
     </div>
   </div>
@@ -1495,6 +1519,17 @@
               <button class="dataHealthAction" id="restorePreImportBtn" style="display:none">Restore pre-import snapshot</button>
               <button class="dataHealthAction" id="exportRecoveryBtn" style="display:none">Export recovery copy</button>
             </div>
+          </div>
+          <div class="logicCheckCard">
+            <div class="logicCheckTop">
+              <div class="logicCheckTitle">Logic checks</div>
+              <div class="logicCheckScore" id="logicCheckScore">Not run</div>
+            </div>
+            <div class="logicCheckNote" id="logicCheckNote">Deterministic checks for schedules, wake overrides, commute math, time blocks, routines, migrations and backups.</div>
+            <div class="logicCheckActions">
+              <button class="logicCheckBtn" id="runLogicChecksBtn">Run checks</button>
+            </div>
+            <div class="logicFailures" id="logicFailures"></div>
           </div>
         </div>
       </div>
@@ -2353,9 +2388,8 @@
     }
   }
 
-  function migration1to2(){
-    const history=parseLoose(MEAL_HISTORY_KEY,{});
-    if(!isRecord(history)) return;
+  function migrateMealHistoryToSchema2(history){
+    if(!isRecord(history)) return {value:history,changed:false};
 
     let changed=false;
     Object.values(history).forEach(day=>{
@@ -2363,10 +2397,12 @@
       ['breakfast','lunch','dinner'].forEach(slot=>{
         const rec=day[slot];
         if(!isRecord(rec)) return;
+
         if(!Array.isArray(rec.actualItems)){
           rec.actualItems=[];
           changed=true;
         }
+
         if(rec.eatenMealId){
           if(!rec.actualItems.some(x=>x && x.kind==='meal' && x.mealId===rec.eatenMealId)){
             rec.actualItems.push({
@@ -2379,41 +2415,57 @@
           delete rec.eatenMealId;
           changed=true;
         }
+
         if(rec.plannedMealId===undefined){
           rec.plannedMealId=null;
           changed=true;
         }
       });
     });
-    if(changed) localStorage.setItem(MEAL_HISTORY_KEY,JSON.stringify(history));
+
+    return {value:history,changed};
+  }
+
+  function migration1to2(){
+    const history=parseLoose(MEAL_HISTORY_KEY,{});
+    const result=migrateMealHistoryToSchema2(history);
+    if(result.changed) localStorage.setItem(MEAL_HISTORY_KEY,JSON.stringify(result.value));
+  }
+
+  function migrateLiveDataToSchema3(blocks,defs){
+    let blocksChanged=false;
+    let defsChanged=false;
+
+    if(Array.isArray(blocks)){
+      blocks.forEach(item=>{
+        if(!isRecord(item)) return;
+        if(item.actualStart===undefined){item.actualStart=null;blocksChanged=true;}
+        if(item.actualEnd===undefined){item.actualEnd=null;blocksChanged=true;}
+        if(!item.status){
+          item.status=item.actualStart ? (item.actualEnd?'completed':'active') : 'planned';
+          blocksChanged=true;
+        }
+      });
+    }
+
+    if(Array.isArray(defs)){
+      defs.forEach(def=>{
+        if(!isRecord(def)) return;
+        if(def.active===undefined){def.active=true;defsChanged=true;}
+        if(!Array.isArray(def.items)){def.items=[];defsChanged=true;}
+      });
+    }
+
+    return {blocks,defs,blocksChanged,defsChanged};
   }
 
   function migration2to3(){
     const blocks=parseLoose(TIME_BLOCK_KEY,[]);
-    if(Array.isArray(blocks)){
-      let changed=false;
-      blocks.forEach(item=>{
-        if(!isRecord(item)) return;
-        if(item.actualStart===undefined){item.actualStart=null;changed=true;}
-        if(item.actualEnd===undefined){item.actualEnd=null;changed=true;}
-        if(!item.status){
-          item.status=item.actualStart ? (item.actualEnd?'completed':'active') : 'planned';
-          changed=true;
-        }
-      });
-      if(changed) localStorage.setItem(TIME_BLOCK_KEY,JSON.stringify(blocks));
-    }
-
     const defs=parseLoose(RHYTHM_KEY,[]);
-    if(Array.isArray(defs)){
-      let changed=false;
-      defs.forEach(def=>{
-        if(!isRecord(def)) return;
-        if(def.active===undefined){def.active=true;changed=true;}
-        if(!Array.isArray(def.items)){def.items=[];changed=true;}
-      });
-      if(changed) localStorage.setItem(RHYTHM_KEY,JSON.stringify(defs));
-    }
+    const result=migrateLiveDataToSchema3(blocks,defs);
+
+    if(result.blocksChanged) localStorage.setItem(TIME_BLOCK_KEY,JSON.stringify(result.blocks));
+    if(result.defsChanged) localStorage.setItem(RHYTHM_KEY,JSON.stringify(result.defs));
   }
 
   function migration3to4(){
@@ -3045,9 +3097,10 @@
       }));
 
     // Avoid duplicate if something is both scheduled today and deferred into today.
+    // Deferred is listed first, so it wins for that occurrence.
     const seen=new Set();
     return [...deferred,...direct].filter(item=>{
-      const key=item.def.id+'__'+item.source;
+      const key=item.def.id;
       if(seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -5760,7 +5813,7 @@
       format:'loochori-backup',
       schemaVersion:CURRENT_BACKUP_SCHEMA,
       storageSchemaVersion:CURRENT_STORAGE_SCHEMA,
-      appVersion:'0.17.1',
+      appVersion:'0.17.2',
       exportedAt:new Date().toISOString(),
       data
     };
@@ -5896,7 +5949,7 @@
     }
     triggerJsonDownload({
       format:'loochori-recovery',
-      appVersion:'0.17.1',
+      appVersion:'0.17.2',
       exportedAt:new Date().toISOString(),
       entries:recovery
     },`loochori-recovery-${iso(new Date())}.json`);
@@ -5920,6 +5973,365 @@
     });
 
     return days.size;
+  }
+
+
+  let latestLogicReport=null;
+
+  function diagnosticClone(value){
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function diagnosticEqual(actual,expected){
+    return JSON.stringify(actual)===JSON.stringify(expected);
+  }
+
+  function withDiagnosticState(fn){
+    const snapshot={
+      householdConfig,
+      dayReality,
+      exceptions,
+      timeBlocks,
+      rhythmDefs,
+      rhythmState
+    };
+
+    try{
+      householdConfig=defaultHouseholdConfig();
+      householdConfig.configured=true;
+      householdConfig.sleepTargetMinutes=450;
+
+      ['you','cori'].forEach(person=>{
+        householdConfig.people[person].offDayWake='06:00';
+        for(let d=0;d<7;d++) householdConfig.people[person].wakeByWeekday[d]='06:00';
+        householdConfig.people[person].usualSleepStart='22:30';
+        householdConfig.people[person].commute.outbound.plan=0;
+        householdConfig.people[person].commute.inbound.plan=0;
+      });
+
+      dayReality={};
+      exceptions=[];
+      timeBlocks=[];
+      rhythmDefs=[];
+      rhythmState={};
+
+      return fn();
+    }finally{
+      householdConfig=snapshot.householdConfig;
+      dayReality=snapshot.dayReality;
+      exceptions=snapshot.exceptions;
+      timeBlocks=snapshot.timeBlocks;
+      rhythmDefs=snapshot.rhythmDefs;
+      rhythmState=snapshot.rhythmState;
+    }
+  }
+
+  function runLogicDiagnostics(){
+    const results=[];
+    const failures=[];
+
+    function check(name,fn){
+      try{
+        const pass=Boolean(fn());
+        results.push({name,pass});
+        if(!pass) failures.push({name,error:'Expected condition was false.'});
+      }catch(error){
+        results.push({name,pass:false});
+        failures.push({name,error:String(error?.message || error)});
+      }
+    }
+
+    withDiagnosticState(()=>{
+      const monday=new Date(2026,9,12);
+      const saturday=new Date(2026,9,10);
+      const mondayStr=iso(monday);
+      const saturdayStr=iso(saturday);
+
+      // Basic time/date primitives.
+      check('time conversion 09:30 → 570',()=>timeToMin('09:30')===570);
+      check('date ISO round trip',()=>iso(parseISO('2026-10-12'))==='2026-10-12');
+      check('addDays crosses month boundaries',()=>iso(addDays(parseISO('2026-10-31'),1))==='2026-11-01');
+      check('date range includes boundaries',()=>inRange('2026-10-12','2026-10-12','2026-12-31'));
+
+      // Config normalization.
+      check('default sleep target is 7.5 hours',()=>defaultHouseholdConfig().sleepTargetMinutes===450);
+      check('config trims names',()=>{
+        const cfg=normalizeHouseholdConfig({people:{you:{name:'  Me  '},cori:{name:'  Them '}}});
+        return cfg.people.you.name==='Me' && cfg.people.cori.name==='Them';
+      });
+      check('negative commute normalizes to zero',()=>{
+        const cfg=normalizeHouseholdConfig({people:{you:{commute:{outbound:{plan:-9},inbound:{plan:-4}}},cori:{}}});
+        return cfg.people.you.commute.outbound.plan===0 && cfg.people.you.commute.inbound.plan===0;
+      });
+      check('temporary rule weekdays are filtered',()=>{
+        const cfg=normalizeHouseholdConfig({
+          people:{you:{},cori:{}},
+          temporaryRules:[{
+            id:'x',person:'you',label:'x',startDate:'2026-10-01',endDate:'2026-10-31',
+            weekdays:[-1,1,2,8],replacement:null
+          }]
+        });
+        return diagnosticEqual(cfg.temporaryRules[0].weekdays,[1,2]);
+      });
+
+      // Schedule precedence.
+      householdConfig.people.you.baseline[1]={start:'09:00',end:'17:00'};
+      check('baseline work schedule resolves',()=>{
+        const s=getSchedule('you',monday);
+        return s.source==='baseline' && s.shift.start==='09:00' && s.shift.end==='17:00';
+      });
+
+      householdConfig.temporaryRules=[{
+        id:'leave',person:'you',label:'Leave',
+        startDate:'2026-10-01',endDate:'2026-10-31',
+        weekdays:[1],replacement:null
+      }];
+      check('temporary rule overrides baseline',()=>{
+        const s=getSchedule('you',monday);
+        return s.source==='temporary' && s.shift===null;
+      });
+
+      exceptions=[{
+        person:'you',date:mondayStr,type:'work',
+        start:'11:00',end:'15:00',label:'Special shift'
+      }];
+      check('exact exception overrides temporary rule',()=>{
+        const s=getSchedule('you',monday);
+        return s.source==='exception' && s.shift.start==='11:00' && s.shift.end==='15:00';
+      });
+
+      exceptions=[{person:'you',date:mondayStr,type:'off',label:'Actually off'}];
+      check('exact off exception resolves to no shift',()=>{
+        const s=getSchedule('you',monday);
+        return s.source==='exception' && s.shift===null;
+      });
+
+      exceptions=[];
+      householdConfig.temporaryRules=[{
+        id:'tempwork',person:'you',label:'Temporary shift',
+        startDate:'2026-10-01',endDate:'2026-10-31',
+        weekdays:[1],replacement:{start:'10:00',end:'14:00'}
+      }];
+      check('temporary work replacement resolves',()=>{
+        const s=getSchedule('you',monday);
+        return s.source==='temporary' && s.shift.start==='10:00' && s.shift.end==='14:00';
+      });
+
+      // Wake reality.
+      householdConfig.temporaryRules=[];
+      householdConfig.people.you.baseline[1]={start:'09:00',end:'17:00'};
+      householdConfig.people.you.wakeByWeekday[1]='07:30';
+      householdConfig.people.you.offDayWake='09:15';
+      check('workday wake uses weekday plan',()=>getWakeMinutes('you',monday)===450);
+      check('off-day wake uses off-day plan',()=>getWakeMinutes('you',saturday)===555);
+
+      dayReality={[mondayStr]:{you:{wake:'06:42'}}};
+      check('observed wake overrides planned wake',()=>getWakeMinutes('you',monday)===402);
+      dayReality={};
+
+      // Work and commute state.
+      householdConfig.people.you.baseline[1]={start:'09:00',end:'17:00'};
+      householdConfig.people.you.wakeByWeekday[1]='06:00';
+      householdConfig.people.you.commute.outbound={plan:25,label:'Bus'};
+      householdConfig.people.you.commute.inbound={plan:35,label:'Bus'};
+      const commutes=commuteBlocks('you',monday);
+
+      check('outbound commute ends at work start',()=>commutes[0].start===515 && commutes[0].end===540);
+      check('homebound commute starts at work end',()=>commutes[1].start===1020 && commutes[1].end===1055);
+      check('person state identifies commute',()=>personState('you',monday,520).type==='commute');
+      check('person state identifies work',()=>personState('you',monday,600).type==='work');
+      check('person state returns home after commute',()=>personState('you',monday,1080).type==='home');
+      check('home arrival includes commute',()=>homeArrivalMinute('you',monday)===1055);
+
+      // Time blocks.
+      const planned={
+        id:'planned',title:'Plan',date:mondayStr,start:'12:00',end:'14:00',
+        person:'you',actualStart:null,actualEnd:null,status:'planned'
+      };
+      const actual={
+        id:'actual',title:'Actual',date:mondayStr,start:'12:00',end:'14:00',
+        person:'you',actualStart:'11:40',actualEnd:'14:25',status:'completed'
+      };
+      const active={
+        id:'active',title:'Active',date:mondayStr,start:'12:00',end:'14:00',
+        person:'you',actualStart:'11:50',actualEnd:null,status:'active'
+      };
+      const canceled={
+        id:'cancel',title:'Canceled',date:mondayStr,start:'15:00',end:'16:00',
+        person:'you',actualStart:null,actualEnd:null,status:'canceled'
+      };
+
+      check('planned block status is planned',()=>timeBlockStatus(planned)==='planned');
+      check('actual start without end is active',()=>timeBlockStatus(active)==='active');
+      check('actual start/end is completed',()=>timeBlockStatus(actual)==='completed');
+      check('canceled block status is canceled',()=>timeBlockStatus(canceled)==='canceled');
+      check('planned block uses planned bounds',()=>diagnosticEqual(timeBlockBounds(planned,monday),{start:720,end:840}));
+      check('completed block uses actual bounds',()=>diagnosticEqual(timeBlockBounds(actual,monday),{start:700,end:865}));
+      check('canceled block has no timeline bounds',()=>timeBlockBounds(canceled,monday)===null);
+      check('both-person block applies to each person',()=>{
+        const both={...planned,person:'both'};
+        return timeBlockAppliesTo(both,'you') && timeBlockAppliesTo(both,'cori');
+      });
+
+      timeBlocks=[actual,canceled];
+      check('timeBlockAt follows actual timing',()=>timeBlockAt('you',monday,710)?.id==='actual');
+      check('canceled block never occupies time',()=>timeBlockAt('you',monday,930)===null);
+
+      // Routine recurrence + bundles.
+      const simple={id:'simple',name:'Simple',weekdays:[1],daypart:'anytime',active:true,items:[]};
+      const paused={id:'paused',name:'Paused',weekdays:[1],daypart:'anytime',active:false,items:[]};
+      const bundle={
+        id:'reset',name:'Reset',weekdays:[1],daypart:'morning',active:true,
+        items:[
+          {id:'dishes',text:'Dishes'},
+          {id:'laundry',text:'Laundry'},
+          {id:'vacuum',text:'Vacuum'}
+        ]
+      };
+
+      check('plain routine is not a bundle',()=>!isRoutineBundle(simple));
+      check('checklist routine is a bundle',()=>isRoutineBundle(bundle));
+
+      rhythmDefs=[simple,paused,bundle];
+      rhythmState={};
+      let occurrences=routineOccurrencesForDate(monday);
+      check('active scheduled routine appears',()=>occurrences.some(x=>x.def.id==='simple'));
+      check('paused routine is excluded',()=>!occurrences.some(x=>x.def.id==='paused'));
+
+      rhythmState={
+        [rhythmOccurrenceKey('reset',mondayStr)]:{
+          status:'pending',
+          items:{
+            dishes:{status:'done'},
+            laundry:{status:'in_progress'},
+            vacuum:{status:'deferred',deferTo:'2026-10-13'}
+          }
+        }
+      };
+      const p=bundleProgress(bundle,mondayStr);
+      check('bundle progress counts done + deferred as resolved',()=>p.total===3 && p.resolved===2);
+      check('bundle progress counts in-progress separately',()=>p.inProgress===1);
+      check('deferred checklist item appears on target date',()=>{
+        const moved=deferredBundleItemsIntoDate('2026-10-13');
+        return moved.length===1 && moved[0].item.id==='vacuum';
+      });
+
+      rhythmDefs=[simple];
+      rhythmState={
+        [rhythmOccurrenceKey('simple',mondayStr)]:{
+          status:'deferred',
+          deferTo:'2026-10-19',
+          originalDate:mondayStr
+        }
+      };
+      const target=parseISO('2026-10-19');
+      occurrences=routineOccurrencesForDate(target);
+      check('whole deferred routine appears on target date',()=>occurrences.some(x=>x.def.id==='simple' && x.source==='deferred'));
+      check('deferred routine does not duplicate scheduled occurrence',()=>occurrences.filter(x=>x.def.id==='simple').length===1);
+
+      // Pure migration transforms.
+      const oldMeal={
+        '2026-10-10':{
+          lunch:{plannedMealId:undefined,eatenMealId:'burger'}
+        }
+      };
+      const mealMigration=migrateMealHistoryToSchema2(diagnosticClone(oldMeal));
+      check('meal migration creates actualItems',()=>Array.isArray(mealMigration.value['2026-10-10'].lunch.actualItems));
+      check('meal migration moves legacy eatenMealId into actual item',()=>{
+        const rec=mealMigration.value['2026-10-10'].lunch;
+        return !('eatenMealId' in rec) && rec.actualItems.some(x=>x.mealId==='burger');
+      });
+      check('meal migration supplies plannedMealId',()=>mealMigration.value['2026-10-10'].lunch.plannedMealId===null);
+
+      const oldBlocks=[{
+        id:'b',title:'Thing',date:'2026-10-10',start:'10:00',end:'11:00',person:'you'
+      }];
+      const oldDefs=[{id:'r',name:'Reset',weekdays:[6],daypart:'morning'}];
+      const liveMigration=migrateLiveDataToSchema3(diagnosticClone(oldBlocks),diagnosticClone(oldDefs));
+      check('time-block migration adds live-day fields',()=>{
+        const b=liveMigration.blocks[0];
+        return b.actualStart===null && b.actualEnd===null && b.status==='planned';
+      });
+      check('routine migration adds active + items fields',()=>{
+        const r=liveMigration.defs[0];
+        return r.active===true && Array.isArray(r.items);
+      });
+
+      // Backup validation / serialization.
+      const validBackup={
+        format:'loochori-backup',
+        schemaVersion:CURRENT_BACKUP_SCHEMA,
+        storageSchemaVersion:CURRENT_STORAGE_SCHEMA,
+        data:{
+          [OPEN_LOOP_KEY]:[
+            {id:'x',text:'remember this',createdAt:'2026-10-10T10:00:00Z',status:'active'}
+          ]
+        }
+      };
+      check('valid backup payload is accepted',()=>validateBackupPayload(validBackup).ok===true);
+      check('backup survives JSON serialization',()=>{
+        const copy=JSON.parse(JSON.stringify(validBackup));
+        return validateBackupPayload(copy).ok===true && copy.data[OPEN_LOOP_KEY][0].text==='remember this';
+      });
+      check('future storage schema backup is rejected',()=>{
+        const future={...validBackup,storageSchemaVersion:CURRENT_STORAGE_SCHEMA+1};
+        return validateBackupPayload(future).ok===false;
+      });
+      check('malformed time-block backup is rejected',()=>{
+        const bad={
+          format:'loochori-backup',
+          storageSchemaVersion:CURRENT_STORAGE_SCHEMA,
+          data:{[TIME_BLOCK_KEY]:[{id:'x',title:'Bad',date:'nope',start:'10:00',end:'11:00',person:'you'}]}
+        };
+        return validateBackupPayload(bad).ok===false;
+      });
+      check('valid check-in store shape passes',()=>validateStoreValue(CHECKIN_STORAGE_KEY,[
+        {date:'2026-10-10',mood:4,energy:3,timestamp:'2026-10-10T12:00:00Z'}
+      ]));
+      check('invalid check-in range fails',()=>!validateStoreValue(CHECKIN_STORAGE_KEY,[
+        {date:'2026-10-10',mood:9,energy:3,timestamp:'2026-10-10T12:00:00Z'}
+      ]));
+    });
+
+    latestLogicReport={
+      total:results.length,
+      passed:results.filter(x=>x.pass).length,
+      failures,
+      ranAt:new Date().toISOString()
+    };
+    renderLogicDiagnostics();
+    return latestLogicReport;
+  }
+
+  function renderLogicDiagnostics(){
+    if(!$('logicCheckScore')) return;
+
+    if(!latestLogicReport){
+      $('logicCheckScore').textContent='Not run';
+      $('logicCheckScore').className='logicCheckScore';
+      $('logicCheckNote').textContent='Deterministic checks for schedules, wake overrides, commute math, time blocks, routines, migrations and backups.';
+      $('logicFailures').classList.remove('show');
+      $('logicFailures').innerHTML='';
+      return;
+    }
+
+    const allPassed=latestLogicReport.passed===latestLogicReport.total;
+    $('logicCheckScore').textContent=`${latestLogicReport.passed}/${latestLogicReport.total} passed`;
+    $('logicCheckScore').className='logicCheckScore'+(allPassed?'':' warn');
+    $('logicCheckNote').textContent=allPassed
+      ? 'Core causal logic is behaving as expected.'
+      : 'One or more checks failed. Your stored data was not modified by these tests.';
+
+    const failures=$('logicFailures');
+    failures.innerHTML='';
+    failures.classList.toggle('show',!allPassed);
+
+    latestLogicReport.failures.forEach(failure=>{
+      const row=document.createElement('div');
+      row.className='logicFailure';
+      row.textContent=`${failure.name}: ${failure.error}`;
+      failures.appendChild(row);
+    });
   }
 
   function renderDataHealth(){
@@ -6094,6 +6506,7 @@
     renderMonth();
   });
 
+  $('runLogicChecksBtn').addEventListener('click',runLogicDiagnostics);
   $('restorePreImportBtn').addEventListener('click',restorePreImportSnapshot);
   $('exportRecoveryBtn').addEventListener('click',exportRecoveryCopy);
 
@@ -6182,6 +6595,7 @@ document.querySelectorAll('[data-jump]').forEach(btn=>{
   }, 60000);
 
   renderHouseholdLabels();
+  runLogicDiagnostics();
   renderAll();
 })();
 </script>

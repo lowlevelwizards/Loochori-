@@ -27,6 +27,20 @@ jobs:
       - name: Apply Plan Today patch
         run: python tools/apply_v0182.py
 
+      - name: Expose planner order in debug snapshot
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('index.html')
+          text = path.read_text()
+          old = """        score:candidate.adaptiveScore,\n        intent:Boolean(candidate.intent)\n      }))"""
+          new = """        score:candidate.adaptiveScore,\n        intent:Boolean(candidate.intent),\n        intentOrder:candidate.intent ? Number(candidate.intentOrder)||0 : null\n      }))"""
+          if text.count(old) != 1:
+              raise SystemExit(f'adaptive debug snapshot anchor count: {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Validate JavaScript
         shell: bash
         run: |

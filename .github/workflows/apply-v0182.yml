@@ -25,20 +25,39 @@ jobs:
           node-version: 20
 
       - name: Apply Plan Today patch
-        run: python tools/apply_v0182.py
+        shell: bash
+        run: |
+          if grep -q 'Plan Today v0.18.2' index.html; then
+            echo 'Plan Today implementation already applied.'
+          else
+            python tools/apply_v0182.py
+          fi
 
-      - name: Expose planner order in debug snapshot
+      - name: Normalize planner contract
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
-          path = Path('index.html')
-          text = path.read_text()
-          old = """        score:candidate.adaptiveScore,\n        intent:Boolean(candidate.intent)\n      }))"""
-          new = """        score:candidate.adaptiveScore,\n        intent:Boolean(candidate.intent),\n        intentOrder:candidate.intent ? Number(candidate.intentOrder)||0 : null\n      }))"""
-          if text.count(old) != 1:
-              raise SystemExit(f'adaptive debug snapshot anchor count: {text.count(old)}')
-          path.write_text(text.replace(old, new, 1))
+
+          index_path = Path('index.html')
+          html = index_path.read_text()
+          old_snapshot = """        score:candidate.adaptiveScore,\n        intent:Boolean(candidate.intent)\n      }))"""
+          new_snapshot = """        score:candidate.adaptiveScore,\n        intent:Boolean(candidate.intent),\n        intentOrder:candidate.intent ? Number(candidate.intentOrder)||0 : null\n      }))"""
+          if new_snapshot not in html:
+              if html.count(old_snapshot) != 1:
+                  raise SystemExit(f'adaptive debug snapshot anchor count: {html.count(old_snapshot)}')
+              html = html.replace(old_snapshot, new_snapshot, 1)
+          index_path.write_text(html)
+
+          test_path = Path('tests/boot-smoke.mjs')
+          test = test_path.read_text()
+          old_carry = """  const keepCarry = page.locator('#carryoverPanel .carryoverItem').filter({ hasText: 'Smoke carryover loop' }).getByRole('button', { name: 'Keep today' });\n  await keepCarry.click();\n  await page.waitForFunction(() =>\n    Array.from(document.querySelectorAll('#todayShortlist .todayShortlistTitle')).some(node => node.textContent?.includes('Smoke carryover loop'))\n  );\n  intentState = await page.evaluate(() => JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}'));"""
+          new_carry = """  const keepCarry = page.locator('#carryoverPanel .carryoverItem').filter({ hasText: 'Smoke carryover loop' }).getByRole('button', { name: 'Keep today' });\n  await keepCarry.click();\n  await page.waitForFunction(() => {\n    const state = JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}');\n    return Object.values(state).flat().some(item => item.refId === 'loop_carry' && item.carriedFrom);\n  });\n  assert((await text('#todayShortlistMore')).includes('more chosen for today'), 'overflow shortlist count did not reflect kept carryover');\n  intentState = await page.evaluate(() => JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}'));"""
+          if new_carry not in test:
+              if test.count(old_carry) != 1:
+                  raise SystemExit(f'carryover smoke anchor count: {test.count(old_carry)}')
+              test = test.replace(old_carry, new_carry, 1)
+          test_path.write_text(test)
           PY
 
       - name: Validate JavaScript
@@ -84,6 +103,10 @@ jobs:
       - name: Commit implementation
         shell: bash
         run: |
+          if git diff --quiet -- index.html tests/boot-smoke.mjs; then
+            echo 'No implementation changes to commit.'
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html tests/boot-smoke.mjs

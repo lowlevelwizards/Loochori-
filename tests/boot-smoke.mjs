@@ -41,18 +41,21 @@ await page.addInitScript(() => {
     }
   });
 
+  // These keys intentionally mirror the production constants in index.html.
+  // App metadata pins the fixture to the current storage schema so this is a
+  // boot/render contract rather than a migration test.
   const stores = {
-    loochoriScheduleExceptionsV1: [],
-    loochoriCareV1: { [today]: { brush: [true, false] } },
-    loochoriCheckinsV1: {},
-    loochoriMealLibraryV1: [{ id: 'meal_smoke', name: 'Smoke Pasta' }],
-    loochoriMealHistoryV1: {
+    loochori_schedule_exceptions: [],
+    loochori_daily_care_v1: { [today]: { brush_am: [true] } },
+    loochori_checkins_v1: [],
+    loochori_meal_library_v1: [{ id: 'meal_smoke', name: 'Smoke Pasta' }],
+    loochori_meal_history_v1: {
       [today]: {
         dinner: { plannedMealId: 'meal_smoke', eatenMealId: null, actualItems: [] }
       }
     },
-    loochoriOpenLoopsV1: [],
-    loochoriRhythmV1: [{
+    loochori_open_loops_v1: [],
+    loochori_weekly_rhythm_v1: [{
       id: 'routine_smoke',
       name: 'Smoke Reset',
       weekdays: [weekday],
@@ -63,8 +66,8 @@ await page.addInitScript(() => {
         { id: 'smoke_item_2', text: 'Smoke checklist two' }
       ]
     }],
-    loochoriRhythmStateV1: {},
-    loochoriTimeBlocksV1: [{
+    loochori_weekly_rhythm_state_v1: {},
+    loochori_time_blocks_v1: [{
       id: 'block_smoke',
       title: 'Smoke Focus',
       date: today,
@@ -72,8 +75,8 @@ await page.addInitScript(() => {
       end: '10:30',
       person: 'you'
     }],
-    loochoriTimeBlockLibraryV1: [],
-    loochoriHouseholdConfigV1: {
+    loochori_time_block_library_v1: [],
+    loochori_household_config_v1: {
       version: 1,
       configured: true,
       sleepTargetMinutes: 450,
@@ -83,7 +86,8 @@ await page.addInitScript(() => {
       },
       temporaryRules: []
     },
-    loochoriDayRealityV1: {}
+    loochori_day_reality_v1: {},
+    loochori_app_meta_v1: { storageSchemaVersion: 4 }
   };
 
   for (const [key, value] of Object.entries(stores)) {
@@ -115,15 +119,15 @@ try {
   assert(bodyText.includes('Smoke You'), 'seeded household setup did not render');
 
   const storesSurvived = await page.evaluate(() => ({
-    meal: JSON.parse(localStorage.getItem('loochoriMealLibraryV1') || '[]').some(item => item.id === 'meal_smoke'),
-    routine: JSON.parse(localStorage.getItem('loochoriRhythmV1') || '[]').some(item => item.id === 'routine_smoke'),
-    block: JSON.parse(localStorage.getItem('loochoriTimeBlocksV1') || '[]').some(item => item.id === 'block_smoke'),
-    care: JSON.parse(localStorage.getItem('loochoriCareV1') || '{}')
+    meal: JSON.parse(localStorage.getItem('loochori_meal_library_v1') || '[]').some(item => item.id === 'meal_smoke'),
+    routine: JSON.parse(localStorage.getItem('loochori_weekly_rhythm_v1') || '[]').some(item => item.id === 'routine_smoke'),
+    block: JSON.parse(localStorage.getItem('loochori_time_blocks_v1') || '[]').some(item => item.id === 'block_smoke'),
+    care: JSON.parse(localStorage.getItem('loochori_daily_care_v1') || '{}')
   }));
   assert.equal(storesSurvived.meal, true, 'meal fixture disappeared from storage');
   assert.equal(storesSurvived.routine, true, 'routine fixture disappeared from storage');
   assert.equal(storesSurvived.block, true, 'time-block fixture disappeared from storage');
-  assert(Object.values(storesSurvived.care).some(day => day?.brush?.[0] === true), 'care fixture disappeared from storage');
+  assert(Object.values(storesSurvived.care).some(day => day?.brush_am?.[0] === true), 'care fixture disappeared from storage');
 
   await page.locator('#openSettingsBtn').click();
   await page.waitForFunction(() => document.getElementById('householdSettingsModal')?.classList.contains('open'));
@@ -155,8 +159,7 @@ try {
 
   assert.deepEqual(pageErrors, [], `uncaught browser errors after interactions:\n${pageErrors.join('\n')}`);
 
-  // Console errors are not automatically fatal because the app intentionally reports
-  // isolated recovery/diagnostic failures there. A healthy smoke run should have none.
+  // A healthy smoke run should not need the app's recovery/error channels.
   assert.deepEqual(consoleErrors, [], `browser console errors:\n${consoleErrors.join('\n')}`);
 
   console.log('Loochori boot contract passed.');

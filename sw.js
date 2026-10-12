@@ -32,6 +32,45 @@ async function notifyClients(message){
   return windows;
 }
 
+async function loadPushConfig(){
+  try{
+    const response=await fetch(new URL('./push-config.json',self.registration.scope).href,{cache:'no-store'});
+    if(!response.ok) return null;
+    const config=await response.json();
+    const serviceBaseUrl=typeof config?.serviceBaseUrl==='string' ? config.serviceBaseUrl.trim().replace(/\/$/,'') : '';
+    return serviceBaseUrl ? {serviceBaseUrl} : null;
+  }catch(_error){
+    return null;
+  }
+}
+
+async function snoozeRemotePush(data,minutes=90){
+  const config=await loadPushConfig();
+  if(!config || !data?.deviceId || !data?.pushId) return false;
+  const dueAt=new Date(Date.now()+minutes*60000).toISOString();
+  try{
+    const response=await fetch(`${config.serviceBaseUrl}/api/push/snooze`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        deviceId:data.deviceId,
+        event:{
+          id:data.pushId,
+          dueAt,
+          title:data.title || 'Loochori',
+          body:data.body || '',
+          tag:data.tag || data.pushId,
+          kind:data.kind || 'nudge',
+          action:data.action || null
+        }
+      })
+    });
+    return response.ok;
+  }catch(_error){
+    return false;
+  }
+}
+
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
 });
@@ -52,6 +91,22 @@ self.addEventListener('fetch',event=>{
   if(request.method!=='GET') return;
   const url=new URL(request.url);
   if(url.origin!==self.location.origin) return;
+
+  if(url.pathname.endsWith('/push-config.json')){
+    event.respondWith((async()=>{
+      try{
+        const response=await fetch(request);
+        if(response?.ok){
+          const cache=await caches.open(CACHE_NAME);
+          await cache.put(request,response.clone());
+        }
+        return response;
+      }catch(_error){
+        return (await caches.match(request)) || new Response('{"version":1,"serviceBaseUrl":""}',{headers:{'Content-Type':'application/json'}});
+      }
+    })());
+    return;
+  }
 
   if(request.mode==='navigate'){
     event.respondWith((async()=>{
@@ -99,7 +154,11 @@ self.addEventListener('push',event=>{
       actions,
       data:{
         url:payload.url || './',
+        deviceId:payload.deviceId || null,
         pushId:payload.id || null,
+        title:payload.title || 'Loochori',
+        body:payload.body || '',
+        tag:payload.tag || payload.id || 'loochori-push',
         kind:payload.kind || 'nudge',
         action
       }
@@ -113,6 +172,7 @@ self.addEventListener('notificationclick',event=>{
     const data=event.notification.data || {};
     const choice=event.action || 'open';
     if(choice==='done' || choice==='later'){
+      if(choice==='later') await snoozeRemotePush(data,90);
       const entry={
         id:`push_action_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
         createdAt:new Date().toISOString(),
@@ -122,8 +182,7 @@ self.addEventListener('notificationclick',event=>{
         action:data.action || null
       };
       await queueAction(entry);
-      const windows=await notifyClients({type:'loochori-push-action',entry});
-      if(windows.length) return;
+      await notifyClients({type:'loochori-push-action',entry});
       return;
     }
 

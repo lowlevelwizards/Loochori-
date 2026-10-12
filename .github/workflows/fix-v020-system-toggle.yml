@@ -1,0 +1,61 @@
+name: Fix v0.20 system nudge toggle
+
+on:
+  push:
+    branches: [feature/pocket-loochori-v0.20.0]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/pocket-loochori-v0.20.0
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply toggle fix
+        run: python tools/fix_v020_system_toggle.py
+      - name: Validate JavaScript
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html=Path('index.html').read_text()
+          Path('/tmp/app.js').write_text('\n'.join(re.findall(r'<script>(.*?)</script>',html,flags=re.S)))
+          PY
+          node --check /tmp/app.js
+          node --check tests/boot-smoke.mjs
+          git diff --check
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start server
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/http.log 2>&1 &
+          for i in {1..30}; do curl -fsS http://127.0.0.1:4173/index.html >/dev/null && exit 0; sleep .25; done
+          cat /tmp/http.log; exit 1
+      - name: Run browser contract
+        env:
+          LOOCHORI_TEST_URL: http://127.0.0.1:4173/index.html
+        run: node tests/boot-smoke.mjs
+      - name: Commit fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -rf node_modules package-lock.json package.json
+          rm -f tools/fix_v020_system_toggle.py .github/workflows/fix-v020-system-toggle.yml
+          git add -A
+          git commit -m "Refine Pocket notification controls"
+          git push origin HEAD:feature/pocket-loochori-v0.20.0

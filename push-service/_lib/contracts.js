@@ -18,6 +18,7 @@ export function cleanEvent(event,{maxHours=48,minLeadMinutes=1}={}){
   const action=event.action && typeof event.action==='object' && !Array.isArray(event.action)
     ? JSON.parse(JSON.stringify(event.action))
     : null;
+  const snoozeMinutes=Math.max(0,Math.min(180,Math.round(Number(event.snoozeMinutes)||0)));
   return {
     id:event.id.slice(0,160),
     dueAt:new Date(due).toISOString(),
@@ -25,7 +26,8 @@ export function cleanEvent(event,{maxHours=48,minLeadMinutes=1}={}){
     body:String(event.body||'').slice(0,240),
     tag:String(event.tag||event.id).slice(0,160),
     kind:String(event.kind||'nudge').slice(0,60),
-    action
+    action,
+    snoozeMinutes
   };
 }
 

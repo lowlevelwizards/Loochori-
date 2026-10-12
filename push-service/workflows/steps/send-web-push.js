@@ -3,7 +3,7 @@ import webpush from 'web-push';
 function configureWebPush(){
   const publicKey=String(process.env.VAPID_PUBLIC_KEY||'');
   const privateKey=String(process.env.VAPID_PRIVATE_KEY||'');
-  const subject=String(process.env.VAPID_SUBJECT||'mailto:loochori@example.com');
+  const subject=String(process.env.VAPID_SUBJECT||'https://lowlevelwizards.github.io/Loochori-/');
   if(!publicKey || !privateKey) throw new Error('VAPID is not configured');
   webpush.setVapidDetails(subject,publicKey,privateKey);
 }
@@ -20,6 +20,7 @@ export async function sendWebPush(input){
       tag:input.event.tag,
       kind:input.event.kind,
       action:input.event.action||null,
+      snoozeMinutes:Number(input.event.snoozeMinutes)||0,
       url:'./'
     }),{
       TTL:3600,

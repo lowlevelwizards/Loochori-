@@ -5,6 +5,7 @@ on:
     branches: [feature/reliable-push-v0.21.0]
     paths:
       - tools/apply_v0210.py
+      - tools/run_v0210.py
       - .github/workflows/apply-v0210-push.yml
   workflow_dispatch:
 
@@ -23,7 +24,7 @@ jobs:
         with:
           node-version: 20
       - name: Apply Reliable Push patch
-        run: python tools/apply_v0210.py
+        run: python tools/run_v0210.py
       - name: Validate JavaScript
         shell: bash
         run: |

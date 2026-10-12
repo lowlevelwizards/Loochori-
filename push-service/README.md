@@ -1,29 +1,36 @@
 # Loochori reliable push bridge
 
-This small service exists only to wake an installed Loochori PWA for a handful of high-value reminders while the app is fully closed. Household history remains in the browser. The bridge stores only a Web Push subscription plus a short (max 48-hour) schedule envelope.
+This tiny service exists only to wake an installed Loochori PWA for a handful of high-value reminders while the app is fully closed. Household history remains in the browser.
+
+The bridge does not poll a database or run a frequent cron. Each eligible notification becomes a short-lived Vercel Workflow run that sleeps durably until its delivery time and then sends one Web Push message. When the local plan changes, Loochori sends the current schedule and the Workflow run IDs it already knows about so obsolete runs can be cancelled.
 
 ## Deploy
 
-Use this `push-service/` directory as the Vercel project root. Provision an Upstash Redis database and set these environment variables:
+Use this `push-service/` directory as the Vercel project root. Set these environment variables:
 
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
 - `VAPID_PUBLIC_KEY`
 - `VAPID_PRIVATE_KEY`
-- `VAPID_SUBJECT` (for example `mailto:you@example.com`)
-- `CRON_SECRET`
-- `ALLOWED_ORIGIN` (for Loochori on GitHub Pages this is the page origin, e.g. `https://lowlevelwizards.github.io`)
+- `VAPID_SUBJECT` — a `mailto:` or `https:` URI identifying the sender
+- `ALLOWED_ORIGIN` — the Loochori GitHub Pages origin, for example `https://lowlevelwizards.github.io`
 
-Generate a VAPID pair after `npm install` with:
+Generate a VAPID key pair after `npm install` with:
 
 ```bash
 node scripts/generate-vapid.js
 ```
 
-Vercel Cron calls `/api/push/cron` every five minutes. The endpoint requires `Authorization: Bearer $CRON_SECRET`.
+Then deploy the project and verify `/api/push/health` returns `{ "ok": true }`.
 
-After deployment, put the service origin (no trailing slash) into the root `push-config.json` file as `serviceBaseUrl`.
+After deployment, put the service origin (no trailing slash) into the repository-root `push-config.json` file as `serviceBaseUrl`.
+
+## Routes
+
+- `GET /api/push/health` — deployment/configuration check
+- `GET /api/push/public-key` — returns the public VAPID key to the installed PWA
+- `POST /api/push/register` — starts durable Workflow runs for the next local notification envelope and cancels previously known runs
+- `POST /api/push/unregister` — cancels known Workflow runs when closed-app push is disabled
+- `POST /api/push/snooze` — starts one replacement Workflow run when a notification is snoozed with Later
 
 ## Privacy boundary
 
-The bridge never receives care history, routines, meals, check-ins, household configuration, or learned-rhythm history. Loochori converts local context into a small list of future notification envelopes before upload. Device records expire from Redis after three days unless refreshed.
+The bridge never receives care history, routines, meals, check-ins, household configuration, or learned-rhythm history. The client converts local context into at most a small 48-hour set of notification envelopes and sends only those envelopes plus the device Web Push subscription. Workflow run IDs are kept on the device so future local changes can cancel obsolete deliveries.

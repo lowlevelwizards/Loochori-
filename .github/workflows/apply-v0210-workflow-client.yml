@@ -1,0 +1,68 @@
+name: Apply v0.21 Workflow Push Client
+
+on:
+  push:
+    branches: [feature/reliable-push-v0.21.0]
+    paths:
+      - tools/apply_v0210_workflow_client.py
+      - .github/workflows/apply-v0210-workflow-client.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/reliable-push-v0.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply Workflow push client patch
+        run: python tools/apply_v0210_workflow_client.py
+      - name: Parse app JavaScript
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html=Path('index.html').read_text()
+          scripts=re.findall(r'<script>(.*?)</script>',html,flags=re.S)
+          Path('/tmp/loochori-inline.js').write_text('\n'.join(scripts))
+          PY
+          node --check /tmp/loochori-inline.js
+          node --check sw.js
+          node --check tests/boot-smoke.mjs
+          git diff --check
+      - name: Build push bridge
+        working-directory: push-service
+        run: |
+          npm install
+          npm run build
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start app server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/loochori-http.log 2>&1 &
+          for i in {1..30}; do curl -fsS http://127.0.0.1:4173/index.html >/dev/null && exit 0; sleep .25; done
+          cat /tmp/loochori-http.log
+          exit 1
+      - name: Run browser contract
+        env:
+          LOOCHORI_TEST_URL: http://127.0.0.1:4173/index.html
+        run: node tests/boot-smoke.mjs
+      - name: Commit client patch only
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Use durable Workflow run tracking for Reliable Push'
+          git push origin HEAD:feature/reliable-push-v0.21.0

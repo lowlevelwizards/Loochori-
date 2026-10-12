@@ -14,7 +14,7 @@ jobs:
   boot-smoke:
     name: Boot contract
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
@@ -23,7 +23,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Parse app JavaScript
         shell: bash
@@ -42,15 +42,20 @@ jobs:
           node --check sw.js
           node --check tests/boot-smoke.mjs
 
-      - name: Validate reliable push bridge
+      - name: Validate reliable push bridge source
         shell: bash
         run: |
           node -e "JSON.parse(require('fs').readFileSync('push-config.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('push-service/package.json','utf8'))"
-          node -e "JSON.parse(require('fs').readFileSync('push-service/vercel.json','utf8'))"
-          for file in push-service/_lib/*.js push-service/api/push/*.js push-service/scripts/*.js; do
+          for file in push-service/_lib/*.js push-service/workflows/*.js push-service/workflows/steps/*.js push-service/scripts/*.js; do
             node --check "$file"
           done
+
+      - name: Build reliable push bridge
+        working-directory: push-service
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
 
       - name: Install Chromium test runtime
         shell: bash

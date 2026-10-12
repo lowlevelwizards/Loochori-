@@ -9222,6 +9222,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     $('pocketInstallStatus').textContent=pocketInstallStatusText();
     $('pocketInstallBtn').hidden=!pocketInstallPrompt || pocketStandalone();
     $('pocketNudgeEnabled').checked=prefs.enabled;
+    $('pocketSystemEnabled').checked=prefs.systemEnabled;
     $('pocketQuietStart').value=prefs.quietStart;
     $('pocketQuietEnd').value=prefs.quietEnd;
     $('pocketGap').value=String(prefs.minGapMinutes);
@@ -9230,8 +9231,9 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     const permission=supported ? Notification.permission : 'unsupported';
     const systemButton=$('pocketNotificationBtn');
     systemButton.hidden=!supported || permission==='granted';
-    systemButton.textContent=permission==='denied' ? 'Notifications blocked' : 'Enable system nudges';
+    systemButton.textContent=permission==='denied' ? 'Notifications blocked' : 'Allow notifications';
     systemButton.disabled=permission==='denied';
+    $('pocketSystemEnabled').disabled=!supported || permission!=='granted';
     $('pocketNotificationStatus').textContent=!supported
       ? 'System notifications are not available here; in-app nudges still work.'
       : permission==='granted'
@@ -9270,8 +9272,12 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       </label>
       <div class="pocketInstallRow">
         <div><div style="font-size:11px;font-weight:800">System notifications</div><div class="pocketInstallStatus" id="pocketNotificationStatus"></div></div>
-        <button class="pocketSettingsButton" id="pocketNotificationBtn" type="button">Enable system nudges</button>
+        <button class="pocketSettingsButton" id="pocketNotificationBtn" type="button">Allow notifications</button>
       </div>
+      <label class="pocketToggleRow">
+        <span class="pocketToggleCopy"><strong>Send system nudges</strong><span>When permission is available, let a useful nudge reach the notification tray while Loochori is running in the background.</span></span>
+        <input id="pocketSystemEnabled" type="checkbox" />
+      </label>
       <div class="pocketQuietRow">
         <div class="pocketQuietField"><label for="pocketQuietStart">Quiet from</label><input id="pocketQuietStart" type="time" /></div>
         <div class="pocketQuietField"><label for="pocketQuietEnd">Quiet until</label><input id="pocketQuietEnd" type="time" /></div>
@@ -9295,6 +9301,12 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     $('pocketNotificationBtn').addEventListener('click',()=>requestPocketNotifications());
     $('pocketNudgeEnabled').addEventListener('change',event=>{
       const prefs=loadNudgePrefs(); prefs.enabled=event.target.checked; saveNudgePrefs(prefs); renderNow();
+    });
+    $('pocketSystemEnabled').addEventListener('change',event=>{
+      const prefs=loadNudgePrefs();
+      prefs.systemEnabled=event.target.checked && typeof Notification!=='undefined' && Notification.permission==='granted';
+      saveNudgePrefs(prefs);
+      renderPocketSettings();
     });
     const saveQuiet=()=>{
       const prefs=loadNudgePrefs();

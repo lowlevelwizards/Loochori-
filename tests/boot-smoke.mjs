@@ -169,6 +169,7 @@ try {
   assert.equal(await page.locator('#householdSettingsModal #modelDetails').count(), 1, 'Advanced & data was not moved into Settings');
   assert.equal(await page.locator('#pocketSettings').count(), 1, 'Pocket Loochori settings did not mount');
   assert.equal(await page.locator('#pocketNudgeEnabled').isChecked(), true, 'gentle nudge preference did not survive boot');
+  assert.equal(await page.locator('#pocketSystemEnabled').isChecked(), false, 'system nudges should remain opt-in');
   assert((await text('#pocketInstallStatus')).length > 0, 'install guidance did not render');
   assert((await text('#modelDetails .majorDisclosureMeta')).includes('Pocket Loochori v0.20.0'), 'Settings does not expose the current release label');
   await page.locator('#closeSettingsBtn').click();

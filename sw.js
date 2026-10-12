@@ -44,16 +44,19 @@ async function loadPushConfig(){
   }
 }
 
-async function snoozeRemotePush(data,minutes=90){
+async function snoozeRemotePush(data){
+  const minutes=Math.max(0,Math.min(180,Math.round(Number(data?.snoozeMinutes)||0)));
   const config=await loadPushConfig();
-  if(!config || !data?.deviceId || !data?.pushId) return false;
+  if(!minutes || !config || !data?.pushId) return null;
+  const subscription=await self.registration.pushManager?.getSubscription?.();
+  if(!subscription) return null;
   const dueAt=new Date(Date.now()+minutes*60000).toISOString();
   try{
     const response=await fetch(`${config.serviceBaseUrl}/api/push/snooze`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        deviceId:data.deviceId,
+        subscription:subscription.toJSON(),
         event:{
           id:data.pushId,
           dueAt,
@@ -61,13 +64,16 @@ async function snoozeRemotePush(data,minutes=90){
           body:data.body || '',
           tag:data.tag || data.pushId,
           kind:data.kind || 'nudge',
-          action:data.action || null
+          action:data.action || null,
+          snoozeMinutes:minutes
         }
       })
     });
-    return response.ok;
+    let body={};
+    try{body=await response.json();}catch(_error){}
+    return response.ok && body?.run?.runId ? body.run : null;
   }catch(_error){
-    return false;
+    return null;
   }
 }
 
@@ -142,9 +148,10 @@ self.addEventListener('push',event=>{
     try{ payload=event.data?.json?.() || {}; }
     catch(_error){ payload={title:'Loochori',body:event.data?.text?.() || 'Something useful is ready.'}; }
     const action=payload.action && typeof payload.action==='object' ? payload.action : null;
+    const snoozeMinutes=Math.max(0,Math.min(180,Math.round(Number(payload.snoozeMinutes)||0)));
     const actions=[];
     if(action?.type==='care-done') actions.push({action:'done',title:'Done'});
-    actions.push({action:'later',title:'Later'});
+    if(snoozeMinutes) actions.push({action:'later',title:'Later'});
     actions.push({action:'open',title:'Open'});
     await self.registration.showNotification(payload.title || 'Loochori',{
       body:payload.body || '',
@@ -154,13 +161,13 @@ self.addEventListener('push',event=>{
       actions,
       data:{
         url:payload.url || './',
-        deviceId:payload.deviceId || null,
         pushId:payload.id || null,
         title:payload.title || 'Loochori',
         body:payload.body || '',
         tag:payload.tag || payload.id || 'loochori-push',
         kind:payload.kind || 'nudge',
-        action
+        action,
+        snoozeMinutes
       }
     });
   })());
@@ -172,14 +179,16 @@ self.addEventListener('notificationclick',event=>{
     const data=event.notification.data || {};
     const choice=event.action || 'open';
     if(choice==='done' || choice==='later'){
-      if(choice==='later') await snoozeRemotePush(data,90);
+      const replacementRun=choice==='later' ? await snoozeRemotePush(data) : null;
       const entry={
         id:`push_action_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
         createdAt:new Date().toISOString(),
         outcome:choice,
         pushId:data.pushId || null,
         kind:data.kind || 'nudge',
-        action:data.action || null
+        action:data.action || null,
+        snoozeMinutes:Number(data.snoozeMinutes)||0,
+        replacementRun
       };
       await queueAction(entry);
       await notifyClients({type:'loochori-push-action',entry});

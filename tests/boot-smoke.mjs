@@ -60,6 +60,7 @@ await page.addInitScript(() => {
       { id: 'loop_smoke', text: 'Smoke intentional loop', createdAt: now.toISOString(), status: 'open', completedAt: null },
       { id: 'loop_carry', text: 'Smoke carryover loop', createdAt: yesterdayDate.toISOString(), status: 'open', completedAt: null }
     ],
+    loochori_nudge_prefs_v1: { enabled: true, systemEnabled: false, quietStart: '22:30', quietEnd: '07:00', minGapMinutes: 90 },
     loochori_today_intent_v1: {
       [yesterday]: [{
         id: 'intent_carry', kind: 'loop', refId: 'loop_carry', titleSnapshot: 'Smoke carryover loop',
@@ -146,6 +147,13 @@ try {
   assert.equal(await page.locator('#nowCare:visible').count(), 0, 'duplicated care-around-now panel should be hidden');
   assert.equal(await page.locator('#nowRhythmGroup:visible').count(), 0, 'duplicated rhythm panel should be hidden from Now');
   assert((await text('#nextFixedTitle')).length > 0, 'Cozy Home did not render the next fixed thing');
+  assert.equal(await page.locator('link[rel="manifest"]').count(), 1, 'web app manifest link is missing');
+  const manifest = await page.evaluate(() => fetch('./manifest.webmanifest').then(response => response.json()));
+  assert.equal(manifest.name, 'Loochori', 'manifest app name is wrong');
+  assert.equal(manifest.display, 'standalone', 'manifest is not standalone');
+  assert(manifest.icons?.some(icon => icon.sizes === '192x192'), 'manifest is missing the 192px app icon');
+  assert.equal(await page.locator('#pocketNudge').count(), 1, 'gentle nudge surface did not mount');
+  await page.waitForFunction(() => window.__LOOCHORI_POCKET__?.serviceWorker === 'ready', null, { timeout: 10000 });
   for (const id of ['careArea','mealsArea','houseArea','scheduleArea','checkinArea']) {
     assert.equal(await page.locator(`#${id}`).evaluate(el => el.open), false, `${id} should start collapsed`);
   }
@@ -159,7 +167,11 @@ try {
   await page.locator('#openSettingsBtn').click();
   await page.waitForFunction(() => document.getElementById('householdSettingsModal')?.classList.contains('open'));
   assert.equal(await page.locator('#householdSettingsModal #modelDetails').count(), 1, 'Advanced & data was not moved into Settings');
-  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Cozy Home v0.19.0'), 'Settings does not expose the current release label');
+  assert.equal(await page.locator('#pocketSettings').count(), 1, 'Pocket Loochori settings did not mount');
+  assert.equal(await page.locator('#pocketNudgeEnabled').isChecked(), true, 'gentle nudge preference did not survive boot');
+  assert.equal(await page.locator('#pocketSystemEnabled').isChecked(), false, 'system nudges should remain opt-in');
+  assert((await text('#pocketInstallStatus')).length > 0, 'install guidance did not render');
+  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Pocket Loochori v0.20.0'), 'Settings does not expose the current release label');
   await page.locator('#closeSettingsBtn').click();
 
   await page.locator('#openPlanTodayBtn').click();
@@ -299,6 +311,14 @@ try {
     const match = score.match(/^(\d+)\/(\d+) passed$/);
     return Boolean(match && Number(match[1]) > 0 && match[1] === match[2]);
   }, null, { timeout: 8000 });
+
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker?.controller), null, { timeout: 10000 });
+  await page.context().setOffline(true);
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 10000 });
+  await page.waitForFunction(() => window.__LOOCHORI_READY__ === true, null, { timeout: 8000 });
+  assert((await text('#todayDate')).length > 0, 'offline shell did not render the Today surface');
+  assert.equal(await page.locator('#loochoriBootFailure').count(), 0, 'offline shell triggered the boot failure banner');
+  await page.context().setOffline(false);
 
   assert.deepEqual(pageErrors, [], `uncaught browser errors after interactions:\n${pageErrors.join('\n')}`);
 

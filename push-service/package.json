@@ -2,9 +2,18 @@
   "name": "loochori-push-service",
   "version": "0.21.0",
   "private": true,
-  "type": "commonjs",
-  "engines": { "node": ">=20" },
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "engines": { "node": ">=22" },
   "dependencies": {
-    "web-push": "^3.6.7"
+    "next": "^16.1.6",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "web-push": "^3.6.7",
+    "workflow": "^5.2.0"
   }
 }

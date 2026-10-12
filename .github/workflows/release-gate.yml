@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Parse inline JavaScript
+      - name: Parse app JavaScript
         shell: bash
         run: |
           python - <<'PY'
@@ -39,6 +39,18 @@ jobs:
           Path('/tmp/loochori-inline.js').write_text('\n'.join(scripts))
           PY
           node --check /tmp/loochori-inline.js
+          node --check sw.js
+          node --check tests/boot-smoke.mjs
+
+      - name: Validate reliable push bridge
+        shell: bash
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('push-config.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('push-service/package.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('push-service/vercel.json','utf8'))"
+          for file in push-service/_lib/*.js push-service/api/push/*.js push-service/scripts/*.js; do
+            node --check "$file"
+          done
 
       - name: Install Chromium test runtime
         shell: bash

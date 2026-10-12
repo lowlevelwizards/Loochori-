@@ -190,7 +190,16 @@ try {
   assert((await text('#pocketInstallStatus')).length > 0, 'install guidance did not render');
   assert.equal(await page.locator('#resetRhythmMemoryBtn').count(), 1, 'rhythm memory reset control did not mount');
   assert((await text('#pocketMemoryStatus')).includes('pattern'), 'rhythm memory summary did not render');
-  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Personal Rhythm Memory v0.20.1'), 'Settings does not expose the current release label');
+  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Reliable Push v0.21.0'), 'Settings does not expose the current release label');
+  assert.equal(await page.locator('#pocketClosedPushEnabled').count(), 1, 'closed-app push toggle did not mount');
+  assert.equal(await page.locator('#pocketClosedPushEnabled').isChecked(), false, 'closed-app push must stay opt-in');
+  assert((await text('#pocketClosedPushStatus')).length > 0, 'closed-app push status did not render');
+  const pushSnapshot = await page.evaluate(() => window.__LOOCHORI_PUSH__);
+  assert(pushSnapshot?.version === '0.21.0', 'reliable push debug snapshot is missing');
+  assert.equal(pushSnapshot?.configured, false, 'test fixture should safely treat an empty push bridge config as unconfigured');
+  const serviceWorkerText = await page.evaluate(() => fetch('./sw.js').then(response => response.text()));
+  assert(serviceWorkerText.includes("addEventListener('push'"), 'service worker does not listen for closed-app push');
+  assert(serviceWorkerText.includes("action:'done'"), 'service worker does not expose notification Done action');
   await page.locator('#closeSettingsBtn').click();
 
   await page.locator('#openPlanTodayBtn').click();

@@ -2412,7 +2412,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   const TODAY_INTENT_KEY = 'loochori_today_intent_v1';
   const NUDGE_PREFS_KEY = 'loochori_nudge_prefs_v1';
   const NUDGE_STATE_KEY = 'loochori_nudge_state_v1';
-  const PUSH_DEVICE_KEY = 'loochori_push_device_v1';
+  const PUSH_RUNS_KEY = 'loochori_push_runs_v1';
   const RHYTHM_MEMORY_KEY = 'loochori_rhythm_memory_v1';
   const RHYTHM_KEY = 'loochori_weekly_rhythm_v1';
   const RHYTHM_STATE_KEY = 'loochori_weekly_rhythm_state_v1';
@@ -9209,12 +9209,21 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   let lastPushScheduleHash='';
   let lastPushSyncAt=0;
 
-  function pushDeviceId(){
-    let id=localStorage.getItem(PUSH_DEVICE_KEY);
-    if(id && /^[A-Za-z0-9_-]{12,128}$/.test(id)) return id;
-    id=(crypto?.randomUUID?.() || `device_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,12)}`).replace(/[^A-Za-z0-9_-]/g,'_');
-    localStorage.setItem(PUSH_DEVICE_KEY,id);
-    return id;
+  function loadPushRuns(){
+    const value=readStore(PUSH_RUNS_KEY,[]);
+    const cutoff=Date.now()-2*60*60*1000;
+    return Array.isArray(value) ? value.filter(item=>{
+      if(!item || typeof item.runId!=='string' || !/^wrun_[A-Za-z0-9_-]+$/.test(item.runId)) return false;
+      const due=Date.parse(item.dueAt || '');
+      return !Number.isFinite(due) || due>=cutoff;
+    }).slice(-32) : [];
+  }
+
+  function savePushRuns(runs){
+    const clean=Array.isArray(runs) ? runs.filter(item=>
+      item && typeof item.runId==='string' && /^wrun_[A-Za-z0-9_-]+$/.test(item.runId)
+    ).slice(-32) : [];
+    localStorage.setItem(PUSH_RUNS_KEY,JSON.stringify(clean));
   }
 
   function pushServiceUrl(path=''){
@@ -9250,7 +9259,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       pushBridgeConfig={version:1,serviceBaseUrl:''};
       pushBridgeStatus={state:'unconfigured',message:'Closed-app push is not connected yet.'};
     }
-    window.__LOOCHORI_PUSH__={version:'0.21.0',configured:Boolean(pushBridgeConfig.serviceBaseUrl),state:pushBridgeStatus.state,scheduled:closedPushSchedule().length};
+    window.__LOOCHORI_PUSH__={version:'0.21.0',configured:Boolean(pushBridgeConfig.serviceBaseUrl),state:pushBridgeStatus.state,scheduled:closedPushSchedule().length,runs:loadPushRuns().length};
     renderPocketSettings();
     return pushBridgeConfig;
   }
@@ -9261,8 +9270,17 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     return d.toISOString();
   }
 
-  function pushEvent(id,dueAt,title,body,kind,action=null){
-    return {id,dueAt,title,body,kind,tag:`loochori-${id}`,action};
+  function pushEvent(id,dueAt,title,body,kind,action=null,snoozeMinutes=0){
+    const state=loadNudgeState();
+    const snoozedUntil=Number(state.snoozedUntil?.[id]||0);
+    const originalDue=Date.parse(dueAt);
+    const effectiveDue=Number.isFinite(originalDue) && snoozedUntil>originalDue
+      ? new Date(snoozedUntil).toISOString()
+      : dueAt;
+    return {
+      id,dueAt:effectiveDue,title,body,kind,tag:`loochori-${id}`,action,
+      snoozeMinutes:Math.max(0,Math.min(180,Math.round(Number(snoozeMinutes)||0)))
+    };
   }
 
   function closedPushScheduleForDate(date){
@@ -9271,7 +9289,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     const prefs=loadNudgePrefs();
     const quietStart=timeToMin(prefs.quietStart), quietEnd=timeToMin(prefs.quietEnd);
     const inQuiet=minute=>quietStart<quietEnd ? minute>=quietStart&&minute<quietEnd : minute>=quietStart||minute<quietEnd;
-    const add=(event,minute)=>{ if(!inQuiet(minute)) events.push(event); };
+    const add=event=>{ const due=new Date(event.dueAt); const minute=due.getHours()*60+due.getMinutes(); if(!inQuiet(minute)) events.push(event); };
 
     const shift=getSchedule('you',date).shift;
     if(shift){
@@ -9284,7 +9302,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
         'Leaving in about 25 min',
         `Work starts ${formatShort(shift.start)} · ${commute} min of travel is planned.`,
         'departure'
-      ),due);
+      ));
     }
 
     const am=CARE_DEFS.find(item=>item.id==='meds_am');
@@ -9293,8 +9311,8 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       add(pushEvent(
         `care:${dateStr}:meds_am`,localDateMinuteIso(date,due),'AM meds are still open',
         'A small thing worth catching before the day gets noisier.','care',
-        {type:'care-done',habitId:'meds_am',date:dateStr,category:'care:meds_am'}
-      ),due);
+        {type:'care-done',habitId:'meds_am',date:dateStr,category:'care:meds_am'},90
+      ));
     }
 
     const pm=CARE_DEFS.find(item=>item.id==='meds_pm');
@@ -9304,8 +9322,8 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       add(pushEvent(
         `care:${dateStr}:meds_pm`,localDateMinuteIso(date,due),'PM meds are still open',
         'A small thing worth catching before the evening gets away.','care',
-        {type:'care-done',habitId:'meds_pm',date:dateStr,category:'care:meds_pm'}
-      ),due);
+        {type:'care-done',habitId:'meds_pm',date:dateStr,category:'care:meds_pm'},90
+      ));
     }
 
     intentRecordsForDate(dateStr).slice(0,3).forEach(record=>{
@@ -9316,8 +9334,8 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       add(pushEvent(
         `placed:${dateStr}:${block.id}`,localDateMinuteIso(date,due),`Coming up: ${block.title}`,
         `You placed this for ${formatShort(block.start)}. Keep the runway clear if it still fits.`,
-        'placed'
-      ),due);
+        'placed',null,30
+      ));
     });
     return events;
   }
@@ -9361,21 +9379,28 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     const subscription=await existingPushSubscription();
     if(!subscription) return false;
     const schedule=closedPushSchedule();
+    const previousRuns=loadPushRuns();
     const hash=JSON.stringify(schedule.map(item=>[item.id,item.dueAt]));
     if(!force && hash===lastPushScheduleHash && Date.now()-lastPushSyncAt<30*60000) return true;
-    await pushBridgeRequest('/api/push/register',{
+    const result=await pushBridgeRequest('/api/push/register',{
       method:'POST',
       body:JSON.stringify({
-        deviceId:pushDeviceId(),
         subscription:subscription.toJSON(),
         schedule,
+        previousRunIds:previousRuns.map(item=>item.runId),
         timezone:Intl.DateTimeFormat().resolvedOptions().timeZone || ''
       })
     });
+    const uncancelled=new Set(Array.isArray(result.uncancelled)?result.uncancelled:[]);
+    const retained=previousRuns.filter(item=>uncancelled.has(item.runId));
+    const fresh=Array.isArray(result.runs) ? result.runs.filter(item=>
+      item && typeof item.runId==='string' && /^wrun_[A-Za-z0-9_-]+$/.test(item.runId)
+    ) : [];
+    savePushRuns([...retained,...fresh]);
     lastPushScheduleHash=hash;
     lastPushSyncAt=Date.now();
     pushBridgeStatus={state:'subscribed',message:`Closed-app push is on · ${schedule.length} high-value reminder${schedule.length===1?'':'s'} queued for the next 48 hours.`};
-    window.__LOOCHORI_PUSH__={version:'0.21.0',configured:true,state:'subscribed',scheduled:schedule.length};
+    window.__LOOCHORI_PUSH__={version:'0.21.0',configured:true,state:'subscribed',scheduled:schedule.length,runs:loadPushRuns().length};
     renderPocketSettings();
     return true;
   }
@@ -9415,10 +9440,21 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     const prefs=loadNudgePrefs();
     prefs.closedPushEnabled=false;
     saveNudgePrefs(prefs);
-    try{ await pushBridgeRequest('/api/push/unregister',{method:'POST',body:JSON.stringify({deviceId:pushDeviceId()})}); }catch(_error){}
+    const previousRuns=loadPushRuns();
+    try{
+      const result=await pushBridgeRequest('/api/push/unregister',{
+        method:'POST',
+        body:JSON.stringify({runIds:previousRuns.map(item=>item.runId)})
+      });
+      const uncancelled=new Set(Array.isArray(result.uncancelled)?result.uncancelled:[]);
+      savePushRuns(previousRuns.filter(item=>uncancelled.has(item.runId)));
+    }catch(_error){
+      savePushRuns(previousRuns);
+    }
     try{ const subscription=await existingPushSubscription(); if(subscription) await subscription.unsubscribe(); }catch(_error){}
     lastPushScheduleHash='';
     pushBridgeStatus={state:pushBridgeConfig.serviceBaseUrl?'ready':'unconfigured',message:pushBridgeConfig.serviceBaseUrl?'Closed-app push is off.':'Push bridge is not connected yet.'};
+    window.__LOOCHORI_PUSH__={version:'0.21.0',configured:Boolean(pushBridgeConfig.serviceBaseUrl),state:pushBridgeStatus.state,scheduled:0,runs:loadPushRuns().length};
     renderPocketSettings();
   }
 
@@ -9445,6 +9481,10 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       req.onerror=()=>reject(req.error);
     }).catch(()=>[]);
     for(const entry of entries){
+      if(entry?.replacementRun?.runId){
+        const runs=loadPushRuns();
+        if(!runs.some(item=>item.runId===entry.replacementRun.runId)) savePushRuns([...runs,entry.replacementRun]);
+      }
       const action=entry?.action;
       if(entry?.outcome==='done' && action?.type==='care-done'){
         const habit=CARE_DEFS.find(item=>item.id===action.habitId);
@@ -9456,7 +9496,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
         }
       }else if(entry?.outcome==='later'){
         const state=loadNudgeState();
-        if(entry.pushId) state.snoozedUntil[entry.pushId]=Date.now()+90*60000;
+        if(entry.pushId) state.snoozedUntil[entry.pushId]=Date.now()+(Number(entry.snoozeMinutes)||90)*60000;
         saveNudgeState(state);
         const category=action?.category || (entry.kind==='care' && action?.habitId ? rhythmMemoryCategoryForCare(action.habitId) : null);
         if(category) recordRhythmEvent('later',category,{key:entry.pushId,source:'closed-push'});
@@ -9471,7 +9511,10 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     db.close();
     if(entries.length){
       refreshViews('care');
-      scheduleClosedPushSync();
+      syncClosedPushSchedule({force:true}).catch(error=>{
+        pushBridgeStatus={state:'error',message:`Closed-app push could not refresh: ${error.message}`};
+        renderPocketSettings();
+      });
     }
   }
 

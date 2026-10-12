@@ -22,6 +22,8 @@ await page.addInitScript(() => {
   const yesterdayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
   const yesterday = `${yesterdayDate.getFullYear()}-${pad(yesterdayDate.getMonth() + 1)}-${pad(yesterdayDate.getDate())}`;
   const weekday = now.getDay();
+  const currentMinute = now.getHours() * 60 + now.getMinutes();
+  const recent = minutesAgo => new Date(now.getTime() - minutesAgo * 60000).toISOString();
   const workWeek = {
     0: null,
     1: { start: '09:00', end: '17:00' },
@@ -61,6 +63,17 @@ await page.addInitScript(() => {
       { id: 'loop_carry', text: 'Smoke carryover loop', createdAt: yesterdayDate.toISOString(), status: 'open', completedAt: null }
     ],
     loochori_nudge_prefs_v1: { enabled: true, systemEnabled: false, quietStart: '22:30', quietEnd: '07:00', minGapMinutes: 90 },
+    loochori_rhythm_memory_v1: {
+      version: 1,
+      events: [
+        { id: 'memory_seed_1_shown', at: recent(24), date: today, minute: currentMinute, category: 'routine:routine_smoke', key: 'seed-routine-1', source: 'nudge', outcome: 'shown' },
+        { id: 'memory_seed_1_acted', at: recent(22), date: today, minute: currentMinute, category: 'routine:routine_smoke', key: 'seed-routine-1', source: 'nudge', outcome: 'acted' },
+        { id: 'memory_seed_1_done', at: recent(18), date: today, minute: currentMinute, category: 'routine:routine_smoke', key: 'seed-routine-1', source: 'completion', outcome: 'completed' },
+        { id: 'memory_seed_2_shown', at: recent(14), date: today, minute: currentMinute, category: 'routine:routine_smoke', key: 'seed-routine-2', source: 'nudge', outcome: 'shown' },
+        { id: 'memory_seed_2_acted', at: recent(12), date: today, minute: currentMinute, category: 'routine:routine_smoke', key: 'seed-routine-2', source: 'nudge', outcome: 'acted' },
+        { id: 'memory_seed_2_done', at: recent(8), date: today, minute: currentMinute, category: 'routine:routine_smoke', key: 'seed-routine-2', source: 'completion', outcome: 'completed' }
+      ]
+    },
     loochori_today_intent_v1: {
       [yesterday]: [{
         id: 'intent_carry', kind: 'loop', refId: 'loop_carry', titleSnapshot: 'Smoke carryover loop',
@@ -141,6 +154,10 @@ try {
     adaptiveSnapshot.ranked.some(item => item.title === 'Smoke checklist one'),
     'seeded routine checklist did not enter adaptive Today candidates'
   );
+  const learnedRoutine = adaptiveSnapshot.ranked.find(item => item.title === 'Smoke checklist one');
+  assert(learnedRoutine.learningAdjustment > 0, 'successful rhythm memory did not boost the matching adaptive suggestion');
+  assert(learnedRoutine.learningAdjustment <= 8, 'learned adaptive boost exceeded the bounded ceiling');
+  assert(learnedRoutine.learningObservations >= 2, 'adaptive learning activated without the minimum evidence');
 
   assert.equal(await page.locator('.topbar .version:visible').count(), 0, 'release badge should be tucked into Settings');
   assert.equal(await page.locator('.jumpBarWrap:visible').count(), 0, 'sticky jump bar should be retired on Cozy Home');
@@ -171,7 +188,9 @@ try {
   assert.equal(await page.locator('#pocketNudgeEnabled').isChecked(), true, 'gentle nudge preference did not survive boot');
   assert.equal(await page.locator('#pocketSystemEnabled').isChecked(), false, 'system nudges should remain opt-in');
   assert((await text('#pocketInstallStatus')).length > 0, 'install guidance did not render');
-  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Pocket Loochori v0.20.0'), 'Settings does not expose the current release label');
+  assert.equal(await page.locator('#resetRhythmMemoryBtn').count(), 1, 'rhythm memory reset control did not mount');
+  assert((await text('#pocketMemoryStatus')).includes('pattern'), 'rhythm memory summary did not render');
+  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Personal Rhythm Memory v0.20.1'), 'Settings does not expose the current release label');
   await page.locator('#closeSettingsBtn').click();
 
   await page.locator('#openPlanTodayBtn').click();

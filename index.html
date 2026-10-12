@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Loochori" />
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
-<title>Loochori — Pocket Loochori v0.20.0</title>
+<title>Loochori — Personal Rhythm Memory v0.20.1</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -1390,7 +1390,7 @@
   <div class="topbar">
     <div class="brand">Loochori</div>
     <div class="topbarRight">
-      <div class="version" aria-hidden="true">Pocket Loochori v0.20.0</div>
+      <div class="version" aria-hidden="true">Personal Rhythm Memory v0.20.1</div>
       <button class="settingsBtn" id="openSettingsBtn">Settings</button>
     </div>
   </div>
@@ -2412,6 +2412,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   const TODAY_INTENT_KEY = 'loochori_today_intent_v1';
   const NUDGE_PREFS_KEY = 'loochori_nudge_prefs_v1';
   const NUDGE_STATE_KEY = 'loochori_nudge_state_v1';
+  const RHYTHM_MEMORY_KEY = 'loochori_rhythm_memory_v1';
   const RHYTHM_KEY = 'loochori_weekly_rhythm_v1';
   const RHYTHM_STATE_KEY = 'loochori_weekly_rhythm_state_v1';
   const TIME_BLOCK_KEY = 'loochori_time_blocks_v1';
@@ -2570,6 +2571,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     OPEN_LOOP_KEY,
     TODAY_INTENT_KEY,
     NUDGE_PREFS_KEY,
+    RHYTHM_MEMORY_KEY,
     RHYTHM_KEY,
     RHYTHM_STATE_KEY,
     TIME_BLOCK_KEY,
@@ -2643,6 +2645,21 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
         (value.systemEnabled===undefined || typeof value.systemEnabled==='boolean') &&
         timeOk(value.quietStart) && timeOk(value.quietEnd) &&
         (value.minGapMinutes===undefined || (Number.isFinite(Number(value.minGapMinutes)) && Number(value.minGapMinutes)>=30));
+    }
+
+    if(key===RHYTHM_MEMORY_KEY){
+      if(!isRecord(value)) return false;
+      if(value.version!==undefined && Number(value.version)!==1) return false;
+      if(value.events===undefined) return true;
+      const outcomes=new Set(['shown','acted','later','completed']);
+      return Array.isArray(value.events) && value.events.every(event=>
+        isRecord(event) &&
+        typeof event.id==='string' &&
+        typeof event.at==='string' &&
+        typeof event.category==='string' &&
+        outcomes.has(event.outcome) &&
+        Number.isFinite(Number(event.minute)) && Number(event.minute)>=0 && Number(event.minute)<1440
+      );
     }
 
     if(key===TODAY_INTENT_KEY){
@@ -2942,6 +2959,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   let mealPickerContext = {mode:'library', slot:null, field:null};
   let openLoops = loadOpenLoops();
   let todayIntent = loadTodayIntent();
+  let rhythmMemory = loadRhythmMemory();
   let rhythmDefs = loadRhythmDefs();
   let rhythmState = loadRhythmState();
   let timeBlocks = loadTimeBlocks();
@@ -3193,9 +3211,11 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   function completeLoop(id){
     const item=openLoops.find(x=>x.id===id);
     if(!item) return;
+    const wasDone=item.status==='done';
     item.status='done';
     item.completedAt=new Date().toISOString();
     saveOpenLoops();
+    if(!wasDone) recordRhythmCompletion('loop');
     refreshViews('loops');
   }
 
@@ -3538,6 +3558,10 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     };
     saveRhythmState();
     syncBundleParentStatus(def,dateStr);
+    const completionDate=extra.completedOn || dateStr;
+    if(status==='done' && previous.status!=='done' && completionDate===iso(new Date())){
+      recordRhythmCompletion(`routine:${def.id}`);
+    }
   }
 
   function cycleBundleItem(def,dateStr,itemId){
@@ -3661,6 +3685,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
 
   function markRoutineDone(def,dateStr,source='scheduled'){
     setRhythmOccurrence(def.id,dateStr,'done',{source});
+    if(dateStr===iso(new Date())) recordRhythmCompletion(`routine:${def.id}`);
     if(source==='deferred'){
       // Close the originating deferred occurrence if we can find it.
       for(const [key,state] of Object.entries(rhythmState)){
@@ -3745,9 +3770,13 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   function setCareUnit(dateStr, habit, unitIndex, value){
     if(!careHistory[dateStr]) careHistory[dateStr] = {};
     const state = careStateFor(dateStr, habit);
+    const wasDone=Boolean(state[unitIndex]);
     state[unitIndex] = value;
     careHistory[dateStr][habit.id] = state;
     saveCareHistory();
+    if(value && !wasDone && dateStr===iso(new Date())){
+      recordRhythmCompletion(rhythmMemoryCategoryForCare(habit.id));
+    }
   }
   function isFutureDate(date){
     return stripTime(date).getTime() > stripTime(new Date()).getTime();
@@ -5942,8 +5971,16 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     return 0;
   }
 
+  function adaptiveLearningForCandidate(candidate,context={}){
+    if(candidate?.hard || !Number.isFinite(context.minute)) return {category:null,observations:0,adjustment:0};
+    const category=rhythmMemoryCategoryForAdaptive(candidate);
+    const stats=rhythmLearningStats(category,context.minute);
+    return {category,...stats};
+  }
+
   function adaptiveScoreCandidate(candidate,context={}){
     let score=Number(candidate.baseScore)||0;
+    score+=adaptiveLearningForCandidate(candidate,context).adjustment;
     if(candidate.started) score+=18;
     if(candidate.hard) score+=20;
     if(candidate.intent) score+=30+Math.max(0,6-(Number(candidate.intentOrder)||0)*2);
@@ -5979,11 +6016,17 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
 
   function rankAdaptiveCandidates(candidates,context={}){
     const ranked=candidates
-      .map((candidate,index)=>({
-        ...candidate,
-        adaptiveScore:adaptiveScoreCandidate(candidate,context),
-        adaptiveOrder:index
-      }))
+      .map((candidate,index)=>{
+        const learning=adaptiveLearningForCandidate(candidate,context);
+        return {
+          ...candidate,
+          adaptiveScore:adaptiveScoreCandidate(candidate,context),
+          adaptiveOrder:index,
+          learningCategory:learning.category,
+          learningAdjustment:learning.adjustment,
+          learningObservations:learning.observations
+        };
+      })
       .filter(candidate=>candidate.adaptiveScore>=0)
       .sort((a,b)=>b.adaptiveScore-a.adaptiveScore || a.adaptiveOrder-b.adaptiveOrder);
 
@@ -6464,6 +6507,11 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       if(context.lowEnergy && primary.effort==='low' && !primary.hard){
         reasonText+=`${reasonText?' ':''}Your low-energy check-in keeps this suggestion light.`;
       }
+      if(primary.learningAdjustment>=3 && primary.learningObservations>=2){
+        reasonText+=`${reasonText?' ':''}Similar suggestions have worked well around this time before.`;
+      }else if(primary.learningAdjustment<=-3 && primary.learningObservations>=2){
+        reasonText+=`${reasonText?' ':''}Loochori is keeping this gentler because similar prompts have landed poorly around this time.`;
+      }
       reason.textContent=reasonText;
       appendAdaptiveButton(actions,primary.actionLabel,primary.action,true);
       appendAdaptiveButton(actions,primary.secondaryLabel,primary.secondaryAction,false);
@@ -6512,6 +6560,8 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
         title:candidate.title,
         reason:candidate.reason,
         score:candidate.adaptiveScore,
+        learningAdjustment:candidate.learningAdjustment||0,
+        learningObservations:candidate.learningObservations||0,
         intent:Boolean(candidate.intent),
         intentOrder:candidate.intent ? Number(candidate.intentOrder)||0 : null,
         placed:Boolean(candidate.placed),
@@ -8984,12 +9034,167 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     return isRecord(state) ? {
       lastDeliveredAt:Number(state.lastDeliveredAt)||0,
       lastByKey:isRecord(state.lastByKey)?state.lastByKey:{},
-      snoozedUntil:isRecord(state.snoozedUntil)?state.snoozedUntil:{}
-    } : {lastDeliveredAt:0,lastByKey:{},snoozedUntil:{}};
+      snoozedUntil:isRecord(state.snoozedUntil)?state.snoozedUntil:{},
+      seenByKey:isRecord(state.seenByKey)?state.seenByKey:{}
+    } : {lastDeliveredAt:0,lastByKey:{},snoozedUntil:{},seenByKey:{}};
   }
 
   function saveNudgeState(state){
     localStorage.setItem(NUDGE_STATE_KEY,JSON.stringify(state));
+  }
+
+  function loadRhythmMemory(){
+    const raw=readStore(RHYTHM_MEMORY_KEY,{version:1,events:[]});
+    const cutoff=Date.now()-60*86400000;
+    const events=Array.isArray(raw?.events) ? raw.events.filter(event=>{
+      const at=Date.parse(event?.at || '');
+      return event && typeof event.category==='string' && Number.isFinite(at) && at>=cutoff;
+    }).slice(-500) : [];
+    return {version:1,events};
+  }
+
+  function saveRhythmMemory(){
+    const cutoff=Date.now()-60*86400000;
+    const events=Array.isArray(rhythmMemory?.events) ? rhythmMemory.events.filter(event=>{
+      const at=Date.parse(event?.at || '');
+      return Number.isFinite(at) && at>=cutoff;
+    }).slice(-500) : [];
+    rhythmMemory={version:1,events};
+    localStorage.setItem(RHYTHM_MEMORY_KEY,JSON.stringify(rhythmMemory));
+    renderRhythmMemorySettings();
+  }
+
+  function rhythmMemoryBucket(minute){
+    return Math.floor(Math.max(0,Math.min(1439,Number(minute)||0))/120);
+  }
+
+  function rhythmMemoryCategoryForCare(habitId){
+    return ['breakfast','lunch','dinner'].includes(habitId) ? `meal:${habitId}` : `care:${habitId}`;
+  }
+
+  function rhythmMemoryCategoryForNudge(candidate){
+    const key=String(candidate?.key || '');
+    if(key.startsWith('care:')) return `care:${key.split(':').pop()}`;
+    if(key.startsWith('meal:')) return `meal:${key.split(':').pop()}`;
+    if(key.startsWith('routine-progress:')) return `routine:${key.split(':').pop()}`;
+    if(key.startsWith('intent-window:')) return 'intent';
+    if(key.startsWith('departure:')) return 'departure';
+    if(key.startsWith('evening-close:')) return 'evening-close';
+    return candidate?.kind ? `nudge:${String(candidate.kind).toLowerCase()}` : null;
+  }
+
+  function rhythmMemoryCategoryForAdaptive(candidate){
+    const id=String(candidate?.id || '');
+    if(candidate?.hard) return null;
+    if(id.startsWith('care:')) return `care:${id.split(':')[1] || ''}`;
+    if(id.startsWith('meal:')) return `meal:${id.split(':')[1] || ''}`;
+    if(id.startsWith('bundle:') || id.startsWith('routine:') || id.startsWith('deferred-item:')) return `routine:${id.split(':')[1] || ''}`;
+    if(id.startsWith('intent:')) return 'intent';
+    if(id.startsWith('loop:')) return 'loop';
+    return candidate?.intent ? 'intent' : null;
+  }
+
+  function recordRhythmEvent(outcome,category,{key=null,source='app',minute=currentClockMinutes(),at=new Date().toISOString()}={}){
+    if(!category || !['shown','acted','later','completed'].includes(outcome)) return;
+    const numericMinute=Math.max(0,Math.min(1439,Number(minute)||0));
+    rhythmMemory.events.push({
+      id:`memory_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,7)}`,
+      at,
+      date:iso(new Date(at)),
+      minute:numericMinute,
+      bucket:rhythmMemoryBucket(numericMinute),
+      category,
+      key:key || null,
+      source,
+      outcome
+    });
+    saveRhythmMemory();
+  }
+
+  function recordRhythmCompletion(category,{minute=currentClockMinutes()}={}){
+    if(!category) return;
+    const now=Date.now();
+    const shown=[...(rhythmMemory.events||[])].reverse().find(event=>
+      event.category===category && event.outcome==='shown' &&
+      now-Date.parse(event.at)>=0 && now-Date.parse(event.at)<=90*60000
+    );
+    recordRhythmEvent('completed',category,{key:shown?.key || null,source:'completion',minute});
+  }
+
+  function rhythmLearningStats(category,minute,nowMs=Date.now()){
+    const empty={category,observations:0,acted:0,completed:0,later:0,ignored:0,adjustment:0};
+    if(!category) return empty;
+    const bucket=rhythmMemoryBucket(minute);
+    const cutoff=nowMs-60*86400000;
+    const events=(rhythmMemory.events||[]).filter(event=>Date.parse(event.at)>=cutoff);
+    const shown=events.filter(event=>event.category===category && event.outcome==='shown' && rhythmMemoryBucket(event.minute)===bucket);
+    let totalWeight=0;
+    let observations=0;
+    let acted=0,completed=0,later=0,ignored=0;
+
+    shown.forEach(impression=>{
+      const shownAt=Date.parse(impression.at);
+      const related=events.filter(event=>
+        event.key && impression.key && event.key===impression.key &&
+        Date.parse(event.at)>=shownAt && Date.parse(event.at)<=shownAt+120*60000
+      );
+      const wasCompleted=related.some(event=>event.outcome==='completed');
+      const wasActed=related.some(event=>event.outcome==='acted');
+      const wasLater=related.some(event=>event.outcome==='later');
+      if(!wasCompleted && !wasActed && !wasLater && nowMs-shownAt<90*60000) return;
+
+      observations++;
+      if(wasCompleted){ completed++; totalWeight+=3; }
+      if(wasActed){ acted++; totalWeight+=2; }
+      if(wasLater){ later++; totalWeight-=2; }
+      if(!wasCompleted && !wasActed && !wasLater){ ignored++; totalWeight-=1; }
+    });
+
+    const adjustment=observations>=2
+      ? Math.max(-8,Math.min(8,Math.round((totalWeight/observations)*1.75)))
+      : 0;
+    return {category,observations,acted,completed,later,ignored,adjustment};
+  }
+
+  function rhythmLearningAdjustment(category,minute){
+    return rhythmLearningStats(category,minute).adjustment;
+  }
+
+  function rhythmMemorySummary(){
+    const now=Date.now();
+    const categories=new Set();
+    let resolved=0;
+    const shown=(rhythmMemory.events||[]).filter(event=>event.outcome==='shown');
+    shown.forEach(event=>{
+      const stats=rhythmLearningStats(event.category,event.minute,now);
+      if(stats.observations>=2 && stats.adjustment!==0) categories.add(`${event.category}:${rhythmMemoryBucket(event.minute)}`);
+    });
+    const keyed=new Set();
+    (rhythmMemory.events||[]).forEach(event=>{
+      if(event.key && ['acted','later','completed'].includes(event.outcome)) keyed.add(`${event.key}:${event.outcome}`);
+    });
+    resolved=keyed.size;
+    return {events:(rhythmMemory.events||[]).length,resolved,patterns:categories.size};
+  }
+
+  function renderRhythmMemorySettings(){
+    const status=$('pocketMemoryStatus');
+    if(!status) return;
+    const summary=rhythmMemorySummary();
+    status.textContent=summary.resolved
+      ? `${summary.resolved} observed outcome${summary.resolved===1?'':'s'} · ${summary.patterns} pattern${summary.patterns===1?'':'s'} strong enough to influence ranking.`
+      : 'Listening quietly · no pattern has enough evidence yet.';
+    window.__LOOCHORI_RHYTHM_MEMORY__={version:'0.20.1',...summary};
+  }
+
+  function resetRhythmMemory(){
+    rhythmMemory={version:1,events:[]};
+    saveRhythmMemory();
+    const state=loadNudgeState();
+    state.seenByKey={};
+    saveNudgeState(state);
+    renderPocketSettings();
+    if(iso(selectedDate)===iso(new Date())) renderNow();
   }
 
   function pocketStandalone(){
@@ -9105,7 +9310,17 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       }
     }
 
-    return candidates.sort((a,b)=>b.score-a.score || a.key.localeCompare(b.key));
+    return candidates.map(candidate=>{
+      const memoryCategory=rhythmMemoryCategoryForNudge(candidate);
+      const learning=rhythmLearningStats(memoryCategory,minute);
+      return {
+        ...candidate,
+        memoryCategory,
+        learningAdjustment:learning.adjustment,
+        learningObservations:learning.observations,
+        score:candidate.score+learning.adjustment
+      };
+    }).sort((a,b)=>b.score-a.score || a.key.localeCompare(b.key));
   }
 
   function selectPocketNudge(candidates,state=loadNudgeState(),nowMs=Date.now()){
@@ -9114,6 +9329,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
 
   function pocketSnooze(candidate,minutes=90){
     if(!candidate) return;
+    recordRhythmEvent('later',candidate.memoryCategory || rhythmMemoryCategoryForNudge(candidate),{key:candidate.key,source:'nudge'});
     const state=loadNudgeState();
     state.snoozedUntil[candidate.key]=Date.now()+minutes*60000;
     saveNudgeState(state);
@@ -9122,6 +9338,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
 
   function pocketHandleAction(candidate){
     if(!candidate) return;
+    recordRhythmEvent('acted',candidate.memoryCategory || rhythmMemoryCategoryForNudge(candidate),{key:candidate.key,source:'nudge'});
     const state=loadNudgeState();
     state.snoozedUntil[candidate.key]=Date.now()+12*60*60000;
     saveNudgeState(state);
@@ -9167,11 +9384,11 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
 
     window.__LOOCHORI_POCKET__={
       ...(window.__LOOCHORI_POCKET__||{}),
-      version:'0.20.0',
+      version:'0.20.1',
       installed:pocketStandalone(),
       prefs:{...prefs},
-      candidates:candidates.map(item=>({key:item.key,kind:item.kind,title:item.title,score:item.score})),
-      activeNudge:candidate ? {key:candidate.key,kind:candidate.kind,title:candidate.title,score:candidate.score} : null
+      candidates:candidates.map(item=>({key:item.key,kind:item.kind,title:item.title,score:item.score,learningAdjustment:item.learningAdjustment||0,learningObservations:item.learningObservations||0})),
+      activeNudge:candidate ? {key:candidate.key,kind:candidate.kind,title:candidate.title,score:candidate.score,learningAdjustment:candidate.learningAdjustment||0} : null
     };
 
     if(!candidate){
@@ -9180,6 +9397,12 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     }
 
     card.hidden=false;
+    const impressionState=loadNudgeState();
+    if(!impressionState.seenByKey[candidate.key]){
+      impressionState.seenByKey[candidate.key]=Date.now();
+      saveNudgeState(impressionState);
+      recordRhythmEvent('shown',candidate.memoryCategory || rhythmMemoryCategoryForNudge(candidate),{key:candidate.key,source:'nudge',minute});
+    }
     $('pocketNudgeTitle').textContent=candidate.title;
     $('pocketNudgeBody').textContent=candidate.body;
     $('pocketNudgeKind').textContent=candidate.kind;
@@ -9241,6 +9464,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
         : permission==='denied'
           ? 'Notification permission is blocked in the browser. In-app nudges still work.'
           : 'Optional. Loochori will ask only after you tap the button.';
+    renderRhythmMemorySettings();
   }
 
   async function requestPocketNotifications(){
@@ -9285,7 +9509,13 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       <div class="pocketQuietRow">
         <div class="pocketQuietField"><label for="pocketGap">Minimum gap</label><select id="pocketGap"><option value="60">1 hour</option><option value="90">1½ hours</option><option value="120">2 hours</option><option value="180">3 hours</option></select></div>
       </div>
-      <div class="pocketFinePrint">In v0.20, system nudges can appear while the installed app is still running in the background. Reliable closed-app push needs a small push service and remains intentionally separate from your local household data.</div>`;
+      <div class="pocketDivider"></div>
+      <div class="pocketInstallRow">
+        <div><div style="font-size:11px;font-weight:800">Personal rhythm memory</div><div class="pocketInstallStatus" id="pocketMemoryStatus"></div></div>
+        <button class="pocketSettingsButton" id="resetRhythmMemoryBtn" type="button">Reset learned rhythm</button>
+      </div>
+      <div class="pocketFinePrint">Learning stays on this device, looks back 60 days, and can move a soft suggestion by at most ±8 ranking points. Hard commitments and your explicit Today choices still keep priority.</div>
+      <div class="pocketFinePrint">System nudges can appear while the installed app is still running in the background. Reliable closed-app push still needs a small push service and remains separate from your local household data.</div>`;
 
     const advanced=$('modelDetails');
     if(advanced && advanced.parentElement===settingsBody) settingsBody.insertBefore(section,advanced);
@@ -9319,6 +9549,9 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     $('pocketQuietStart').addEventListener('change',saveQuiet);
     $('pocketQuietEnd').addEventListener('change',saveQuiet);
     $('pocketGap').addEventListener('change',saveQuiet);
+    $('resetRhythmMemoryBtn').addEventListener('click',()=>{
+      if(confirm('Reset the learned rhythm? This only clears Loochori’s local interaction memory; your plans and household history stay intact.')) resetRhythmMemory();
+    });
     renderPocketSettings();
   }
 
@@ -9395,7 +9628,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       const title=details.querySelector('.majorDisclosureTitle');
       const meta=details.querySelector('.majorDisclosureMeta');
       if(title) title.textContent='Advanced & data';
-      if(meta) meta.textContent='Pocket Loochori v0.20.0 · backups, assumptions and diagnostics.';
+      if(meta) meta.textContent='Personal Rhythm Memory v0.20.1 · backups, assumptions and diagnostics.';
       settingsBody.appendChild(details);
     }
 

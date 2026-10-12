@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# One-shot refinement: make system delivery independently switchable after permission.
 p=Path('index.html')
 text=p.read_text()
 

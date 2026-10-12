@@ -31,6 +31,7 @@ module.exports=async function handler(req,res){
         try{
           await sendPush(record.subscription,{
             version:1,
+            deviceId:id,
             id:event.id,
             title:event.title,
             body:event.body,

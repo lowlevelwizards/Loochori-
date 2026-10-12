@@ -1,5 +1,36 @@
-const CACHE_NAME='loochori-pocket-v0.20.1';
-const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
+const CACHE_NAME='loochori-pocket-v0.21.0';
+const APP_SHELL=['./','./index.html','./manifest.webmanifest','./push-config.json','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
+const ACTION_DB='loochori-push-actions';
+const ACTION_STORE='actions';
+
+function openActionDb(){
+  return new Promise((resolve,reject)=>{
+    const request=indexedDB.open(ACTION_DB,1);
+    request.onupgradeneeded=()=>{
+      const db=request.result;
+      if(!db.objectStoreNames.contains(ACTION_STORE)) db.createObjectStore(ACTION_STORE,{keyPath:'id'});
+    };
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error);
+  });
+}
+
+async function queueAction(entry){
+  const db=await openActionDb();
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(ACTION_STORE,'readwrite');
+    tx.objectStore(ACTION_STORE).put(entry);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+  db.close();
+}
+
+async function notifyClients(message){
+  const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+  windows.forEach(client=>client.postMessage(message));
+  return windows;
+}
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
@@ -50,12 +81,56 @@ self.addEventListener('fetch',event=>{
   })());
 });
 
+self.addEventListener('push',event=>{
+  event.waitUntil((async()=>{
+    let payload={};
+    try{ payload=event.data?.json?.() || {}; }
+    catch(_error){ payload={title:'Loochori',body:event.data?.text?.() || 'Something useful is ready.'}; }
+    const action=payload.action && typeof payload.action==='object' ? payload.action : null;
+    const actions=[];
+    if(action?.type==='care-done') actions.push({action:'done',title:'Done'});
+    actions.push({action:'later',title:'Later'});
+    actions.push({action:'open',title:'Open'});
+    await self.registration.showNotification(payload.title || 'Loochori',{
+      body:payload.body || '',
+      tag:payload.tag || payload.id || 'loochori-push',
+      icon:'./icons/icon-192.png',
+      badge:'./icons/icon-192.png',
+      actions,
+      data:{
+        url:payload.url || './',
+        pushId:payload.id || null,
+        kind:payload.kind || 'nudge',
+        action
+      }
+    });
+  })());
+});
+
 self.addEventListener('notificationclick',event=>{
   event.notification.close();
-  const target=new URL(event.notification.data?.url || './',self.registration.scope).href;
-  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(clients=>{
-    const existing=clients.find(client=>client.url.startsWith(self.registration.scope));
-    if(existing){ existing.focus(); existing.navigate(target); return; }
-    return self.clients.openWindow(target);
-  }));
+  event.waitUntil((async()=>{
+    const data=event.notification.data || {};
+    const choice=event.action || 'open';
+    if(choice==='done' || choice==='later'){
+      const entry={
+        id:`push_action_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
+        createdAt:new Date().toISOString(),
+        outcome:choice,
+        pushId:data.pushId || null,
+        kind:data.kind || 'nudge',
+        action:data.action || null
+      };
+      await queueAction(entry);
+      const windows=await notifyClients({type:'loochori-push-action',entry});
+      if(windows.length) return;
+      return;
+    }
+
+    const target=new URL(data.url || './',self.registration.scope).href;
+    const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    const existing=windows.find(client=>client.url.startsWith(self.registration.scope));
+    if(existing){ await existing.focus(); await existing.navigate(target); return; }
+    await self.clients.openWindow(target);
+  })());
 });

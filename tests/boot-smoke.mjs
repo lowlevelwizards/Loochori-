@@ -24,6 +24,14 @@ await page.addInitScript(() => {
   const weekday = now.getDay();
   const currentMinute = now.getHours() * 60 + now.getMinutes();
   const recent = minutesAgo => new Date(now.getTime() - minutesAgo * 60000).toISOString();
+  const dateKey = date => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const observedSession = (daysAgo, hour, minute, durationMinutes, id) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo, hour, minute, 0, 0);
+    return {
+      id, date: dateKey(d), at: d.toISOString(), kind: 'block', title: 'Smoke Creative Block', status: 'done',
+      entityKey: `block:${id}`, learningKey: 'library:blocktpl_smoke', source: 'time-block', durationMinutes
+    };
+  };
   const workWeek = {
     0: null,
     1: { start: '09:00', end: '17:00' },
@@ -63,7 +71,15 @@ await page.addInitScript(() => {
       { id: 'loop_carry', text: 'Smoke carryover loop', createdAt: yesterdayDate.toISOString(), status: 'open', completedAt: null }
     ],
     loochori_nudge_prefs_v1: { enabled: true, systemEnabled: false, quietStart: '22:30', quietEnd: '07:00', minGapMinutes: 90 },
-    loochori_activity_ledger_v1: { version: 1, events: [], closeouts: {} },
+    loochori_activity_ledger_v1: {
+      version: 1,
+      events: [
+        observedSession(2, 19, 20, 70, 'history_creative_1'),
+        observedSession(4, 19, 35, 75, 'history_creative_2'),
+        observedSession(6, 20, 5, 80, 'history_creative_3')
+      ],
+      closeouts: {}
+    },
     loochori_rhythm_memory_v1: {
       version: 1,
       events: [
@@ -211,7 +227,7 @@ try {
   assert((await text('#pocketInstallStatus')).length > 0, 'install guidance did not render');
   assert.equal(await page.locator('#resetRhythmMemoryBtn').count(), 1, 'rhythm memory reset control did not mount');
   assert((await text('#pocketMemoryStatus')).includes('pattern'), 'rhythm memory summary did not render');
-  assert((await text('#modelDetails .majorDisclosureMeta')).includes('What Actually Happened v0.20.2'), 'Settings does not expose the current release label');
+  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Reality-Aware Planning v0.20.3'), 'Settings does not expose the current release label');
   await page.locator('#closeSettingsBtn').click();
 
   await page.locator('#openPlanTodayBtn').click();
@@ -231,7 +247,10 @@ try {
   assert((await text('#planTodaySelectionText')).includes('1. Smoke Creative Block'), 'first Plan Today choice was not ordered first');
   assert((await text('#planTodaySelectionText')).includes('2. Smoke checklist one'), 'second Plan Today choice was not ordered second');
   await page.locator('#savePlanTodayBtn').click();
-  await page.waitForFunction(() => !document.getElementById('planTodayModal')?.classList.contains('open'));
+  await page.waitForFunction(() => window.__LOOCHORI_PLAN_TODAY__?.step === 'time' && window.__LOOCHORI_PLAN_PLACE__?.surface === 'embedded');
+  assert.equal(await page.locator('#planTodayModal.open').count(), 1, 'Plan Today should stay in one sheet for optional timing');
+  assert.equal(await page.locator('#planTodayPlacementStage:visible').count(), 1, 'optional timing stage did not appear in Plan Today');
+  assert.equal(await page.locator('#planPlaceModal.open').count(), 0, 'Plan Today should not hand off to a second placement modal');
 
   let plannedIntent = await page.evaluate(() => JSON.parse(localStorage.getItem('loochori_today_intent_v1') || '{}'));
   const plannedToday = Object.entries(plannedIntent).sort(([a],[b]) => b.localeCompare(a))[0]?.[1] || [];
@@ -243,17 +262,23 @@ try {
   assert(orderedIntent.some(item => item.title === 'Smoke Creative Block' && item.intentOrder === 0), 'planner order did not reach adaptive ranking');
   assert(orderedIntent.some(item => item.title === 'Smoke checklist one' && item.intentOrder === 1), 'second planner order did not reach adaptive ranking');
 
-  await page.waitForFunction(() => document.getElementById('planPlaceModal')?.classList.contains('open'));
   let placeSnapshot = await page.evaluate(() => window.__LOOCHORI_PLAN_PLACE__);
-  assert.equal(placeSnapshot?.items?.length, 2, 'Plan → Place did not receive the two focus choices');
-  assert.equal(placeSnapshot.items[0]?.title, 'Smoke Creative Block', 'Plan → Place lost focus ordering');
-  const creativePlacement = page.locator('#planPlaceList .planPlaceItem').filter({ hasText: 'Smoke Creative Block' });
+  assert.equal(placeSnapshot?.items?.length, 2, 'reality-aware timing did not receive the two focus choices');
+  assert.equal(placeSnapshot.items[0]?.title, 'Smoke Creative Block', 'reality-aware timing lost focus ordering');
+  assert.equal(placeSnapshot.items[0]?.duration, 75, 'observed sessions did not replace the stale saved-block duration estimate');
+  assert.equal(placeSnapshot.items[0]?.durationSource, 'observed', 'learned duration was not marked as observed evidence');
+  assert(placeSnapshot.items[0]?.durationSamples >= 3, 'learned duration activated without enough actual sessions');
+  assert.equal(placeSnapshot.items[0]?.preferredDaypart, 'evening', 'observed completion times did not learn the evening pattern');
+  const creativePlacement = page.locator('#planTodayPlacementList .planPlaceItem').filter({ hasText: 'Smoke Creative Block' });
+  assert((await creativePlacement.innerText()).includes('learned'), 'placement explanation does not expose learned duration evidence');
   const firstSuggestion = placeSnapshot.items[0]?.suggestion;
   if (firstSuggestion) {
+    assert(Number.isFinite(firstSuggestion.score), 'ranked placement suggestion did not expose a reality score');
+    assert(firstSuggestion.reason?.length > 0, 'ranked placement suggestion did not explain why this opening fits');
     if ((placeSnapshot.items[0]?.alternatives || 0) > 1) {
       await creativePlacement.getByRole('button', { name: 'Try another' }).click();
       const alternateSnapshot = await page.evaluate(() => window.__LOOCHORI_PLAN_PLACE__);
-      assert.notEqual(alternateSnapshot.items[0]?.suggestion?.start, firstSuggestion.start, 'Try another did not reflow the proposed window');
+      assert.notEqual(alternateSnapshot.items[0]?.suggestion?.start, firstSuggestion.start, 'Try another did not move to the next ranked opening');
     }
     await creativePlacement.getByRole('button', { name: 'Place here' }).click();
     await page.waitForFunction(() => {
@@ -261,7 +286,7 @@ try {
       const blocks = JSON.parse(localStorage.getItem('loochori_time_blocks_v1') || '[]');
       const records = Object.values(intent).flat();
       const placed = records.find(item => item.refId === 'blocktpl_smoke' && item.placedBlockId);
-      return Boolean(placed && blocks.some(block => block.id === placed.placedBlockId && block.title === 'Smoke Creative Block'));
+      return Boolean(placed && blocks.some(block => block.id === placed.placedBlockId && block.title === 'Smoke Creative Block' && block.planningKey === 'library:blocktpl_smoke'));
     });
     placeSnapshot = await page.evaluate(() => window.__LOOCHORI_PLAN_PLACE__);
     assert(placeSnapshot.items[0]?.placed === true, 'placed focus did not become a real time block');
@@ -270,7 +295,8 @@ try {
   } else {
     assert((await creativePlacement.innerText()).includes('Best left floating'), 'no-window state did not explicitly keep the focus floating');
   }
-  await page.locator('#closePlanPlaceBtn').click();
+  await page.locator('#finishPlanTodayBtn').click();
+  await page.waitForFunction(() => !document.getElementById('planTodayModal')?.classList.contains('open'));
 
   assert.equal(await page.locator('#carryoverPanel.show').count(), 1, 'yesterday carryover prompt did not render');
   assert((await text('#carryoverTitle')).includes('carried over from yesterday'), 'carryover prompt copy is missing');

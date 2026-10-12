@@ -63,6 +63,7 @@ await page.addInitScript(() => {
       { id: 'loop_carry', text: 'Smoke carryover loop', createdAt: yesterdayDate.toISOString(), status: 'open', completedAt: null }
     ],
     loochori_nudge_prefs_v1: { enabled: true, systemEnabled: false, quietStart: '22:30', quietEnd: '07:00', minGapMinutes: 90 },
+    loochori_activity_ledger_v1: { version: 1, events: [], closeouts: {} },
     loochori_rhythm_memory_v1: {
       version: 1,
       events: [
@@ -164,6 +165,10 @@ try {
   assert.equal(await page.locator('#nowCare:visible').count(), 0, 'duplicated care-around-now panel should be hidden');
   assert.equal(await page.locator('#nowRhythmGroup:visible').count(), 0, 'duplicated rhythm panel should be hidden from Now');
   assert((await text('#nextFixedTitle')).length > 0, 'Cozy Home did not render the next fixed thing');
+  assert.equal(await page.locator('#dayMemoryCard').count(), 1, 'Day so far memory surface did not mount');
+  await page.waitForFunction(() => window.__LOOCHORI_ACTIVITY__?.remembered >= 1);
+  const activityBoot = await page.evaluate(() => window.__LOOCHORI_ACTIVITY__);
+  assert(activityBoot.events.some(item => item.title === 'Brush teeth'), 'seeded completed care did not enter factual day memory');
   assert.equal(await page.locator('link[rel="manifest"]').count(), 1, 'web app manifest link is missing');
   const manifest = await page.evaluate(() => fetch('./manifest.webmanifest').then(response => response.json()));
   assert.equal(manifest.name, 'Loochori', 'manifest app name is wrong');
@@ -181,6 +186,22 @@ try {
   assert.equal(await page.locator('#careArea').evaluate(el => el.open), false, 'opening meals should close care');
   assert.equal(await page.locator('#mealsArea').evaluate(el => el.open), true, 'meals summary did not expand');
 
+
+  await page.locator('#dayMemoryCard > summary').click();
+  assert((await text('#dayMemoryList')).includes('Brush teeth'), 'Day so far did not expose remembered care');
+  await page.locator('#openDayCloseBtn').click();
+  await page.waitForFunction(() => document.getElementById('dayCloseModal')?.classList.contains('open'));
+  assert((await text('#dayCloseIntro')).includes('no score'), 'day closeout lost the nonjudgmental framing');
+  await page.locator('#dayCloseManualInput').fill('Smoke manual memory');
+  await page.locator('#addDayCloseManualBtn').click();
+  assert((await text('#dayCloseHappened')).includes('Smoke manual memory'), 'manual day memory did not render in closeout');
+  await page.locator('#finishDayCloseBtn').click();
+  await page.waitForFunction(() => !document.getElementById('dayCloseModal')?.classList.contains('open'));
+  const activityStore = await page.evaluate(() => JSON.parse(localStorage.getItem('loochori_activity_ledger_v1') || '{}'));
+  assert(activityStore.events?.some(item => item.title === 'Smoke manual memory' && item.status === 'note'), 'manual day memory did not persist');
+  assert(Object.keys(activityStore.closeouts || {}).length >= 1, 'day closeout did not persist');
+  assert((await text('#dayMemorySummary')).includes('reviewed'), 'Day so far did not reflect the completed review');
+
   await page.locator('#openSettingsBtn').click();
   await page.waitForFunction(() => document.getElementById('householdSettingsModal')?.classList.contains('open'));
   assert.equal(await page.locator('#householdSettingsModal #modelDetails').count(), 1, 'Advanced & data was not moved into Settings');
@@ -190,7 +211,7 @@ try {
   assert((await text('#pocketInstallStatus')).length > 0, 'install guidance did not render');
   assert.equal(await page.locator('#resetRhythmMemoryBtn').count(), 1, 'rhythm memory reset control did not mount');
   assert((await text('#pocketMemoryStatus')).includes('pattern'), 'rhythm memory summary did not render');
-  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Personal Rhythm Memory v0.20.1'), 'Settings does not expose the current release label');
+  assert((await text('#modelDetails .majorDisclosureMeta')).includes('What Actually Happened v0.20.2'), 'Settings does not expose the current release label');
   await page.locator('#closeSettingsBtn').click();
 
   await page.locator('#openPlanTodayBtn').click();

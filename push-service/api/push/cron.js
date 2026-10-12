@@ -22,6 +22,7 @@ module.exports=async function handler(req,res){
       if(!record){ await removeDevice(id); removed++; continue; }
       const schedule=Array.isArray(record.schedule)?record.schedule:[];
       const keep=[];
+      let deviceRemoved=false;
       for(const event of schedule){
         const due=Date.parse(event.dueAt||'');
         if(!Number.isFinite(due)) continue;
@@ -42,7 +43,9 @@ module.exports=async function handler(req,res){
         }catch(error){
           const status=Number(error?.statusCode)||0;
           if(status===404 || status===410){
-            await removeDevice(id); removed++;
+            await removeDevice(id);
+            removed++;
+            deviceRemoved=true;
             keep.length=0;
             break;
           }
@@ -51,7 +54,7 @@ module.exports=async function handler(req,res){
           console.error('push failed',id,status,error?.message||error);
         }
       }
-      if(keep.length || schedule.length!==keep.length){
+      if(!deviceRemoved && (keep.length || schedule.length!==keep.length)){
         record.schedule=keep;
         record.updatedAt=new Date().toISOString();
         await putDevice(record);

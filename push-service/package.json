@@ -1,0 +1,10 @@
+{
+  "name": "loochori-push-service",
+  "version": "0.21.0",
+  "private": true,
+  "type": "commonjs",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

@@ -1,38 +1,36 @@
 const ALLOWED_METHODS='GET,POST,OPTIONS';
 
-function allowedOrigin(req){
+function originFor(request){
   const configured=String(process.env.ALLOWED_ORIGIN||'').trim();
-  const origin=String(req.headers?.origin||'');
-  if(!configured) return origin || '*';
-  return origin===configured ? configured : configured;
+  const incoming=String(request.headers.get('origin')||'');
+  if(configured) return configured;
+  return incoming || '*';
 }
 
-function setCors(req,res){
-  res.setHeader('Access-Control-Allow-Origin',allowedOrigin(req));
-  res.setHeader('Vary','Origin');
-  res.setHeader('Access-Control-Allow-Methods',ALLOWED_METHODS);
-  res.setHeader('Access-Control-Allow-Headers','Content-Type,Authorization');
-  res.setHeader('Cache-Control','no-store');
+export function corsHeaders(request,extra={}){
+  return {
+    'Access-Control-Allow-Origin':originFor(request),
+    'Access-Control-Allow-Methods':ALLOWED_METHODS,
+    'Access-Control-Allow-Headers':'Content-Type',
+    'Cache-Control':'no-store',
+    'Vary':'Origin',
+    ...extra
+  };
 }
 
-function json(req,res,status,body){
-  setCors(req,res);
-  res.status(status).json(body);
+export function json(request,body,{status=200,headers={}}={}){
+  return Response.json(body,{status,headers:corsHeaders(request,headers)});
 }
 
-function handleOptions(req,res){
-  if(req.method!=='OPTIONS') return false;
-  setCors(req,res);
-  res.status(204).end();
-  return true;
+export function options(request){
+  return new Response(null,{status:204,headers:corsHeaders(request)});
 }
 
-function bodyObject(req){
-  if(req.body && typeof req.body==='object') return req.body;
-  if(typeof req.body==='string'){
-    try{return JSON.parse(req.body);}catch(_error){return null;}
+export async function readJson(request){
+  try{
+    const body=await request.json();
+    return body && typeof body==='object' && !Array.isArray(body) ? body : null;
+  }catch(_error){
+    return null;
   }
-  return null;
 }
-
-module.exports={json,handleOptions,bodyObject,setCors};

@@ -242,7 +242,7 @@ try {
   assert((await text('#pocketInstallStatus')).length > 0, 'install guidance did not render');
   assert.equal(await page.locator('#resetRhythmMemoryBtn').count(), 1, 'rhythm memory reset control did not mount');
   assert((await text('#pocketMemoryStatus')).includes('pattern'), 'rhythm memory summary did not render');
-  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Cozy Clarity v0.20.4'), 'Settings does not expose the current release label');
+  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Things to Get v0.20.5'), 'Settings does not expose the current release label');
   await page.locator('#closeSettingsBtn').click();
 
   const getSnapshot = await page.evaluate(() => window.__LOOCHORI_GET__);

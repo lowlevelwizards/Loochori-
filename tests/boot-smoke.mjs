@@ -249,6 +249,8 @@ try {
   assert.equal(getSnapshot.grocery, 1, 'seeded grocery did not enter Things to Get');
   assert.equal(getSnapshot.householdLow, 1, 'running-low household supply did not enter Things to Get');
   assert((await text('#thingsToGetSummary')).includes('pick up'), 'Household Things to get summary did not surface shopping need');
+  await page.locator('#houseArea > summary').click();
+  await page.waitForFunction(() => document.getElementById('houseArea')?.open);
   await page.locator('#openThingsToGetBtn').click();
   await page.waitForFunction(() => document.getElementById('thingsToGetModal')?.classList.contains('open'));
   assert((await text('#shoppingNowList')).includes('Smoke bananas'), 'Shopping now missed seeded grocery');

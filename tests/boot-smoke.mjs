@@ -178,6 +178,12 @@ try {
 
   assert.equal(await page.locator('.topbar .version:visible').count(), 0, 'release badge should be tucked into Settings');
   assert.equal(await page.locator('.jumpBarWrap:visible').count(), 0, 'sticky jump bar should be retired on Cozy Home');
+  assert.equal(await page.locator('#openPlanPlaceBtn:visible').count(), 0, 'redundant Place plan launcher should stay off the Today surface');
+  const hierarchy = await page.evaluate(() => ({
+    adaptive: parseFloat(getComputedStyle(document.querySelector('.adaptiveTitle')).fontSize),
+    now: parseFloat(getComputedStyle(document.querySelector('.nowTitle')).fontSize)
+  }));
+  assert(hierarchy.adaptive > hierarchy.now, 'Best next thing should be visually stronger than current context');
   assert.equal(await page.locator('#nowCare:visible').count(), 0, 'duplicated care-around-now panel should be hidden');
   assert.equal(await page.locator('#nowRhythmGroup:visible').count(), 0, 'duplicated rhythm panel should be hidden from Now');
   assert((await text('#nextFixedTitle')).length > 0, 'Cozy Home did not render the next fixed thing');
@@ -197,6 +203,8 @@ try {
   }
   await page.locator('#careArea > summary').click();
   assert.equal(await page.locator('#careArea').evaluate(el => el.open), true, 'care summary did not expand');
+  const careTarget = await page.locator('#careGroups .careBubble').first().boundingBox();
+  assert(careTarget && careTarget.width >= 44 && careTarget.height >= 44, 'care completion target should meet the Cozy Clarity touch size');
   await page.locator('#mealsArea > summary').click();
   await page.waitForFunction(() => !document.getElementById('careArea')?.open && document.getElementById('mealsArea')?.open);
   assert.equal(await page.locator('#careArea').evaluate(el => el.open), false, 'opening meals should close care');
@@ -227,9 +235,14 @@ try {
   assert((await text('#pocketInstallStatus')).length > 0, 'install guidance did not render');
   assert.equal(await page.locator('#resetRhythmMemoryBtn').count(), 1, 'rhythm memory reset control did not mount');
   assert((await text('#pocketMemoryStatus')).includes('pattern'), 'rhythm memory summary did not render');
-  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Reality-Aware Planning v0.20.3'), 'Settings does not expose the current release label');
+  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Cozy Clarity v0.20.4'), 'Settings does not expose the current release label');
   await page.locator('#closeSettingsBtn').click();
 
+  await page.locator('#openPlanTodayBtn').click();
+  await page.waitForFunction(() => document.getElementById('planTodayModal')?.classList.contains('open'));
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.getElementById('planTodayModal')?.classList.contains('open'));
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'openPlanTodayBtn', 'Escape should close the planner and return focus to its trigger');
   await page.locator('#openPlanTodayBtn').click();
   await page.waitForFunction(() => document.getElementById('planTodayModal')?.classList.contains('open'));
   assert.equal(await page.locator('#planTodaySummary .planSummaryCard').count(), 3, 'Plan Today day-shape summary did not render');

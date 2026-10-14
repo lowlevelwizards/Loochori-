@@ -1,0 +1,42 @@
+name: Fix v0.20.5 household state test
+
+on:
+  push:
+    branches:
+      - feature/things-to-get-v0.20.5
+    paths:
+      - '.github/workflows/fix-v0205-house-state-test.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/things-to-get-v0.20.5
+          fetch-depth: 0
+      - name: Make later Household contract state-safe
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tests/boot-smoke.mjs')
+          s=p.read_text()
+          old="  assert((await text('#carryoverTitle')).includes('carried over from yesterday'), 'carryover prompt copy is missing');\n\n  await page.locator('#houseArea > summary').click();\n  await page.waitForFunction(() => document.getElementById('houseArea')?.open);"
+          new="  assert((await text('#carryoverTitle')).includes('carried over from yesterday'), 'carryover prompt copy is missing');\n\n  if (!(await page.locator('#houseArea').evaluate(el => el.open))) {\n    await page.locator('#houseArea > summary').click();\n  }\n  await page.waitForFunction(() => document.getElementById('houseArea')?.open);"
+          if old not in s:
+              raise SystemExit('later Household contract anchor missing')
+          p.write_text(s.replace(old,new,1))
+          PY
+          node --check tests/boot-smoke.mjs
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/fix-v0205-house-state-test.yml
+      - name: Commit test fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/boot-smoke.mjs .github/workflows/fix-v0205-house-state-test.yml
+          git commit -m 'Make household browser contract state-safe'
+          git push origin HEAD:feature/things-to-get-v0.20.5

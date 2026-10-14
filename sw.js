@@ -1,4 +1,5 @@
-const CACHE_NAME='loochori-pocket-v0.20.4';
+// Offline shell for Things to Get v0.20.5; acquisition lists stay local-first.
+const CACHE_NAME='loochori-pocket-v0.20.5';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 
 self.addEventListener('install',event=>{

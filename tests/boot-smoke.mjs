@@ -66,6 +66,12 @@ await page.addInitScript(() => {
         dinner: { plannedMealId: 'meal_smoke', eatenMealId: null, actualItems: [] }
       }
     },
+    loochori_things_to_get_v1: [
+      { id: 'get_smoke_grocery', title: 'Smoke bananas', category: 'grocery', state: 'need', addedAt: recent(300), updatedAt: recent(300) },
+      { id: 'get_smoke_supply', title: 'Smoke dish soap', category: 'household', state: 'low', addedAt: recent(5000), updatedAt: recent(5000) },
+      { id: 'get_smoke_gift', title: 'Smoke mushroom lamp', category: 'gift', state: 'idea', person: 'Smoke Partner', addedAt: recent(8000), updatedAt: recent(8000) },
+      { id: 'get_smoke_later', title: 'Smoke shelves', category: 'later', state: 'idea', group: 'home', addedAt: recent(9000), updatedAt: recent(9000) }
+    ],
     loochori_open_loops_v1: [
       { id: 'loop_smoke', text: 'Smoke intentional loop', createdAt: now.toISOString(), status: 'open', completedAt: null },
       { id: 'loop_carry', text: 'Smoke carryover loop', createdAt: yesterdayDate.toISOString(), status: 'open', completedAt: null }
@@ -176,6 +182,7 @@ try {
   assert(learnedRoutine.learningAdjustment <= 8, 'learned adaptive boost exceeded the bounded ceiling');
   assert(learnedRoutine.learningObservations >= 2, 'adaptive learning activated without the minimum evidence');
 
+  assert((await page.locator('title').textContent()).includes('Things to Get v0.20.5'), 'release title did not update to Things to Get');
   assert.equal(await page.locator('.topbar .version:visible').count(), 0, 'release badge should be tucked into Settings');
   assert.equal(await page.locator('.jumpBarWrap:visible').count(), 0, 'sticky jump bar should be retired on Cozy Home');
   assert.equal(await page.locator('#openPlanPlaceBtn:visible').count(), 0, 'redundant Place plan launcher should stay off the Today surface');
@@ -235,8 +242,34 @@ try {
   assert((await text('#pocketInstallStatus')).length > 0, 'install guidance did not render');
   assert.equal(await page.locator('#resetRhythmMemoryBtn').count(), 1, 'rhythm memory reset control did not mount');
   assert((await text('#pocketMemoryStatus')).includes('pattern'), 'rhythm memory summary did not render');
-  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Cozy Clarity v0.20.4'), 'Settings does not expose the current release label');
+  assert((await text('#modelDetails .majorDisclosureMeta')).includes('Things to Get v0.20.5'), 'Settings does not expose the current release label');
   await page.locator('#closeSettingsBtn').click();
+
+  const getSnapshot = await page.evaluate(() => window.__LOOCHORI_GET__);
+  assert.equal(getSnapshot.grocery, 1, 'seeded grocery did not enter Things to Get');
+  assert.equal(getSnapshot.householdLow, 1, 'running-low household supply did not enter Things to Get');
+  assert((await text('#thingsToGetSummary')).includes('pick up'), 'Household Things to get summary did not surface shopping need');
+  await page.locator('#houseArea > summary').click();
+  await page.waitForFunction(() => document.getElementById('houseArea')?.open);
+  await page.locator('#openThingsToGetBtn').click();
+  await page.waitForFunction(() => document.getElementById('thingsToGetModal')?.classList.contains('open'));
+  assert((await text('#shoppingNowList')).includes('Smoke bananas'), 'Shopping now missed seeded grocery');
+  assert((await text('#shoppingNowList')).includes('Smoke dish soap'), 'Shopping now missed running-low household supply');
+  assert((await text('#giftGetList')).includes('Smoke mushroom lamp'), 'Gift drawer missed seeded gift idea');
+  assert((await text('#laterGetList')).includes('Smoke shelves'), 'Later drawer missed seeded improvement');
+  await page.locator('#shoppingNowList [data-get-id="get_smoke_grocery"] .getCheck').click();
+  assert(!(await text('#shoppingNowList')).includes('Smoke bananas'), 'bought grocery stayed in Shopping now');
+  assert((await text('#groceryRecent')).includes('Smoke bananas'), 'bought grocery did not move to recent groceries');
+  await page.locator('#closeThingsToGetBtn').click();
+
+  await page.locator('#captureFab').click();
+  await page.waitForFunction(() => document.getElementById('captureModal')?.classList.contains('open'));
+  await page.locator('#captureAsGet').click();
+  await page.locator('#captureGetCategory').selectOption('household');
+  await page.locator('#captureInput').fill('Smoke paper towels');
+  await page.locator('#saveCaptureBtn').click();
+  const getStore = await page.evaluate(() => JSON.parse(localStorage.getItem('loochori_things_to_get_v1') || '[]'));
+  assert(getStore.some(item => item.title === 'Smoke paper towels' && item.category === 'household'), 'Capture → To get did not persist a household supply');
 
   await page.locator('#openPlanTodayBtn').click();
   await page.waitForFunction(() => document.getElementById('planTodayModal')?.classList.contains('open'));
@@ -314,7 +347,9 @@ try {
   assert.equal(await page.locator('#carryoverPanel.show').count(), 1, 'yesterday carryover prompt did not render');
   assert((await text('#carryoverTitle')).includes('carried over from yesterday'), 'carryover prompt copy is missing');
 
-  await page.locator('#houseArea > summary').click();
+  if (!(await page.locator('#houseArea').evaluate(el => el.open))) {
+    await page.locator('#houseArea > summary').click();
+  }
   await page.waitForFunction(() => document.getElementById('houseArea')?.open);
   const loopToday = page.locator('button[data-intent-kind="loop"][data-intent-ref="loop_smoke"]:visible');
   assert((await loopToday.count()) >= 1, 'open-loop Today control did not render');

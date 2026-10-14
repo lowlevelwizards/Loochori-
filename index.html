@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Loochori" />
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
-<title>Loochori — Cozy Clarity v0.20.4</title>
+<title>Loochori — Things to Get v0.20.5</title>
 <style>
   :root{
     --bg:#0f1113;
@@ -1571,6 +1571,72 @@
     }
   }
 
+
+
+  /* v0.20.5 — Things to Get: groceries, recurring supplies, gifts and later wants */
+  .getHomeRow{
+    width:100%;border:1px solid rgba(230,211,246,.16);background:rgba(230,211,246,.045);
+    color:var(--text);border-radius:15px;min-height:58px;padding:11px 12px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;cursor:pointer
+  }
+  .getHomeTitle{display:block;font-size:14px;font-weight:800;letter-spacing:-.01em}
+  .getHomeMeta{display:block;font-size:12px;color:var(--muted);line-height:1.35;margin-top:3px}
+  .getHomeChevron{font-size:20px;color:#d9c7eb}
+
+  .getAddBox{background:#121518;border:1px solid var(--line);border-radius:17px;padding:12px;margin-bottom:14px}
+  .getAddTitle{font-size:13px;font-weight:820}
+  .getAddNote{font-size:12px;color:var(--muted);line-height:1.4;margin-top:3px}
+  .getAddRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px}
+  .getAddRow input,.getAddRow select,.getDetailRow input,.getDetailRow select{
+    width:100%;min-height:44px;background:#101316;color:var(--text);border:1px solid var(--line);
+    border-radius:12px;padding:10px 11px;font-size:14px
+  }
+  .getAddKind{grid-column:1/-1}
+  .getAddButton{min-height:44px;border:0;background:var(--accent);color:var(--accentText);border-radius:12px;padding:10px 14px;font-weight:820;cursor:pointer}
+  .getDetailRow{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}
+
+  .getShoppingCard{border:1px solid rgba(217,240,223,.15);background:rgba(217,240,223,.045);border-radius:17px;padding:12px;margin-bottom:14px}
+  .getShoppingHead{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+  .getShoppingTitle{font-size:16px;font-weight:840;letter-spacing:-.02em}
+  .getShoppingCount{font-size:12px;color:var(--muted)}
+  .getShoppingNote{font-size:12px;color:var(--muted);line-height:1.4;margin-top:3px}
+  .getShoppingList{display:grid;gap:7px;margin-top:10px}
+  .getShoppingRow{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;min-height:48px;background:rgba(255,255,255,.025);border-radius:13px;padding:5px 9px 5px 4px}
+  .getCheck{width:40px;height:40px;border-radius:50%;border:1px solid #59616a;background:transparent;color:var(--text);font-size:17px;cursor:pointer}
+  .getShoppingName{font-size:14px;font-weight:760;line-height:1.25}
+  .getShoppingMeta{font-size:11px;color:var(--muted);margin-top:2px}
+  .getEmpty{font-size:13px;color:var(--muted);line-height:1.45;padding:7px 1px}
+
+  .getSection{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07)}
+  .getSectionHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px}
+  .getSectionTitle{font-size:15px;font-weight:820}
+  .getSectionNote{font-size:11px;color:var(--muted);line-height:1.35;margin-top:2px}
+  .getList{display:grid;gap:7px}
+  .getItem{background:#121518;border-radius:14px;padding:10px 11px}
+  .getItemTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .getItemName{font-size:14px;font-weight:760;line-height:1.3}
+  .getItemMeta{font-size:11px;color:var(--muted);line-height:1.4;margin-top:3px}
+  .getStatePill{font-size:10px;color:var(--muted);background:var(--soft);border-radius:999px;padding:5px 7px;white-space:nowrap}
+  .getItemActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+  .getAction{min-height:40px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:10px;padding:8px 10px;font-size:11px;font-weight:780;cursor:pointer}
+  .getAction.primaryGet{background:rgba(217,240,223,.08);border-color:rgba(217,240,223,.20);color:#d9f0df}
+  .getAction.selectedGet{background:var(--accent);border-color:var(--accent);color:var(--accentText)}
+  .getAction.dangerGet{margin-left:auto;color:#d8aaaa}
+  .getRecipient{color:#e6d3f6}
+  .getRecent{margin-top:10px}
+
+  .captureDestination{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px}
+  .captureDestinationLabel{font-size:12px;color:var(--muted);margin-right:2px}
+  .captureDestBtn{min-height:40px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:10px;padding:8px 10px;font-size:11px;font-weight:780;cursor:pointer}
+  .captureDestBtn.selected{background:rgba(217,240,223,.08);border-color:rgba(217,240,223,.22);color:#d9f0df}
+  .captureGetCategory{min-height:40px;background:#101316;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-size:12px}
+
+  @media (min-width:560px){
+    .getAddRow{grid-template-columns:minmax(0,1fr) 170px auto}
+    .getAddKind{grid-column:auto}
+    .getDetailRow{grid-template-columns:1fr 1fr}
+  }
+
 </style>
 </head>
 <body>
@@ -1578,7 +1644,7 @@
   <div class="topbar">
     <div class="brand">Loochori</div>
     <div class="topbarRight">
-      <div class="version" aria-hidden="true">Cozy Clarity v0.20.4</div>
+      <div class="version" aria-hidden="true">Things to Get v0.20.5</div>
       <button class="settingsBtn" id="openSettingsBtn">Settings</button>
     </div>
   </div>
@@ -1767,6 +1833,11 @@
             <button class="houseLoopAction" id="houseReviewBtn">Review all</button>
           </div>
         </div>
+        <div class="householdSubhead">Things to get</div>
+        <button class="getHomeRow" id="openThingsToGetBtn" type="button">
+          <span><span class="getHomeTitle">Things to get</span><span class="getHomeMeta" id="thingsToGetSummary">Nothing needed right now.</span></span>
+          <span class="getHomeChevron" aria-hidden="true">›</span>
+        </button>
       </div>
     </details>
 
@@ -2441,6 +2512,72 @@
   </div>
 </div>
 
+
+
+<div class="modalBackdrop" id="thingsToGetModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="thingsToGetTitle">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle" id="thingsToGetTitle">Things to get</div>
+        <div class="sectionNote">Groceries, recurring supplies, gifts and someday wants — remembered without turning them into tasks.</div>
+      </div>
+      <button class="closeBtn" id="closeThingsToGetBtn" type="button" aria-label="Close">×</button>
+    </div>
+
+    <div class="getAddBox">
+      <div class="getAddTitle">Add something</div>
+      <div class="getAddNote">Type it once. Grocery entries can be comma-separated.</div>
+      <div class="getAddRow">
+        <input id="thingsToGetInput" type="text" maxlength="180" placeholder="eggs, dish soap, mushroom lamp…" autocomplete="off">
+        <select class="getAddKind" id="thingsToGetCategory" aria-label="Category">
+          <option value="grocery">Grocery</option>
+          <option value="household">Household supply</option>
+          <option value="gift">Gift idea</option>
+          <option value="later">Later / improvement</option>
+        </select>
+        <button class="getAddButton" id="addThingToGetBtn" type="button">Add</button>
+      </div>
+      <div class="getDetailRow" id="giftGetFields" hidden>
+        <input id="thingsToGetPerson" type="text" maxlength="80" placeholder="For who? (optional)">
+      </div>
+      <div class="getDetailRow" id="laterGetFields" hidden>
+        <select id="thingsToGetGroup" aria-label="Later list type">
+          <option value="home">Home improvement</option>
+          <option value="personal">Personal want</option>
+          <option value="other">Other someday</option>
+        </select>
+      </div>
+    </div>
+
+    <section class="getShoppingCard" aria-labelledby="shoppingNowTitle">
+      <div class="getShoppingHead"><div class="getShoppingTitle" id="shoppingNowTitle">Shopping now</div><div class="getShoppingCount" id="shoppingNowCount"></div></div>
+      <div class="getShoppingNote">One clean list for what you might actually pick up on this trip.</div>
+      <div class="getShoppingList" id="shoppingNowList"></div>
+    </section>
+
+    <section class="getSection">
+      <div class="getSectionHead"><div><div class="getSectionTitle">Groceries</div><div class="getSectionNote">Fast trip list. Bought things stay nearby so staples are easy to add again.</div></div></div>
+      <div class="getList" id="groceryGetList"></div>
+      <div class="getRecent" id="groceryRecent"></div>
+    </section>
+
+    <section class="getSection">
+      <div class="getSectionHead"><div><div class="getSectionTitle">Household supplies</div><div class="getSectionNote">Recurring staples can be Fine, Running low, or Need — buying one resets it instead of deleting it.</div></div></div>
+      <div class="getList" id="householdGetList"></div>
+    </section>
+
+    <section class="getSection">
+      <div class="getSectionHead"><div><div class="getSectionTitle">Gift ideas</div><div class="getSectionNote">Ideas are allowed to sit here quietly until they become Bought or Given.</div></div></div>
+      <div class="getList" id="giftGetList"></div>
+    </section>
+
+    <section class="getSection">
+      <div class="getSectionHead"><div><div class="getSectionTitle">Later & improvements</div><div class="getSectionNote">Long-horizon wants stay out of Today. After three days, Loochori simply shows how long the idea has been sitting.</div></div></div>
+      <div class="getList" id="laterGetList"></div>
+    </section>
+  </div>
+</div>
+
 <div class="modalBackdrop" id="captureModal">
   <div class="modal">
     <div class="modalHead">
@@ -2457,6 +2594,17 @@
       <div class="captureRow">
         <input id="captureInput" type="text" placeholder="hand soap, closet door, text someone…" autocomplete="off">
         <button class="captureSave" id="saveCaptureBtn">Hold it</button>
+      </div>
+      <div class="captureDestination" aria-label="What kind of thing is this?">
+        <span class="captureDestinationLabel">Remember as</span>
+        <button class="captureDestBtn selected" id="captureAsLoop" type="button">Open loop</button>
+        <button class="captureDestBtn" id="captureAsGet" type="button">To get</button>
+        <select class="captureGetCategory" id="captureGetCategory" hidden aria-label="Things to get category">
+          <option value="grocery">Grocery</option>
+          <option value="household">Household supply</option>
+          <option value="gift">Gift idea</option>
+          <option value="later">Later / improvement</option>
+        </select>
       </div>
     </div>
 
@@ -2612,6 +2760,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   const MEAL_LIBRARY_KEY = 'loochori_meal_library_v1';
   const MEAL_HISTORY_KEY = 'loochori_meal_history_v1';
   const OPEN_LOOP_KEY = 'loochori_open_loops_v1';
+  const THINGS_TO_GET_KEY = 'loochori_things_to_get_v1';
   const TODAY_INTENT_KEY = 'loochori_today_intent_v1';
   const NUDGE_PREFS_KEY = 'loochori_nudge_prefs_v1';
   const NUDGE_STATE_KEY = 'loochori_nudge_state_v1';
@@ -2773,6 +2922,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     MEAL_LIBRARY_KEY,
     MEAL_HISTORY_KEY,
     OPEN_LOOP_KEY,
+    THINGS_TO_GET_KEY,
     TODAY_INTENT_KEY,
     NUDGE_PREFS_KEY,
     RHYTHM_MEMORY_KEY,
@@ -2801,7 +2951,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
 
   function safeStoreDefault(key){
     if([
-      STORAGE_KEY,CHECKIN_STORAGE_KEY,MEAL_LIBRARY_KEY,OPEN_LOOP_KEY,
+      STORAGE_KEY,CHECKIN_STORAGE_KEY,MEAL_LIBRARY_KEY,OPEN_LOOP_KEY,THINGS_TO_GET_KEY,
       RHYTHM_KEY,TIME_BLOCK_KEY,TIME_BLOCK_LIBRARY_KEY
     ].includes(key)) return [];
     if(key===ACTIVITY_LEDGER_KEY) return {version:1,events:[],closeouts:{}};
@@ -2841,6 +2991,17 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     if(key===OPEN_LOOP_KEY){
       return Array.isArray(value) && value.every(x=>
         isRecord(x) && typeof x.id==='string' && typeof x.text==='string'
+      );
+    }
+
+    if(key===THINGS_TO_GET_KEY){
+      const categories=new Set(['grocery','household','gift','later']);
+      const states=new Set(['need','fine','low','idea','bought','given']);
+      return Array.isArray(value) && value.every(item=>
+        isRecord(item) && typeof item.id==='string' && typeof item.title==='string' && item.title.length<=240 &&
+        categories.has(item.category) && states.has(item.state) &&
+        (item.person===undefined || item.person===null || (typeof item.person==='string' && item.person.length<=80)) &&
+        (item.group===undefined || item.group===null || ['home','personal','other'].includes(item.group))
       );
     }
 
@@ -3183,6 +3344,8 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   let mealHistory = loadMealHistory();
   let mealPickerContext = {mode:'library', slot:null, field:null};
   let openLoops = loadOpenLoops();
+  let thingsToGet = loadThingsToGet();
+  let captureDestination = 'loop';
   let todayIntent = loadTodayIntent();
   let rhythmMemory = loadRhythmMemory();
   let rhythmDefs = loadRhythmDefs();
@@ -5383,6 +5546,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
   }
 
   function openCaptureModal(focusInput=true){
+    setCaptureDestination('loop');
     $('captureModal').classList.add('open');
     renderOpenLoopList();
     if(focusInput){
@@ -5400,6 +5564,13 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     const value=input.value.trim();
     if(!value) return;
 
+    if(captureDestination==='get'){
+      addThingToGet(value,$('captureGetCategory')?.value || 'grocery');
+      input.value='';
+      closeCaptureModal();
+      return;
+    }
+
     openLoops.push({
       id:'loop_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),
       text:value,
@@ -5413,6 +5584,294 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     // Capture is meant to be a five-second unload, not a new management session.
     closeCaptureModal();
     refreshViews('loops');
+  }
+
+
+
+  function loadThingsToGet(){
+    const value=readStore(THINGS_TO_GET_KEY,[]);
+    return Array.isArray(value) ? value : [];
+  }
+
+  function saveThingsToGet(){
+    localStorage.setItem(THINGS_TO_GET_KEY,JSON.stringify(thingsToGet));
+  }
+
+  function thingsActive(item){
+    if(!item) return false;
+    if(item.category==='grocery') return item.state==='need';
+    if(item.category==='household') return item.state==='low' || item.state==='need';
+    if(item.category==='later') return item.state==='need';
+    return false;
+  }
+
+  function thingStateLabel(item){
+    if(item.category==='household') return ({fine:'Fine',low:'Running low',need:'Need'}[item.state] || 'Fine');
+    if(item.category==='gift') return ({idea:'Idea',bought:'Bought',given:'Given'}[item.state] || 'Idea');
+    if(item.category==='later') return ({idea:'Later',need:'Need now',bought:'Got it'}[item.state] || 'Later');
+    return item.state==='bought' ? 'Bought' : 'Need';
+  }
+
+  function thingCategoryLabel(item){
+    if(item.category==='grocery') return 'Grocery';
+    if(item.category==='household') return item.state==='low' ? 'Household · running low' : 'Household';
+    if(item.category==='gift') return item.person ? `Gift · for ${item.person}` : 'Gift idea';
+    const group=({home:'Home improvement',personal:'Personal want',other:'Someday'}[item.group] || 'Someday');
+    return group;
+  }
+
+  function thingAgeDays(item){
+    const stamp=Date.parse(item.addedAt || item.createdAt || '');
+    if(!Number.isFinite(stamp)) return 0;
+    return Math.max(0,Math.floor((Date.now()-stamp)/86400000));
+  }
+
+  function splitThingTitles(value,category){
+    const raw=String(value||'').trim();
+    if(!raw) return [];
+    if(category!=='grocery') return [raw];
+    return raw.split(',').map(x=>x.trim()).filter(Boolean).slice(0,12);
+  }
+
+  function addThingToGet(title,category='grocery',extra={}){
+    const allowed=['grocery','household','gift','later'];
+    const kind=allowed.includes(category)?category:'grocery';
+    const titles=splitThingTitles(title,kind);
+    if(!titles.length) return [];
+    const created=[];
+    titles.forEach(name=>{
+      const existing=thingsToGet.find(item=>item.category===kind && item.title.trim().toLowerCase()===name.toLowerCase() && !['given'].includes(item.state));
+      if(existing){
+        if(kind==='grocery') existing.state='need';
+        else if(kind==='household' && existing.state==='fine') existing.state='need';
+        else if(kind==='later' && existing.state==='bought') existing.state='idea';
+        existing.updatedAt=new Date().toISOString();
+        created.push(existing);
+        return;
+      }
+      const state=kind==='grocery'?'need':kind==='household'?'need':'idea';
+      const item={
+        id:'get_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),
+        title:name.slice(0,180),category:kind,state,
+        addedAt:new Date().toISOString(),updatedAt:new Date().toISOString()
+      };
+      if(kind==='gift' && extra.person) item.person=String(extra.person).trim().slice(0,80);
+      if(kind==='later') item.group=['home','personal','other'].includes(extra.group)?extra.group:'home';
+      thingsToGet.push(item);
+      created.push(item);
+    });
+    saveThingsToGet();
+    refreshThingsToGetUI();
+    return created;
+  }
+
+  function setThingState(id,state){
+    const item=thingsToGet.find(x=>x.id===id);
+    if(!item) return;
+    item.state=state;
+    item.updatedAt=new Date().toISOString();
+    if(state==='bought') item.boughtAt=new Date().toISOString();
+    if(state==='given') item.givenAt=new Date().toISOString();
+    saveThingsToGet();
+    refreshThingsToGetUI();
+  }
+
+  function markThingBought(id){
+    const item=thingsToGet.find(x=>x.id===id);
+    if(!item) return;
+    item.boughtAt=new Date().toISOString();
+    item.updatedAt=item.boughtAt;
+    if(item.category==='household') item.state='fine';
+    else item.state='bought';
+    saveThingsToGet();
+    refreshThingsToGetUI();
+  }
+
+  function removeThingToGet(id){
+    thingsToGet=thingsToGet.filter(x=>x.id!==id);
+    saveThingsToGet();
+    refreshThingsToGetUI();
+  }
+
+  function makeGetAction(label,handler,className=''){
+    const button=document.createElement('button');
+    button.type='button';
+    button.className=`getAction ${className}`.trim();
+    button.textContent=label;
+    button.addEventListener('click',handler);
+    return button;
+  }
+
+  function renderGetItem(container,item){
+    const row=document.createElement('div');
+    row.className='getItem';
+    row.dataset.getId=item.id;
+    const top=document.createElement('div');
+    top.className='getItemTop';
+    const copy=document.createElement('div');
+    const title=document.createElement('div');
+    title.className='getItemName';
+    title.textContent=item.title;
+    const meta=document.createElement('div');
+    meta.className='getItemMeta';
+    const age=thingAgeDays(item);
+    let metaText=thingCategoryLabel(item);
+    if(item.category==='later' && age>=3 && item.state==='idea') metaText+=` · saved ${age} days ago · still want it?`;
+    else if(age>0 && item.category==='later') metaText+=` · saved ${age} day${age===1?'':'s'} ago`;
+    if(item.category==='household' && item.boughtAt) metaText+=` · last bought ${new Date(item.boughtAt).toLocaleDateString(undefined,{month:'short',day:'numeric'})}`;
+    meta.textContent=metaText;
+    copy.append(title,meta);
+    const pill=document.createElement('div');
+    pill.className='getStatePill';
+    pill.textContent=thingStateLabel(item);
+    top.append(copy,pill);
+    row.appendChild(top);
+
+    const actions=document.createElement('div');
+    actions.className='getItemActions';
+    if(item.category==='grocery'){
+      if(item.state==='need') actions.appendChild(makeGetAction('Bought',()=>markThingBought(item.id),'primaryGet'));
+      else actions.appendChild(makeGetAction('Add again',()=>setThingState(item.id,'need'),'primaryGet'));
+    }else if(item.category==='household'){
+      ['fine','low','need'].forEach(state=>{
+        const label={fine:'Fine',low:'Running low',need:'Need'}[state];
+        actions.appendChild(makeGetAction(label,()=>setThingState(item.id,state),item.state===state?'selectedGet':''));
+      });
+      if(item.state!=='fine') actions.appendChild(makeGetAction('Bought',()=>markThingBought(item.id),'primaryGet'));
+    }else if(item.category==='gift'){
+      ['idea','bought','given'].forEach(state=>{
+        const label={idea:'Idea',bought:'Bought',given:'Given'}[state];
+        actions.appendChild(makeGetAction(label,()=>setThingState(item.id,state),item.state===state?'selectedGet':''));
+      });
+    }else if(item.category==='later'){
+      if(item.state==='idea') actions.appendChild(makeGetAction('Need now',()=>setThingState(item.id,'need'),'primaryGet'));
+      else if(item.state==='need'){
+        actions.appendChild(makeGetAction('Keep for later',()=>setThingState(item.id,'idea')));
+        actions.appendChild(makeGetAction('Got it',()=>markThingBought(item.id),'primaryGet'));
+      }else if(item.state==='bought') actions.appendChild(makeGetAction('Want again',()=>setThingState(item.id,'idea')));
+    }
+    actions.appendChild(makeGetAction('Remove',()=>removeThingToGet(item.id),'dangerGet'));
+    row.appendChild(actions);
+    container.appendChild(row);
+  }
+
+  function renderShoppingNow(){
+    const box=$('shoppingNowList');
+    if(!box) return;
+    box.innerHTML='';
+    const rank={grocery:0,household:1,later:2};
+    const items=thingsToGet.filter(thingsActive).sort((a,b)=>(rank[a.category]??9)-(rank[b.category]??9) || a.title.localeCompare(b.title));
+    $('shoppingNowCount').textContent=items.length ? `${items.length} to pick up` : 'clear';
+    if(!items.length){
+      const empty=document.createElement('div'); empty.className='getEmpty'; empty.textContent='Nothing is asking to be bought right now.'; box.appendChild(empty); return;
+    }
+    items.forEach(item=>{
+      const row=document.createElement('div'); row.className='getShoppingRow'; row.dataset.getId=item.id;
+      const check=document.createElement('button'); check.type='button'; check.className='getCheck'; check.setAttribute('aria-label',`Bought ${item.title}`); check.textContent='✓'; check.addEventListener('click',()=>markThingBought(item.id));
+      const copy=document.createElement('div');
+      const title=document.createElement('div'); title.className='getShoppingName'; title.textContent=item.title;
+      const meta=document.createElement('div'); meta.className='getShoppingMeta'; meta.textContent=thingCategoryLabel(item);
+      copy.append(title,meta); row.append(check,copy); box.appendChild(row);
+    });
+  }
+
+  function renderThingCategory(category,containerId){
+    const box=$(containerId);
+    if(!box) return;
+    box.innerHTML='';
+    const items=thingsToGet.filter(item=>item.category===category);
+    const visible=category==='grocery' ? items.filter(item=>item.state==='need') : items;
+    visible.sort((a,b)=>{
+      if(category==='household'){
+        const rank={need:0,low:1,fine:2};
+        return (rank[a.state]??9)-(rank[b.state]??9) || a.title.localeCompare(b.title);
+      }
+      if(category==='gift') return (a.person||'zzz').localeCompare(b.person||'zzz') || a.title.localeCompare(b.title);
+      return new Date(b.updatedAt||b.addedAt)-new Date(a.updatedAt||a.addedAt);
+    });
+    if(!visible.length){
+      const empty=document.createElement('div'); empty.className='getEmpty';
+      empty.textContent=category==='grocery'?'No groceries waiting.':category==='household'?'No household supplies saved yet.':category==='gift'?'No gift ideas saved yet.':'No someday wants saved yet.';
+      box.appendChild(empty);
+    }else visible.forEach(item=>renderGetItem(box,item));
+
+    if(category==='grocery'){
+      const recent=$('groceryRecent');
+      if(!recent) return;
+      recent.innerHTML='';
+      const bought=items.filter(item=>item.state==='bought').sort((a,b)=>new Date(b.boughtAt||b.updatedAt)-new Date(a.boughtAt||a.updatedAt)).slice(0,6);
+      if(bought.length){
+        const title=document.createElement('div'); title.className='getSectionNote'; title.textContent='Recently bought · tap Add again when a staple comes back around.'; recent.appendChild(title);
+        const list=document.createElement('div'); list.className='getList'; list.style.marginTop='7px'; recent.appendChild(list);
+        bought.forEach(item=>renderGetItem(list,item));
+      }
+    }
+  }
+
+  function renderThingsToGetSummary(){
+    thingsToGet=loadThingsToGet();
+    const grocery=thingsToGet.filter(item=>item.category==='grocery' && item.state==='need').length;
+    const need=thingsToGet.filter(item=>item.category==='household' && item.state==='need').length;
+    const low=thingsToGet.filter(item=>item.category==='household' && item.state==='low').length;
+    const shopping=thingsToGet.filter(thingsActive).length;
+    const gifts=thingsToGet.filter(item=>item.category==='gift' && item.state==='idea').length;
+    const later=thingsToGet.filter(item=>item.category==='later' && item.state==='idea').length;
+    const summary=$('thingsToGetSummary');
+    if(summary){
+      if(shopping) summary.textContent=`${shopping} to pick up · ${grocery} grocer${grocery===1?'y':'ies'}${low?` · ${low} running low`:''}`;
+      else if(gifts || later) summary.textContent=`Nothing needed now · ${gifts+later} idea${gifts+later===1?'':'s'} saved`;
+      else summary.textContent='Nothing needed right now.';
+    }
+    window.__LOOCHORI_GET__={version:'0.20.5',shopping,grocery,householdNeed:need,householdLow:low,gifts,later,total:thingsToGet.length};
+  }
+
+  function renderThingsToGet(){
+    thingsToGet=loadThingsToGet();
+    renderShoppingNow();
+    renderThingCategory('grocery','groceryGetList');
+    renderThingCategory('household','householdGetList');
+    renderThingCategory('gift','giftGetList');
+    renderThingCategory('later','laterGetList');
+    renderThingsToGetSummary();
+  }
+
+  function refreshThingsToGetUI(){
+    renderThingsToGetSummary();
+    if($('thingsToGetModal')?.classList.contains('open')) renderThingsToGet();
+  }
+
+  function updateThingsToGetAddFields(){
+    const category=$('thingsToGetCategory')?.value || 'grocery';
+    if($('giftGetFields')) $('giftGetFields').hidden=category!=='gift';
+    if($('laterGetFields')) $('laterGetFields').hidden=category!=='later';
+  }
+
+  function addThingToGetFromModal(){
+    const input=$('thingsToGetInput');
+    const value=input?.value.trim();
+    if(!value) return;
+    const category=$('thingsToGetCategory').value;
+    addThingToGet(value,category,{person:$('thingsToGetPerson')?.value || '',group:$('thingsToGetGroup')?.value || 'home'});
+    input.value='';
+    if($('thingsToGetPerson')) $('thingsToGetPerson').value='';
+    input.focus();
+  }
+
+  function openThingsToGet(){
+    renderThingsToGet();
+    updateThingsToGetAddFields();
+    $('thingsToGetModal').classList.add('open');
+    setTimeout(()=>$('thingsToGetInput')?.focus(),80);
+  }
+
+  function closeThingsToGet(){ $('thingsToGetModal').classList.remove('open'); }
+
+  function setCaptureDestination(mode){
+    captureDestination=mode==='get'?'get':'loop';
+    $('captureAsLoop')?.classList.toggle('selected',captureDestination==='loop');
+    $('captureAsGet')?.classList.toggle('selected',captureDestination==='get');
+    if($('captureGetCategory')) $('captureGetCategory').hidden=captureDestination!=='get';
+    if($('saveCaptureBtn')) $('saveCaptureBtn').textContent=captureDestination==='get'?'Save it':'Hold it';
   }
 
 
@@ -9751,7 +10210,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     status.textContent=summary.resolved
       ? `${summary.resolved} observed outcome${summary.resolved===1?'':'s'} · ${summary.patterns} pattern${summary.patterns===1?'':'s'} strong enough to influence ranking.`
       : 'Listening quietly · no pattern has enough evidence yet.';
-    window.__LOOCHORI_RHYTHM_MEMORY__={version:'0.20.3',...summary};
+    window.__LOOCHORI_RHYTHM_MEMORY__={version:'0.20.5',...summary};
   }
 
   function resetRhythmMemory(){
@@ -9951,7 +10410,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
 
     window.__LOOCHORI_POCKET__={
       ...(window.__LOOCHORI_POCKET__||{}),
-      version:'0.20.3',
+      version:'0.20.5',
       installed:pocketStandalone(),
       prefs:{...prefs},
       candidates:candidates.map(item=>({key:item.key,kind:item.kind,title:item.title,score:item.score,learningAdjustment:item.learningAdjustment||0,learningObservations:item.learningObservations||0})),
@@ -10454,7 +10913,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     button.style.display=future ? 'none' : 'inline-flex';
     button.textContent=closeout ? 'Review day' : today ? 'Close today' : 'Review day';
     window.__LOOCHORI_ACTIVITY__={
-      version:'0.20.3',date:dateStr,remembered:remembered.length,total:events.length,closed:Boolean(closeout),
+      version:'0.20.5',date:dateStr,remembered:remembered.length,total:events.length,closed:Boolean(closeout),
       events:events.map(event=>({title:event.title,status:event.status,kind:event.kind,source:event.source,durationMinutes:event.durationMinutes}))
     };
   }
@@ -10637,7 +11096,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
       const title=details.querySelector('.majorDisclosureTitle');
       const meta=details.querySelector('.majorDisclosureMeta');
       if(title) title.textContent='Advanced & data';
-      if(meta) meta.textContent='Cozy Clarity v0.20.4 · backups, assumptions and diagnostics.';
+      if(meta) meta.textContent='Things to Get v0.20.5 · backups, assumptions and diagnostics.';
       settingsBody.appendChild(details);
     }
 
@@ -10651,7 +11110,7 @@ window.__LOOCHORI_BOOT_STARTED_AT__ = Date.now();
     });
   }
 
-    function renderAll(){ refreshAllViews(); renderDataHealth(); }
+    function renderAll(){ refreshAllViews(); renderDataHealth(); renderThingsToGetSummary(); }
 
   function showScreen(id){
     document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));
@@ -10814,8 +11273,17 @@ document.querySelectorAll('[data-jump]').forEach(btn=>{
   $('closePlanPlaceBtn').addEventListener('click',closePlanPlace);
   $('planPlaceModal').addEventListener('click',e=>{ if(e.target===$('planPlaceModal')) closePlanPlace(); });
 
+  $('openThingsToGetBtn').addEventListener('click',openThingsToGet);
+  $('closeThingsToGetBtn').addEventListener('click',closeThingsToGet);
+  $('thingsToGetModal').addEventListener('click',e=>{ if(e.target===$('thingsToGetModal')) closeThingsToGet(); });
+  $('thingsToGetCategory').addEventListener('change',updateThingsToGetAddFields);
+  $('addThingToGetBtn').addEventListener('click',addThingToGetFromModal);
+  $('thingsToGetInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();addThingToGetFromModal();} });
+
   $('captureNowBtn').addEventListener('click',()=>openCaptureModal(true));
   $('reviewLoopsBtn').addEventListener('click',()=>openCaptureModal(false));
+  $('captureAsLoop').addEventListener('click',()=>setCaptureDestination('loop'));
+  $('captureAsGet').addEventListener('click',()=>setCaptureDestination('get'));
   $('closeCaptureModal').addEventListener('click', closeCaptureModal);
   $('captureModal').addEventListener('click',e=>{ if(e.target===$('captureModal')) closeCaptureModal(); });
   $('saveCaptureBtn').addEventListener('click', captureThought);
@@ -10837,6 +11305,7 @@ document.querySelectorAll('[data-jump]').forEach(btn=>{
   }, 60000);
 
   mountActivityMemory();
+  setCaptureDestination('loop');
   mountCozyHomeShell();
   mountPocketLoochori();
   renderHouseholdLabels();

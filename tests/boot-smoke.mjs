@@ -347,7 +347,9 @@ try {
   assert.equal(await page.locator('#carryoverPanel.show').count(), 1, 'yesterday carryover prompt did not render');
   assert((await text('#carryoverTitle')).includes('carried over from yesterday'), 'carryover prompt copy is missing');
 
-  await page.locator('#houseArea > summary').click();
+  if (!(await page.locator('#houseArea').evaluate(el => el.open))) {
+    await page.locator('#houseArea > summary').click();
+  }
   await page.waitForFunction(() => document.getElementById('houseArea')?.open);
   const loopToday = page.locator('button[data-intent-kind="loop"][data-intent-ref="loop_smoke"]:visible');
   assert((await loopToday.count()) >= 1, 'open-loop Today control did not render');
